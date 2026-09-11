@@ -103,10 +103,49 @@ def _iter_unique_pairs(*positions):
     """
     if not positions or positions[0].size == 0:
         return
-    stacked = np.column_stack(positions)
-    combos, inverse = np.unique(stacked, axis=0, return_inverse=True)
-    for k, combo in enumerate(combos):
-        yield (*(int(v) for v in combo), inverse == k)
+
+    # np.unique(stacked, axis=0) builds a void-dtype view of the rows and
+    # lexsorts it, and that sort dominated the aggregate-shock solver: in a
+    # profile of test_small_open_economy, argsort was 71.3s of 143.7s and this
+    # function 76.2s cumulative. These positions are bounded grid indices, so
+    # the rows pack losslessly into one integer key, and np.unique on a 1-D
+    # integer array takes a much cheaper path.
+    #
+    # The packing is mixed-radix with each axis's own stride, so key order is
+    # the same lexicographic order np.unique(axis=0) returned. Callers index
+    # by mask and do not depend on that order, but matching it keeps the
+    # change bit-identical rather than merely equivalent.
+    strides = [int(p.max()) + 1 if p.size else 1 for p in positions]
+
+    # Range check BEFORE any int64 arithmetic. The largest key the packing can
+    # produce is prod(strides) - 1, and strides are Python ints, so this
+    # product is computed at arbitrary precision and cannot itself wrap.
+    # Unreachable for grid indices; a wrapped key would merge distinct cells
+    # rather than fail, which is not a failure mode worth leaving open.
+    total = 1
+    for stride in strides:
+        total *= stride
+    if total - 1 > np.iinfo(np.int64).max:
+        combos, inverse = np.unique(
+            np.column_stack(positions), axis=0, return_inverse=True
+        )
+        for k, combo in enumerate(combos):
+            yield (*(int(v) for v in combo), inverse == k)
+        return
+
+    # copy=False: these come from np.searchsorted, so they are already intp
+    # (int64 on 64-bit) and the copy would be pure overhead in a hot path.
+    # Safe because key is never written in place -- `key = key * stride + pos`
+    # rebinds to a fresh array, and the single-axis case (the common one)
+    # skips the loop entirely and only reads key.
+    key = positions[0].astype(np.int64, copy=False)
+    for pos, stride in zip(positions[1:], strides[1:]):
+        key = key * stride + pos
+
+    _, first, inverse = np.unique(key, return_index=True, return_inverse=True)
+    inverse = inverse.reshape(-1)
+    for k, idx in enumerate(first):
+        yield (*(int(p[idx]) for p in positions), inverse == k)
 
 
 def _envelope_partial(envelope, args, deriv_attr):
