@@ -4,7 +4,7 @@ Covers:
 1. ``make_Q_measure_dstn``: correct psi/E[psi] reweighting, atoms unchanged,
    and a warning rather than a silent pass-through when there is nothing to
    reweight.
-2. ``_cdf_invert``: deterministic CDF inversion.
+2. ``cdf_invert``: deterministic CDF inversion.
 3. **Default-path invariance**: composing ``DualMeasureMixin`` without
    enabling it leaves a simulation bit-identical to the plain agent, RNG
    stream included (the non-disruption guarantee for this pure-addition
@@ -28,6 +28,7 @@ import pytest
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    KinkedRconsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
@@ -35,10 +36,12 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
 )
-from HARK.distributions.discrete import DiscreteDistribution
+from HARK.ConsumptionSaving.ConsPrefShockModel import KinkyPrefConsumerType
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
+from HARK.distributions.discrete import DiscreteDistribution, cdf_invert
 from HARK.dual_measure import (
     DualMeasureMixin,
-    _cdf_invert,
+    _cohort_mass_normalizer,
     compute_mean_pLvl,
     make_Q_measure_dstn,
 )
@@ -156,7 +159,7 @@ def test_setup_q_measure_is_quiet_when_reweighting_is_possible(recwarn):
 def test_cdf_invert_known_case():
     pmv = np.array([0.2, 0.3, 0.5])
     draws = np.array([0.0, 0.19, 0.21, 0.49, 0.51, 0.99])
-    idx = _cdf_invert(draws, pmv)
+    idx = cdf_invert(draws, pmv)
     assert np.array_equal(idx, np.array([0, 0, 1, 1, 2, 2]))
 
 
@@ -665,8 +668,7 @@ def test_cohort_mass_normalizer_has_the_right_limit_at_no_mortality():
     which is exactly 0 where the answer is 1/T_age. LivPrb == 1 is a
     reachable calibration -- it is what you set for no mortality.
     """
-    from HARK.dual_measure import _cohort_mass_normalizer as norm
-
+    norm = _cohort_mass_normalizer
     for T_age in (10, 50, 400):
         got = norm(1.0, T_age)
         assert np.isfinite(got), "LivPrb == 1 must not produce nan or inf"
@@ -685,8 +687,7 @@ def test_cohort_mass_normalizer_has_the_right_limit_at_no_mortality():
 
 def test_cohort_mass_normalizer_matches_the_formulas_it_replaced():
     """Away from the degenerate point, nothing may move."""
-    from HARK.dual_measure import _cohort_mass_normalizer as norm
-
+    norm = _cohort_mass_normalizer
     for T_age in (10, 50, 65, 400):
         for LivPrb in (0.90, 0.95, 0.98, 0.99, 0.999):
             old_C_norm = (1.0 - LivPrb) / (1.0 - LivPrb**T_age)
@@ -760,10 +761,6 @@ def test_setup_q_measure_refuses_models_whose_get_Rport_reads_p_side_state():
     purpose: inspecting only its own one-line body reports it clean, which
     is why the check follows one level of delegation.
     """
-    from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
-    from HARK.ConsumptionSaving.ConsPrefShockModel import KinkyPrefConsumerType
-    from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
-
     for base in (KinkedRconsumerType, KinkyPrefConsumerType, RiskyAssetConsumerType):
         cls = type("Dual" + base.__name__, (DualMeasureMixin, base), {})
         agent = cls(AgentCount=50, T_sim=3, seed=1)

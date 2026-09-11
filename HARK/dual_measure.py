@@ -39,10 +39,6 @@ import numpy as np
 
 from HARK.distributions.discrete import DiscreteDistribution, cdf_invert
 
-#: Kept as a module-level alias: this module defined `_cdf_invert` before
-#: it moved next to the distribution it inverts, and tests import it here.
-_cdf_invert = cdf_invert
-
 __all__ = [
     "make_Q_measure_dstn",
     "DualMeasureMixin",
@@ -169,6 +165,20 @@ def _refuse_normalization(agent):
             )
 
 
+def _fill_Q_cell(mask, dstn, PermGroFac, base_draws, PermShkQ, TranShkQ):
+    """Write the Q-measure shocks of the agents in ``mask`` from ``dstn``.
+
+    Inverts the cell's recorded base uniforms through the Q CDF, so P and Q
+    share their draws, or draws fresh events when none were recorded.
+    """
+    if base_draws is not None:
+        indices = cdf_invert(base_draws, dstn.pmv)
+    else:
+        indices = dstn.draw_events(int(np.sum(mask)))
+    PermShkQ[mask] = dstn.atoms[0][indices] * PermGroFac
+    TranShkQ[mask] = dstn.atoms[1][indices]
+
+
 class DualMeasureMixin:
     """Mixin that adds Harmenberg neutral-measure (Q) parallel tracking.
 
@@ -177,18 +187,17 @@ class DualMeasureMixin:
         class DualAgent(DualMeasureMixin, IndShockConsumerType):
             pass
 
-    When ``dual_measure=True`` (set by :meth:`setup_Q_measure`),
-    :meth:`sim_one_period` runs the standard P-measure pipeline and then a
+    When ``dual_measure=True`` (set by :meth:`setup_Q_measure`), each
+    simulated period runs the standard P-measure pipeline and then a
     parallel Q-measure state update that reuses the same mortality draws,
     Markov transitions, and base uniform random numbers.
 
     **Zero impact on base classes**: ``AgentType``, ``IndShockConsumerType``,
     and ``MarkovConsumerType`` are not modified.  The mixin overrides
-    ``sim_one_period`` and ``simulate`` via MRO.  Neither reimplements the
-    P-pipeline: ``simulate`` delegates each period to ``super().simulate(1)``,
-    and ``sim_one_period`` runs the base class's own
-    :meth:`~HARK.core.AgentType._sim_period_prologue` and
-    :meth:`~HARK.core.AgentType._sim_period_epilogue` around the Q-step.
+    ``_sim_period_epilogue`` and ``simulate`` via MRO.  Neither reimplements
+    the P-pipeline: ``simulate`` delegates each period to
+    ``super().simulate(1)``, and the epilogue runs the Q-step before handing
+    over to :meth:`~HARK.core.AgentType._sim_period_epilogue`.
     """
 
     dual_measure = False
@@ -248,21 +257,15 @@ class DualMeasureMixin:
 
         _refuse_normalization(self)
 
-        # warn=False here, and the degenerate periods are counted instead.
-        # Mapping over a lifecycle hits legitimately degenerate periods as a
-        # matter of course: retirement periods are constructed with
-        # n_approx_Perm = 1, so P equals Q there by design. A stock
-        # init_lifecycle emits 25 of those from a single call, which trains
-        # the reader to filter the module and so hides the aggregate warning
-        # below, which is the one that means something.
-        self.IncShkDstn_Q = []
-        for period_dstn in self.IncShkDstn:
-            if isinstance(period_dstn, (list, tuple)):
-                self.IncShkDstn_Q.append(
-                    [make_Q_measure_dstn(d, warn=False) for d in period_dstn]
-                )
-            else:
-                self.IncShkDstn_Q.append(make_Q_measure_dstn(period_dstn, warn=False))
+        # warn=False: lifecycle retirement periods are degenerate by design
+        # (25 per stock init_lifecycle), so they are counted instead and only
+        # the aggregate warning below fires.
+        self.IncShkDstn_Q = [
+            [make_Q_measure_dstn(d, warn=False) for d in period_dstn]
+            if isinstance(period_dstn, (list, tuple))
+            else make_Q_measure_dstn(period_dstn, warn=False)
+            for period_dstn in self.IncShkDstn
+        ]
 
         # Recorded rather than warned: inspectable after the fact without
         # costing anything on the healthy path.
@@ -330,54 +333,24 @@ class DualMeasureMixin:
 
     def clear_history_Q(self):
         """Allocate NaN-filled Q-history arrays for every tracked variable."""
-        self.history_Q = {}
-        for var_name in self.track_vars:
-            self.history_Q[var_name] = np.empty((self.T_sim, self.AgentCount))
-            self.history_Q[var_name].fill(np.nan)
+        self.history_Q = {
+            var_name: np.full((self.T_sim, self.AgentCount), np.nan)
+            for var_name in self.track_vars
+        }
 
     # ------------------------------------------------------------------
-    # post-state hook (self-contained default)
+    # Q step, run before time advances
     # ------------------------------------------------------------------
 
-    def post_state_hook(self):
-        """Extension point invoked between ``get_states()`` and
-        ``get_controls()`` inside this mixin's ``sim_one_period``.
+    def _sim_period_epilogue(self):
+        """Step the Q measure, then let the base class advance time.
 
-        The default does nothing (beyond deferring to a base-class hook of
-        the same name, if one ever exists), so composing this mixin changes
-        no behavior.  Cooperating mixins (e.g. a pLvl-normalization mixin)
-        can override it to adjust states before controls are computed.
+        The Q pipeline needs ``t_age`` and ``t_cycle`` at the values the P
+        pipeline just used, and the base epilogue is what advances them.
         """
-        sup = getattr(super(), "post_state_hook", None)
-        if sup is not None:
-            sup()
-
-    # ------------------------------------------------------------------
-    # sim_one_period override
-    # ------------------------------------------------------------------
-
-    def sim_one_period(self):
-        """Run the P-pipeline, then the Q-pipeline before time advancement.
-
-        Calling ``super().sim_one_period()`` and appending the Q-step does not
-        work: the base class advances ``t_age`` and ``t_cycle`` at the end,
-        and the Q-pipeline needs them at the pre-increment values the
-        P-pipeline used.  That is why the base class exposes the two halves
-        separately, so the Q-step can sit between them.  Everything before
-        and after it is the base class's own code, reached through the MRO,
-        not a copy of it living here.
-        """
-        self._sim_period_prologue()
-        self.get_states()
-        self.post_state_hook()
-        self.get_controls()
-        self.get_poststates()
-
-        # --- Q-pipeline (while t_age / t_cycle still match P's view) ---
         if self.dual_measure:
             self._step_Q_measure()
-
-        self._sim_period_epilogue()
+        super()._sim_period_epilogue()
 
     # ------------------------------------------------------------------
     # Q-measure one-period pipeline
@@ -413,7 +386,7 @@ class DualMeasureMixin:
             return
         for var in self.state_now_Q:
             val_prev = self.state_prev.get(var)
-            if val_prev is not None and isinstance(val_prev, np.ndarray):
+            if isinstance(val_prev, np.ndarray):
                 self.state_now_Q[var][who_dies] = val_prev[who_dies]
 
     def _lag_Q_states(self):
@@ -458,43 +431,26 @@ class DualMeasureMixin:
         PermShkQ = np.zeros(self.AgentCount)
         TranShkQ = np.zeros(self.AgentCount)
 
+        # Index t - 1 for every cycle, as in IndShockConsumerType.get_shocks.
         for t in np.unique(self.t_cycle):
-            idx = self.t_cycle == t
-            # t - 1 unconditionally, matching IndShockConsumerType.get_shocks
-            # (`t = s - 1`) and _draw_Q_shocks_markov (`IncShkDstn_Q[t - 1]`).
-            # This was `t - 1 if self.cycles == 1 else t`, which put Q one
-            # period ahead of P in both the shock distribution and the growth
-            # factor whenever cycles != 1 and T_cycle > 1 -- including
-            # cycles=0, this module's own documented usage. It was invisible
-            # because at T_cycle == 1 the list has one element and indices 0
-            # and -1 name it.
-            t_key = t - 1
-            N = np.sum(idx)
-            if N > 0:
-                IncShkDstnQ = self.IncShkDstn_Q[t_key]
-                PermGroFacNow = self.PermGroFac[t_key]
+            _fill_Q_cell(
+                self.t_cycle == t,
+                self.IncShkDstn_Q[t - 1],
+                self.PermGroFac[t - 1],
+                base_draws_dict.get(t),
+                PermShkQ,
+                TranShkQ,
+            )
 
-                base_draws = base_draws_dict.get(t)
-                if base_draws is not None:
-                    indices_Q = _cdf_invert(base_draws, IncShkDstnQ.pmv)
-                else:
-                    indices_Q = IncShkDstnQ.draw_events(N)
-
-                PermShkQ[idx] = IncShkDstnQ.atoms[0][indices_Q] * PermGroFacNow
-                TranShkQ[idx] = IncShkDstnQ.atoms[1][indices_Q]
-
-        N_new = np.sum(newborn)
-        if N_new > 0:
-            IncShkDstnQ_0 = self.IncShkDstn_Q[0]
-            PermGroFacNow = self.PermGroFac[0]
-            base_new = base_draws_dict.get("newborn")
-            if base_new is not None:
-                indices_Q = _cdf_invert(base_new, IncShkDstnQ_0.pmv)
-            else:
-                indices_Q = IncShkDstnQ_0.draw_events(N_new)
-            PermShkQ[newborn] = IncShkDstnQ_0.atoms[0][indices_Q] * PermGroFacNow
-            TranShkQ[newborn] = IncShkDstnQ_0.atoms[1][indices_Q]
-
+        if np.any(newborn):
+            _fill_Q_cell(
+                newborn,
+                self.IncShkDstn_Q[0],
+                self.PermGroFac[0],
+                base_draws_dict.get("newborn"),
+                PermShkQ,
+                TranShkQ,
+            )
             if not getattr(self, "NewbornTransShk", False):
                 TranShkQ[newborn] = 1.0
 
@@ -526,42 +482,31 @@ class DualMeasureMixin:
         TranShkQ = np.zeros(self.AgentCount)
 
         for t in range(self.T_cycle):
-            J = self.MrkvArray[t].shape[0]
-            for j in range(J):
+            for j in range(self.MrkvArray[t].shape[0]):
                 these = np.logical_and(t == self.t_cycle, j == MrkvNow)
-                N = np.sum(these)
-                if N > 0:
-                    IncShkDstnQ = self.IncShkDstn_Q[t - 1][j]
-                    PermGroFacNow = self.PermGroFac[t - 1][j]
-
-                    base_draws = base_draws_dict.get((t, j))
-                    if base_draws is not None:
-                        indices_Q = _cdf_invert(base_draws, IncShkDstnQ.pmv)
-                    else:
-                        indices_Q = IncShkDstnQ.draw_events(N)
-
-                    PermShkQ[these] = IncShkDstnQ.atoms[0][indices_Q] * PermGroFacNow
-                    TranShkQ[these] = IncShkDstnQ.atoms[1][indices_Q]
+                if np.any(these):
+                    _fill_Q_cell(
+                        these,
+                        self.IncShkDstn_Q[t - 1][j],
+                        self.PermGroFac[t - 1][j],
+                        base_draws_dict.get((t, j)),
+                        PermShkQ,
+                        TranShkQ,
+                    )
 
         # Newborns: redraw from period 0's distribution, as the P side does.
         if np.any(newborn):
             for j in range(self.MrkvArray[0].shape[0]):
                 these_nb = np.logical_and(newborn, j == MrkvNow)
-                N_new = np.sum(these_nb)
-                if N_new == 0:
-                    continue
-                IncShkDstnQ_0 = self.IncShkDstn_Q[0][j]
-                PermGroFacNow = self.PermGroFac[0][j]
-
-                base_new = base_draws_dict.get(("newborn", j))
-                if base_new is not None:
-                    indices_Q = _cdf_invert(base_new, IncShkDstnQ_0.pmv)
-                else:
-                    indices_Q = IncShkDstnQ_0.draw_events(N_new)
-
-                PermShkQ[these_nb] = IncShkDstnQ_0.atoms[0][indices_Q] * PermGroFacNow
-                TranShkQ[these_nb] = IncShkDstnQ_0.atoms[1][indices_Q]
-
+                if np.any(these_nb):
+                    _fill_Q_cell(
+                        these_nb,
+                        self.IncShkDstn_Q[0][j],
+                        self.PermGroFac[0][j],
+                        base_draws_dict.get(("newborn", j)),
+                        PermShkQ,
+                        TranShkQ,
+                    )
             if not getattr(self, "NewbornTransShk", False):
                 TranShkQ[newborn] = 1.0
 
@@ -614,8 +559,7 @@ class DualMeasureMixin:
         else:
             for t in np.unique(self.t_cycle):
                 idx = self.t_cycle == t
-                if np.any(idx):
-                    cNrmQ[idx] = self.solution[t].cFunc(self.state_now_Q["mNrm"][idx])
+                cNrmQ[idx] = self.solution[t].cFunc(self.state_now_Q["mNrm"][idx])
 
         self.controls_Q["cNrm"] = cNrmQ
 
@@ -689,15 +633,10 @@ class DualMeasureMixin:
         so ``history_Q`` never reports a P quantity under a Q name.
         """
         for var_name in self.track_vars:
-            if var_name in self.state_now_Q:
-                value = self.state_now_Q[var_name]
-            elif var_name in self.shocks_Q:
-                value = self.shocks_Q[var_name]
-            elif var_name in self.controls_Q:
-                value = self.controls_Q[var_name]
-            else:
-                continue
-            self.history_Q[var_name][t_rec, :] = value
+            for source in (self.state_now_Q, self.shocks_Q, self.controls_Q):
+                if var_name in source:
+                    self.history_Q[var_name][t_rec, :] = source[var_name]
+                    break
 
     # ------------------------------------------------------------------
     # Aggregation utilities
@@ -825,6 +764,14 @@ def _cohort_mass_normalizer(LivPrb, T_age):
     return (1.0 - LivPrb) / (1.0 - L_T)
 
 
+def _first_scalar(values):
+    """Period 0's entry of a time-varying parameter, and state 0's if it is per-state."""
+    first = values[0]
+    if isinstance(first, (list, np.ndarray)):
+        first = first[0]
+    return first
+
+
 def compute_mean_pLvl(agent, g=None):
     """Analytical steady-state E[pLvl] for an infinite-horizon HARK agent.
 
@@ -847,15 +794,9 @@ def compute_mean_pLvl(agent, g=None):
     float
         E[pLvl] in the stationary cross-section.
     """
-    LivPrb = agent.LivPrb[0]
-    if isinstance(LivPrb, (list, np.ndarray)):
-        LivPrb = LivPrb[0]
-
+    LivPrb = _first_scalar(agent.LivPrb)
     if g is None:
-        PGF = agent.PermGroFac[0]
-        if isinstance(PGF, (list, np.ndarray)):
-            PGF = PGF[0]
-        g = PGF
+        g = _first_scalar(agent.PermGroFac)
 
     pLogInitMean = getattr(agent, "pLogInitMean", getattr(agent, "pLvlInitMean", 0.0))
     pLogInitStd = getattr(agent, "pLogInitStd", getattr(agent, "pLvlInitStd", 0.0))
@@ -914,13 +855,8 @@ def compute_pLvl_factor(agent, unemployment_path, g_base=None):
     u_path = np.asarray(unemployment_path, dtype=float)
     T = len(u_path)
 
-    G = agent.PermGroFac[0]
-    if isinstance(G, (list, np.ndarray)):
-        G = G[0]
-
-    LivPrb = agent.LivPrb[0]
-    if isinstance(LivPrb, (list, np.ndarray)):
-        LivPrb = LivPrb[0]
+    G = _first_scalar(agent.PermGroFac)
+    LivPrb = _first_scalar(agent.LivPrb)
 
     T_age = getattr(agent, "T_age", 400) or 400
     # Effective death rate accounting for forced death at T_age.
