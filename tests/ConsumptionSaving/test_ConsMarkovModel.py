@@ -436,3 +436,52 @@ class testTimeVaryingSimulationTiming(unittest.TestCase):
             implied = (h["mNrm"][s] - h["TranShk"][s]) * h["PermShk"][s]
             implied /= h["aNrm"][s - 1]
             np.testing.assert_allclose(implied, Rfree[s - 1], rtol=1e-12)
+
+
+class testNewbornMarkovStates(unittest.TestCase):
+    """Newborns must start the simulation in the state drawn from MrkvInitDstn."""
+
+    def test_initial_states_follow_MrkvPrbsInit(self):
+        # No deaths, so every agent in period 0 is one born by initialize_sim.
+        agent = MarkovConsumerType(
+            AgentCount=10_000,
+            T_sim=2,
+            MrkvPrbsInit=np.array([0.3, 0.7]),
+            LivPrb=[np.array([1.0, 1.0])],
+            seed=0,
+        )
+        agent.solve()
+        agent.track_vars = ["Mrkv"]
+        agent.initialize_sim()
+        drawn = agent.state_now["Mrkv"].astype(int)
+        agent.simulate()
+        first = agent.history["Mrkv"][0].astype(int)
+        np.testing.assert_array_equal(first, drawn)
+        shares = np.bincount(first, minlength=2) / agent.AgentCount
+        np.testing.assert_allclose(shares, [0.3, 0.7], atol=0.02)
+
+    def test_newborn_after_death_keeps_drawn_state(self):
+        # Everyone is born in state 1 and moves to state 0 the next period, so
+        # in every period the newborns, and only they, are in state 1.
+        params = deepcopy(init_indshk_markov)
+        params["constructors"] = dict(params["constructors"])
+        params["constructors"]["MrkvArray"] = None
+        params.update(
+            cycles=0,
+            MrkvArray=[np.array([[1.0, 0.0], [1.0, 0.0]])],
+            MrkvPrbsInit=np.array([0.0, 1.0]),
+            LivPrb=[np.array([0.8, 0.8])],
+            AgentCount=500,
+            T_sim=10,
+            T_age=None,
+            seed=1,
+        )
+        agent = MarkovConsumerType(**params)
+        agent.solve()
+        agent.track_vars = ["Mrkv", "t_age"]
+        agent.initialize_sim()
+        agent.simulate()
+        Mrkv = agent.history["Mrkv"].astype(int)
+        newborn = agent.history["t_age"] == 1  # t_age is recorded after the increment
+        self.assertTrue(newborn[1:].any())
+        np.testing.assert_array_equal(Mrkv, newborn.astype(int))

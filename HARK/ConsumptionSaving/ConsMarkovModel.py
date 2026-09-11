@@ -1020,7 +1020,11 @@ class MarkovConsumerType(IndShockConsumerType):
         if not self.global_markov:
             N = np.sum(which_agents)
             _kw = {"shuffle": True} if getattr(self, "init_shuffle", False) else {}
-            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(N, **_kw)
+            MrkvInit = self.MrkvInitDstn.draw(N, **_kw)
+            self.state_now["Mrkv"][which_agents] = MrkvInit
+            # get_markov_states keeps newborns at their shocks["Mrkv"] value, so
+            # the draw is written there too or MrkvPrbsInit never takes effect.
+            self.shocks["Mrkv"][which_agents] = MrkvInit
 
     def get_markov_states(self):
         """
