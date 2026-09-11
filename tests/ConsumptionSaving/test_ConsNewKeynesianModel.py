@@ -39,8 +39,10 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         AggC = np.dot(gridc.flatten(), vecDstn)  # Aggregate Consumption
         AggA = np.dot(grida.flatten(), vecDstn)  # Aggregate Assets
 
-        self.assertAlmostEqual(AggA[0], 0.82983, places=4)
-        self.assertAlmostEqual(AggC[0], 1.00780, places=4)
+        # values with newborns injected at their first income draw (2026-09);
+        # with the earlier m = 1, p = 1 placement they were 0.82983 and 1.00780
+        self.assertAlmostEqual(AggA[0], 0.83203, places=4)
+        self.assertAlmostEqual(AggC[0], 1.00782, places=4)
 
 
 # %% Test Heterogenous Agent Jacobian Methods
@@ -52,9 +54,11 @@ class test_Jacobian_methods(unittest.TestCase):
         Agent.compute_pe_steady_state()
         CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
 
-        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.10503, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.10316, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.09059, places=HARK_PRECISION)
+        # values with newborns injected at their first income draw (2026-09);
+        # with the earlier m = 1 placement they were -0.10503, 0.10316, 0.09059
+        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.10510, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.10324, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.09072, places=HARK_PRECISION)
 
 
 class test_assign_dist_mGrid(unittest.TestCase):
@@ -148,9 +152,9 @@ class test_NeutralMeasureWithGrowth(unittest.TestCase):
         X.find_steady_state()
         c_sim = X.get_long_run_average("cNrm")
         a_sim = X.get_long_run_average("aNrm")
-        # residual: this class places newborns at m = 1 rather than at their first income draw
+        # both place newborns at their first income draw; the residual is the grids
         self.assertLess(abs(c_nk / c_sim - 1.0), 5e-4)
-        self.assertLess(abs(a_nk / a_sim - 1.0), 5e-3)
+        self.assertLess(abs(a_nk / a_sim - 1.0), 1e-3)
 
     def test_trend_option_and_error_path(self):
         A, N = self._agents()

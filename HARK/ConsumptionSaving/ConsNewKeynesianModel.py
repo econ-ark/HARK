@@ -329,15 +329,13 @@ class NewKeynesianConsumerType(IndShockConsumerType):
             PermGroFac = float(np.asarray(self.PermGroFac[0]).ravel()[0])
             surv_growth = self._neutral_measure_surv_growth(PermGroFac, LivPrb)
 
-            # New borns have this distribution (assumes start with no assets and permanent income=1)
-            NewBornDist = jump_to_grid_2D(
-                tran_shks, np.ones_like(tran_shks), shk_prbs, dist_mGrid, dist_pGrid
-            )
-
+            # Newborns start with no assets and permanent income one, then draw
+            # their first period's shocks like everyone else: they arrive at the
+            # decision with market resources equal to their transitory income
+            # draw and permanent income PermGroFac * PermShk (HARK's simulators
+            # place them there), not at m = 1, p = 1.
             if len(dist_pGrid) == 1:
-                NewBornDist = jump_to_grid_1D(
-                    np.ones_like(tran_shks), shk_prbs, dist_mGrid
-                )
+                NewBornDist = jump_to_grid_1D(tran_shks, shk_prbs, dist_mGrid)
                 # Compute Transition Matrix given shocks and grids.
                 self.tran_matrix = gen_tran_matrix_1D(
                     dist_mGrid,
@@ -353,8 +351,8 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
             else:
                 NewBornDist = jump_to_grid_2D(
-                    np.ones_like(tran_shks),
-                    np.ones_like(tran_shks),
+                    tran_shks,
+                    PermGroFac * perm_shks,
                     shk_prbs,
                     dist_mGrid,
                     dist_pGrid,
@@ -419,10 +417,8 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                 surv_growth = self._neutral_measure_surv_growth(PermGroFac, LivPrb)
 
                 if len(dist_pGrid) == 1:
-                    # New borns have this distribution (assumes start with no assets and permanent income=1)
-                    NewBornDist = jump_to_grid_1D(
-                        np.ones_like(tran_shks), shk_prbs, dist_mGrid
-                    )
+                    # Newborns arrive at their first income draw (see above)
+                    NewBornDist = jump_to_grid_1D(tran_shks, shk_prbs, dist_mGrid)
                     # Compute Transition Matrix given shocks and grids.
                     TranMatrix_M = gen_tran_matrix_1D(
                         dist_mGrid,
@@ -439,8 +435,8 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
                 else:
                     NewBornDist = jump_to_grid_2D(
-                        np.ones_like(tran_shks),
-                        np.ones_like(tran_shks),
+                        tran_shks,
+                        PermGroFac * perm_shks,
                         shk_prbs,
                         dist_mGrid,
                         dist_pGrid,
