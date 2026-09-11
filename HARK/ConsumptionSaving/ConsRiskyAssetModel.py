@@ -10,6 +10,7 @@ from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    calc_v_scale,
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
@@ -715,6 +716,10 @@ def solve_one_period_ConsPortChoice(
     PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
     MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
 
+    # Scales of next period's value and of end-of-period value (see ValueFuncCRRA.vScale)
+    vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
+    EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+
     # Also perform an alternate calculation for human wealth under risky returns
     def calc_hNrm(S):
         Risky = S["Risky"]
@@ -845,6 +850,9 @@ def solve_one_period_ConsPortChoice(
                 """
                 mNrm_next = calc_mNrm_next(S, b)
                 v_next = vFunc_next(mNrm_next)
+                if CRRA == 1.0:
+                    # With log utility, permanent income growth adds a level term
+                    return v_next + vScaleNext * np.log(S["PermShk"] * PermGroFac)
                 v_intermed = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
                 return v_intermed
 
@@ -852,9 +860,9 @@ def solve_one_period_ConsPortChoice(
             v_intermed = expected(calc_v_intermed, IncShkDstn, args=(bNrmNext))
 
             # Construct the "intermediate value function" for this period
-            vNvrs_intermed = uFunc.inv(v_intermed)
+            vNvrs_intermed = uFunc.inv(v_intermed / vScaleNext)
             vNvrsFunc_intermed = LinearInterp(bNrmGrid, vNvrs_intermed)
-            vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
+            vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA, vScale=vScaleNext)
 
             def calc_EndOfPrd_v(S, a, z):
                 # Calculate future realizations of bank balances bNrm
@@ -869,11 +877,13 @@ def solve_one_period_ConsPortChoice(
             EndOfPrd_v = DiscFacEff * expected(
                 calc_EndOfPrd_v, RiskyDstn, args=(aNrmNow, ShareNext)
             )
-            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
+            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v / EndOfPrdvScale)
 
             # Now make an end-of-period value function over aNrm and Share
             EndOfPrd_vNvrsFunc = BilinearInterp(EndOfPrd_vNvrs, aNrmGrid, ShareGrid)
-            EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+            EndOfPrd_vFunc = ValueFuncCRRA(
+                EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale
+            )
             # This will be used later to make the value function for this period
 
     # If the income shock distribution and risky return distribution are *NOT*
@@ -924,6 +934,9 @@ def solve_one_period_ConsPortChoice(
             """
             mNrm_next = calc_mNrm_next(S, a, z)
             v_next = vFunc_next(mNrm_next)
+            if CRRA == 1.0:
+                # With log utility, permanent income growth adds a level term
+                return v_next + vScaleNext * np.log(S["PermShk"] * PermGroFac)
             EndOfPrd_v = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
             return EndOfPrd_v
 
@@ -945,10 +958,14 @@ def solve_one_period_ConsPortChoice(
             EndOfPrd_v = DiscFacEff * expected(
                 calc_EndOfPrd_v, ShockDstn, args=(aNrmNow, ShareNext)
             )
-            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
+            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v / EndOfPrdvScale)
 
             # value transformed through inverse utility
-            EndOfPrd_vNvrsP = EndOfPrd_dvda * uFunc.derinv(EndOfPrd_v, order=(0, 1))
+            EndOfPrd_vNvrsP = (
+                EndOfPrd_dvda
+                * uFunc.derinv(EndOfPrd_v / EndOfPrdvScale, order=(0, 1))
+                / EndOfPrdvScale
+            )
 
             # Construct the end-of-period value function
             EndOfPrd_vNvrsFunc_by_Share = []
@@ -961,7 +978,9 @@ def solve_one_period_ConsPortChoice(
             EndOfPrd_vNvrsFunc = LinearInterpOnInterp1D(
                 EndOfPrd_vNvrsFunc_by_Share, ShareGrid
             )
-            EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+            EndOfPrd_vFunc = ValueFuncCRRA(
+                EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale
+            )
 
     # Now find the optimal (continuous) risky share on [0,1] by solving the first
     # order condition EndOfPrd_dvds == 0.
@@ -1078,15 +1097,20 @@ def solve_one_period_ConsPortChoice(
         aNrm_temp = np.maximum(mNrm_temp - cNrm_temp, 0.0)  # Fix tiny violations
         Share_temp = ShareFunc_now(mNrm_temp)
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vScaleNow = calc_v_scale(CRRA, MPCminNow)
+        vNvrs_temp = uFunc.inv(v_temp / vScaleNow)
+        vNvrsP_temp = (
+            uFunc.der(cNrm_temp)
+            * uFunc.inverse(v_temp / vScaleNow, order=(0, 1))
+            / vScaleNow
+        )
         vNvrsFunc = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),  # dfdx_list
         )
         # Re-curve the pseudo-inverse value function
-        vFunc_now = ValueFuncCRRA(vNvrsFunc, CRRA)
+        vFunc_now = ValueFuncCRRA(vNvrsFunc, CRRA, vScale=vScaleNow)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFunc_now = NullFunc()
@@ -1280,6 +1304,10 @@ def solve_one_period_ConsIndShockRiskyAsset(
         np.array([mNrmMinNow, mNrmMinNow + 1.0]), np.array([0.0, 1.0])
     )
 
+    # Scales of next period's value and of end-of-period value (see ValueFuncCRRA.vScale)
+    vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
+    EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+
     # Big methodological split here: whether the income and return distributions are independent.
     # Calculation of end-of-period marginal (marginal) value uses different approaches
     if IndepDstnBool:
@@ -1302,7 +1330,13 @@ def solve_one_period_ConsIndShockRiskyAsset(
             return b / (PermGroFac * S["PermShk"]) + S["TranShk"]
 
         def calc_vNext(S, b):
-            return S["PermShk"] ** (1.0 - CRRA) * vFuncNext(calc_mNrmNext(S, b))
+            mNrmNext = calc_mNrmNext(S, b)
+            if CRRA == 1.0:
+                # With log utility, permanent income growth adds a level term to value
+                return vFuncNext(mNrmNext) + vScaleNext * np.log(
+                    PermGroFac * S["PermShk"]
+                )
+            return S["PermShk"] ** (1.0 - CRRA) * vFuncNext(mNrmNext)
 
         def calc_vPnext(S, b):
             return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, b))
@@ -1353,9 +1387,12 @@ def solve_one_period_ConsIndShockRiskyAsset(
         if vFuncBool:
             vFacEff = PermGroFac ** (1.0 - CRRA)
             Intermed_v = vFacEff * expected(calc_vNext, IncShkDstn, args=(bNrmNow))
-            Intermed_vNvrs = uFunc.inv(Intermed_v)
-            # value transformed through inverse utility
-            Intermed_vNvrsP = Intermed_vP * uFunc.derinv(Intermed_v, order=(0, 1))
+            Intermed_vNvrs = uFunc.inv(Intermed_v / vScaleNext)
+            Intermed_vNvrsP = (
+                Intermed_vP
+                * uFunc.derinv(Intermed_v / vScaleNext, order=(0, 1))
+                / vScaleNext
+            )
             if BoroCnstNat_iszero:
                 Intermed_vNvrs = np.insert(Intermed_vNvrs, 0, 0.0)
                 Intermed_vNvrsP = np.insert(Intermed_vNvrsP, 0, Intermed_vNvrsP[0])
@@ -1365,7 +1402,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
             Intermed_vNvrsFunc = CubicInterp(bNrm_temp, Intermed_vNvrs, Intermed_vNvrsP)
 
             # "Recurve" the intermediate pseudo-inverse value function
-            Intermed_vFunc = ValueFuncCRRA(Intermed_vNvrsFunc, CRRA)
+            Intermed_vFunc = ValueFuncCRRA(Intermed_vNvrsFunc, CRRA, vScale=vScaleNext)
 
         # We have "intermediate" (marginal) value functions defined over bNrm,
         # so now we want to take expectations over Risky realizations at each aNrm.
@@ -1411,9 +1448,12 @@ def solve_one_period_ConsIndShockRiskyAsset(
         if vFuncBool:
             # Calculate end-of-period value, its derivative, and their pseudo-inverse
             EndOfPrdv = DiscFacEff * expected(calc_vNext, RiskyDstn, args=(aNrmNow))
-            EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)
-            # value transformed through inverse utility
-            EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
+            EndOfPrdvNvrs = uFunc.inv(EndOfPrdv / EndOfPrdvScale)
+            EndOfPrdvNvrsP = (
+                EndOfPrdvP
+                * uFunc.derinv(EndOfPrdv / EndOfPrdvScale, order=(0, 1))
+                / EndOfPrdvScale
+            )
 
             # Construct the end-of-period value function
             if BoroCnstNat_iszero:
@@ -1425,7 +1465,9 @@ def solve_one_period_ConsIndShockRiskyAsset(
                 aNrm_temp = aNrmNow.copy()
 
             EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-            EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+            EndOfPrd_vFunc = ValueFuncCRRA(
+                EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale
+            )
 
     # NON-INDEPENDENT METHOD BEGINS HERE
     else:
@@ -1447,7 +1489,13 @@ def solve_one_period_ConsIndShockRiskyAsset(
             return Rport / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
 
         def calc_vNext(S, a):
-            return S["PermShk"] ** (1.0 - CRRA) * vFuncNext(calc_mNrmNext(S, a))
+            mNrmNext = calc_mNrmNext(S, a)
+            if CRRA == 1.0:
+                # With log utility, permanent income growth adds a level term to value
+                return vFuncNext(mNrmNext) + vScaleNext * np.log(
+                    PermGroFac * S["PermShk"]
+                )
+            return S["PermShk"] ** (1.0 - CRRA) * vFuncNext(mNrmNext)
 
         def calc_vPnext(S, a):
             Risky = S["Risky"]
@@ -1489,9 +1537,12 @@ def solve_one_period_ConsIndShockRiskyAsset(
             # Calculate end-of-period value, its derivative, and their pseudo-inverse
             vFacEff = DiscFacEff * PermGroFac ** (1.0 - CRRA)
             EndOfPrdv = vFacEff * expected(calc_vNext, ShockDstn, args=(aNrmNow))
-            EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)
-            # value transformed through inverse utility
-            EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
+            EndOfPrdvNvrs = uFunc.inv(EndOfPrdv / EndOfPrdvScale)
+            EndOfPrdvNvrsP = (
+                EndOfPrdvP
+                * uFunc.derinv(EndOfPrdv / EndOfPrdvScale, order=(0, 1))
+                / EndOfPrdvScale
+            )
 
             # Construct the end-of-period value function
             if BoroCnstNat_iszero:
@@ -1503,7 +1554,9 @@ def solve_one_period_ConsIndShockRiskyAsset(
                 aNrm_temp = aNrmNow.copy()
 
             EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-            EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+            EndOfPrd_vFunc = ValueFuncCRRA(
+                EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale
+            )
 
     # Construct the consumption function; this uses the same method whether the
     # income distribution is independent from the return distribution
@@ -1549,14 +1602,19 @@ def solve_one_period_ConsIndShockRiskyAsset(
         vP_temp = uFunc.der(cNrm_temp)
 
         # Construct the beginning-of-period value function
-        vNvrs_temp = uFunc.inv(v_temp)  # value transformed through inv utility
-        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
+        vScaleNow = calc_v_scale(CRRA, MPCminNow)
+        vNvrs_temp = uFunc.inv(v_temp / vScaleNow)
+        vNvrsP_temp = (
+            vP_temp * uFunc.derinv(v_temp / vScaleNow, order=(0, 1)) / vScaleNow
+        )
+        vNvrsSlopeMax = vNvrsSlope(
+            MPCmaxEff, CRRA, vNvrs_temp[0], mNrm_temp[0] - mNrmMinNow
+        )
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        vNvrsP_temp = np.insert(vNvrsP_temp, 0, vNvrsSlope(MPCmaxEff, CRRA))
-        # MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, vNvrsSlopeMax)
         vNvrsFuncNow = CubicInterp(mNrm_temp, vNvrs_temp, vNvrsP_temp)
-        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA, vScale=vScaleNow)
     else:
         vFuncNow = NullFunc()  # Dummy object
 

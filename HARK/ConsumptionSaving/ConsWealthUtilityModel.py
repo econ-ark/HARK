@@ -241,13 +241,18 @@ def calc_dvdm_next(shocks, a_nrm, G, R, rho, vp_func):
     return perm_shk_fac ** (-rho) * vp_func(m_nrm)
 
 
-def calc_v_next(shocks, a_nrm, G, R, rho, v_func):
+def calc_v_next(shocks, a_nrm, G, R, rho, v_func, v_scale_next=1.0):
     """
     Evaluate realizations of value of market resources next period, based on the
-    income distribution S and values of end-of-period assets a_nrm.
+    income distribution S and values of end-of-period assets a_nrm. v_scale_next
+    is next period's value scale (see ValueFuncCRRA.vScale), used only with log
+    utility.
     """
     m_nrm = calc_m_nrm_next(shocks, a_nrm, G, R)
     v_next = v_func(m_nrm)
+    if rho == 1.0:
+        # With log utility, permanent income growth adds a level term to value
+        return v_next + v_scale_next * np.log(shocks["PermShk"] * G)
     return (shocks["PermShk"] * G) ** (1.0 - rho) * v_next
 
 
@@ -375,15 +380,22 @@ def solve_one_period_WealthUtility(
 
     # Add the value function if requested
     if vFuncBool:
+        # Scales of value next period and now (see ValueFuncCRRA.vScale). With log
+        # utility the composite of consumption and wealth adds log(P) to value each
+        # period. The solution carries no MPCmin, so the scale follows its recursion.
+        vScaleNext = vFuncNext.vScale
+        vScaleNow = 1.0 + DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
         EndOfPrd_v = expected(
-            calc_v_next, IncShkDstn, args=(a_temp, PermGroFac, Rfree, CRRA, vFuncNext)
+            calc_v_next,
+            IncShkDstn,
+            args=(a_temp, PermGroFac, Rfree, CRRA, vFuncNext, vScaleNext),
         )
         EndOfPrd_v *= DiscFacEff
         u_now = CRRAWealthUtility(c_temp, a_temp, CRRA, WealthShare, WealthShift)
         v_now = u_now + EndOfPrd_v
-        vNvrs_now = np.insert(uFunc.inverse(v_now), 0, 0.0)
+        vNvrs_now = np.insert(uFunc.inverse(v_now / vScaleNow), 0, 0.0)
         vNvrsFunc = LinearInterp(np.insert(m_temp, 0, mNrmMinNow), vNvrs_now)
-        vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA, vScale=vScaleNow)
     else:
         vFuncNow = NullFunc()
 

@@ -1,4 +1,7 @@
 import unittest
+
+import numpy as np
+
 from tests import HARK_PRECISION
 from HARK.ConsumptionSaving.ConsBequestModel import (
     BequestWarmGlowConsumerType,
@@ -98,3 +101,47 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
 
         BadType = BequestWarmGlowPortfolioType(DiscreteShareBool=True, vFuncBool=False)
         self.assertRaises(ValueError, BadType.solve)
+
+
+class testLogUtilityValue(unittest.TestCase):
+    def test_value_one_period_before_terminal(self):
+        """
+        With log utility, value one period before the end matches the Bellman equation.
+
+        The terminal agent splits m between consumption c and a bequest a with
+        1 / c = BeqFac / (a + BeqShift), so terminal value is
+        log(c) + BeqFac * log(a + BeqShift), which carries (1 + BeqFac) * log(P).
+        A period earlier, value adds the discounted terminal value plus
+        (1 + BeqFac) * log(PermGroFac * psi), and the warm glow
+        (1 - LivPrb) * BeqFac * log(a + BeqShift) of the bequest left then (issue #75).
+        """
+        m = np.array([0.5, 2.0, 10.0, 19.0])
+        for AgentType in (BequestWarmGlowConsumerType, BequestWarmGlowPortfolioType):
+            agent = AgentType(cycles=1, CRRA=1.0, vFuncBool=True)
+            agent.solve()
+            solution = agent.solution[0]
+            Rfree = np.atleast_1d(agent.Rfree)[0]
+            if AgentType is BequestWarmGlowPortfolioType:
+                ShkDstn = agent.ShockDstn[0]
+                PermShk, TranShk, Risky = ShkDstn.atoms
+                c = solution.cFuncAdj(m)
+                Share = solution.ShareFuncAdj(m)[:, None]
+                Rport = Rfree + Share * (Risky - Rfree)
+                vSolved = solution.vFuncAdj(m)
+            else:
+                ShkDstn = agent.IncShkDstn[0]
+                PermShk, TranShk = ShkDstn.atoms
+                c = solution.cFunc(m)
+                Rport = Rfree
+                vSolved = solution.vFunc(m)
+            BeqFac, BeqShift = agent.BeqFac, agent.BeqShift
+            a = m - c
+            growth = agent.PermGroFac[0] * PermShk
+            mNext = Rport * a[:, None] / growth + TranShk
+            cNext = np.minimum((mNext + BeqShift) / (1.0 + BeqFac), mNext)
+            vNext = np.log(cNext) + BeqFac * np.log(mNext - cNext + BeqShift)
+            vNext += (1.0 + BeqFac) * np.log(growth)
+            bequest = (1.0 - agent.LivPrb[0]) * BeqFac * np.log(a + BeqShift)
+            beta = agent.DiscFac * agent.LivPrb[0]
+            v = np.log(c) + beta * vNext @ ShkDstn.pmv + bequest
+            np.testing.assert_allclose(vSolved, v, rtol=0, atol=1e-4)

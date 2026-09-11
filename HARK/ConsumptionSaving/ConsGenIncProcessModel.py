@@ -22,6 +22,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    calc_v_scale,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
@@ -298,9 +299,16 @@ def solve_one_period_ConsGenIncProcess(
         EndOfPrd_v = expected(calc_v_next, IncShkDstn, args=(aLvlNow, pLvlNow))
         EndOfPrd_v *= DiscFacEff
 
-        # Transformed value through inverse utility function to "decurve" it
-        EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
-        EndOfPrd_vNvrsP = EndOfPrd_vP * uFunc.derinv(EndOfPrd_v, order=(0, 1))
+        # Transformed value through inverse utility function to "decurve" it. With
+        # log utility it grows like DiscFacEff * log(aLvl) / MPCmin next period.
+        vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
+        EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+        EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v / EndOfPrdvScale)
+        EndOfPrd_vNvrsP = (
+            EndOfPrd_vP
+            * uFunc.derinv(EndOfPrd_v / EndOfPrdvScale, order=(0, 1))
+            / EndOfPrdvScale
+        )
 
         # Add points at mLvl=zero
         EndOfPrd_vNvrs = np.concatenate(
@@ -343,7 +351,7 @@ def solve_one_period_ConsGenIncProcess(
         EndOfPrd_vNvrsFunc = VariableLowerBoundFunc2D(
             EndOfPrd_vNvrsFuncBase, BoroCnstNat
         )
-        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale)
 
     # Solve the first order condition to get optimal consumption, then find the
     # endogenous gridpoints
@@ -473,8 +481,11 @@ def solve_one_period_ConsGenIncProcess(
         vP_temp = uFunc.der(cLvl_temp)
 
         # Calculate pseudo-inverse value and its first derivative (wrt mLvl)
-        vNvrs_temp = uFunc.inv(v_temp)  # value transformed through inverse utility
-        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
+        vScaleNow = calc_v_scale(CRRA, MPCminNow)
+        vNvrs_temp = uFunc.inv(v_temp / vScaleNow)
+        vNvrsP_temp = (
+            vP_temp * uFunc.derinv(v_temp / vScaleNow, order=(0, 1)) / vScaleNow
+        )
 
         # Add data at the lower bound of m
         mLvl_temp = np.concatenate(
@@ -486,8 +497,16 @@ def solve_one_period_ConsGenIncProcess(
             axis=0,
         )
 
-        # Add data at the lower bound of p
-        MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
+        # Add data at the lower bound of p, where there is no income and pseudo-inverse
+        # value is linear in mLvl. Log utility has no closed-form slope, so evaluate the
+        # Bellman equation at mLvl = 1, consuming MPCmin and carrying the rest forward.
+        if CRRA == 1.0:
+            v_at_one = np.log(MPCminNow) + DiscFacEff * vFuncNext(
+                np.array([Rfree * (1.0 - MPCminNow)]), np.array([0.0])
+            )
+            MPCminNvrs = np.exp(v_at_one[0] / vScaleNow)
+        else:
+            MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
         m_temp = np.reshape(mLvl_temp[:, 0], (aNrmCount + 1, 1))
         mLvl_temp = np.concatenate((m_temp, mLvl_temp), axis=1)
         vNvrs_temp = np.concatenate((MPCminNvrs * m_temp, vNvrs_temp), axis=1)
@@ -499,13 +518,18 @@ def solve_one_period_ConsGenIncProcess(
         vNvrsFunc_list = []
         for j in range(pLvlCount + 1):
             pLvl = np.insert(pLvlGrid, 0, 0.0)[j]
+            # Above the grid it approaches the perfect foresight limit. Log utility
+            # has none, so there it is extrapolated linearly from the top gridpoint.
+            if CRRA == 1.0:
+                vNvrsLimit = ()
+            else:
+                vNvrsLimit = (MPCminNvrs * hLvlNow(pLvl), MPCminNvrs)
             vNvrsFunc_list.append(
                 CubicInterp(
                     mLvl_temp[:, j] - mLvlMinNow(pLvl),
                     vNvrs_temp[:, j],
                     vNvrsP_temp[:, j],
-                    MPCminNvrs * hLvlNow(pLvl),
-                    MPCminNvrs,
+                    *vNvrsLimit,
                 )
             )
         # Value function "shifted"
@@ -515,7 +539,7 @@ def solve_one_period_ConsGenIncProcess(
         vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, mLvlMinNow)
 
         # "Re-curve" the pseudo-inverse value function into the value function
-        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA, vScale=vScaleNow)
 
     else:
         vFuncNow = NullFunc()

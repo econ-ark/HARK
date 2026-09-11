@@ -1,4 +1,7 @@
 import unittest
+
+import numpy as np
+
 from tests import HARK_PRECISION
 
 from HARK.ConsumptionSaving.ConsWealthUtilityModel import (
@@ -29,6 +32,34 @@ class testWealthUtilityConsumerType(unittest.TestCase):
         self.agent.AgentCount = 1000
         self.agent.initialize_sim()
         self.agent.simulate()
+
+
+class testWealthUtilityLogValue(unittest.TestCase):
+    def test_value_one_period_before_terminal(self):
+        """
+        With log utility, value one period before the end matches the Bellman equation.
+
+        Utility is the log of x = c**(1 - WealthShare) * (a + WealthShift)**WealthShare,
+        which carries log(P) with weight one, so continuation value adds
+        log(PermGroFac * psi) to the terminal value log(c_T(m')) (issue #75).
+        """
+        agent = WealthUtilityConsumerType(cycles=1, CRRA=1.0, vFuncBool=True)
+        agent.solve()
+        solution = agent.solution[0]
+        PermShk, TranShk = agent.IncShkDstn[0].atoms
+        growth = agent.PermGroFac[0] * PermShk
+        m = solution.mNrmMin + np.array([2.0, 10.0, 19.0])
+        c = solution.cFunc(m)
+        a = m - c
+        mNext = agent.Rfree[0] * a[:, None] / growth + TranShk
+        vNext = np.log(agent.solution_terminal.cFunc(mNext)) + np.log(growth)
+        x = (
+            c ** (1.0 - agent.WealthShare)
+            * (a + agent.WealthShift) ** agent.WealthShare
+        )
+        beta = agent.DiscFac * agent.LivPrb[0]
+        v = np.log(x) + beta * vNext @ agent.IncShkDstn[0].pmv
+        np.testing.assert_allclose(solution.vFunc(m), v, rtol=0, atol=2e-4)
 
 
 class testWealthUtilityOddParams(unittest.TestCase):

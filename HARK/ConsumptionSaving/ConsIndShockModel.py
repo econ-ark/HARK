@@ -673,7 +673,7 @@ def make_EndOfPrd_vFunc(
 
 
 def make_vFunc_from_values(
-    uFunc, mNrm, v, vP, mNrmMin, MPCmax, MPCmin, hNrm, interpolator=CubicInterp
+    uFunc, mNrm, v, vP, mNrmMin, MPCmax, MPCmin, hNrm, vScale, interpolator=CubicInterp
 ):
     """Make the value function from value and marginal value on a grid of m.
 
@@ -691,10 +691,10 @@ def make_vFunc_from_values(
         MPCmax (float): Marginal propensity to consume at mNrmMin.
         MPCmin (float): Limiting marginal propensity to consume as m grows.
         hNrm (float): Normalized human wealth.
+        vScale (float): Scale of the value function (see ValueFuncCRRA.vScale).
         interpolator (type): Cubic interpolator class, as in make_EndOfPrd_vFunc.
     """
     CRRA = uFunc.CRRA
-    vScale = calc_v_scale(CRRA, MPCmin)
     vNvrs = uFunc.inv(v / vScale)
     vNvrsP = vP * uFunc.derinv(v / vScale, order=(0, 1)) / vScale
     vNvrsSlopeMax = vNvrsSlope(MPCmax, CRRA, vNvrs[0], mNrm[0] - mNrmMin)
@@ -925,7 +925,15 @@ def solve_one_period_ConsIndShock(
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp)
         vP_temp = uFunc.der(cNrm_temp)
         vFuncNow = make_vFunc_from_values(
-            uFunc, mNrm_temp, v_temp, vP_temp, mNrmMinNow, MPCmaxNow, MPCminNow, hNrmNow
+            uFunc,
+            mNrm_temp,
+            v_temp,
+            vP_temp,
+            mNrmMinNow,
+            MPCmaxNow,
+            MPCminNow,
+            hNrmNow,
+            calc_v_scale(CRRA, MPCminNow),
         )
     else:
         vFuncNow = NullFunc()  # Dummy object
@@ -1172,7 +1180,15 @@ def solve_one_period_ConsKinkedR(
         v_temp = uFunc(cNrm_temp) + EndOfPrdvFunc(aNrm_temp)
         vP_temp = uFunc.der(cNrm_temp)
         vFuncNow = make_vFunc_from_values(
-            uFunc, mNrm_temp, v_temp, vP_temp, mNrmMinNow, MPCmaxNow, MPCminNow, hNrmNow
+            uFunc,
+            mNrm_temp,
+            v_temp,
+            vP_temp,
+            mNrmMinNow,
+            MPCmaxNow,
+            MPCminNow,
+            hNrmNow,
+            calc_v_scale(CRRA, MPCminNow),
         )
     else:
         vFuncNow = NullFunc()  # Dummy object

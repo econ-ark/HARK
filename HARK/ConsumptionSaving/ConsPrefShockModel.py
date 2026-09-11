@@ -387,6 +387,7 @@ def solve_one_period_ConsPrefShock(
             MPCmaxEff,
             MPCminNow,
             hNrmNow,
+            calc_v_scale(CRRA, MPCminNow),
             interpolator=CubicInterp,
         )
 
@@ -695,6 +696,7 @@ def solve_one_period_ConsKinkyPref(
             MPCmaxEff,
             MPCminNow,
             hNrmNow,
+            calc_v_scale(CRRA, MPCminNow),
             interpolator=CubicInterp,
         )
 

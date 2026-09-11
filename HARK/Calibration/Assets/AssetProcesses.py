@@ -148,6 +148,14 @@ def combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn):
     return ShockDstn
 
 
+def _ShareLimit_objective(share, RiskyDstn, CRRA, Rfree):
+    """Negative expected utility of wealth one period ahead, per unit invested."""
+    Rport = Rfree + share * (RiskyDstn.atoms[0] - Rfree)
+    if CRRA == 1.0:
+        return -np.dot(np.log(Rport), RiskyDstn.pmv)
+    return -((1.0 - CRRA) ** -1) * np.dot(Rport ** (1.0 - CRRA), RiskyDstn.pmv)
+
+
 def calc_ShareLimit_for_CRRA(T_cycle, RiskyDstn, CRRA, Rfree):
     """
     Calculates the lower bound on the risky asset share as market resources go
@@ -185,26 +193,22 @@ def calc_ShareLimit_for_CRRA(T_cycle, RiskyDstn, CRRA, Rfree):
             else:
                 Rfree_t = Rfree
 
-            def temp_f(s):
-                return -((1.0 - CRRA) ** -1) * np.dot(
-                    (Rfree_t + s * (RiskyDstn_t.atoms[0] - Rfree_t)) ** (1.0 - CRRA),
-                    RiskyDstn_t.pmv,
-                )
-
-            SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method="bounded").x
+            SharePF = minimize_scalar(
+                _ShareLimit_objective,
+                bounds=(0.0, 1.0),
+                method="bounded",
+                args=(RiskyDstn_t, CRRA, Rfree_t),
+            ).x
             ShareLimit.append(SharePF)
 
     # If the risky share lower bound is not time-varying...
     else:
-
-        def temp_f(s):
-            return -((1.0 - CRRA) ** -1) * np.dot(
-                (Rfree + s * (RiskyDstn.atoms[0] - Rfree)) ** (1.0 - CRRA),
-                RiskyDstn.pmv,
-            )
-
         SharePF = minimize_scalar(
-            temp_f, bracket=(0.0, 1.0), method="golden", tol=1e-10
+            _ShareLimit_objective,
+            bracket=(0.0, 1.0),
+            method="golden",
+            tol=1e-10,
+            args=(RiskyDstn, CRRA, Rfree),
         ).x
         if type(SharePF) is np.array:
             SharePF = SharePF[0]

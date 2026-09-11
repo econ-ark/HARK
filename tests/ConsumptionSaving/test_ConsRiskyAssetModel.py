@@ -1,4 +1,7 @@
 import unittest
+
+import numpy as np
+
 from tests import HARK_PRECISION
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import IndShockRiskyAssetConsumerType
 
@@ -28,6 +31,32 @@ class testBasicRiskyAssetConsumerType(unittest.TestCase):
     def test_zero_inc_unemp(self):
         AltType = IndShockRiskyAssetConsumerType(IncUnemp=0.0)
         AltType.solve()
+
+    def test_log_utility_value_one_period_before_terminal(self):
+        """
+        With log utility, value one period before the end matches the Bellman equation.
+
+        With a fixed risky share, m' = Rport * a / (PermGroFac * psi) + theta, and
+        continuation value is log(m') + log(PermGroFac * psi), where permanent
+        income growth enters additively (issue #75). The independent and the joint
+        shock distributions take different solver paths, so both are checked.
+        """
+        for IndepDstnBool in (True, False):
+            agent = IndShockRiskyAssetConsumerType(
+                cycles=1, CRRA=1.0, vFuncBool=True, IndepDstnBool=IndepDstnBool
+            )
+            agent.solve()
+            solution = agent.solution[0]
+            PermShk, TranShk, Risky = agent.ShockDstn[0].atoms
+            Share = np.atleast_1d(agent.RiskyShareFixed)[0]
+            Rport = Share * Risky + (1.0 - Share) * agent.Rfree[0]
+            growth = agent.PermGroFac[0] * PermShk
+            m = solution.mNrmMin + np.array([0.5, 2.0, 10.0, 19.0])
+            c = solution.cFunc(m)
+            mNext = Rport * (m - c)[:, None] / growth + TranShk
+            vNext = (np.log(mNext) + np.log(growth)) @ agent.ShockDstn[0].pmv
+            v = np.log(c) + agent.DiscFac * agent.LivPrb[0] * vNext
+            np.testing.assert_allclose(solution.vFunc(m), v, rtol=0, atol=1e-6)
 
 
 class testCubicRiskyAssetConsumerType(unittest.TestCase):
