@@ -345,10 +345,9 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                     shk_prbs,
                     perm_shks,
                     tran_shks,
-                    LivPrb,
+                    LivPrb * surv_growth,
                     NewBornDist,
                     PermGroFac,
-                    surv_growth,
                 )
 
             else:
@@ -430,10 +429,9 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                         shk_prbs,
                         perm_shks,
                         tran_shks,
-                        LivPrb,
+                        LivPrb * surv_growth,
                         NewBornDist,
                         PermGroFac,
-                        surv_growth,
                     )
                     self.tran_matrix.append(TranMatrix_M)
 
@@ -468,7 +466,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         newborns the complement, so that the ergodic distribution is the
         income-weighted one under mortality with permanent income growth.
         """
-        if not getattr(self, "neutral_measure", False):
+        if not self.neutral_measure:
             return 1.0
         newborn_growth = float(
             np.asarray(getattr(self, "PermGroFacAgg", 1.0)).ravel()[0]

@@ -240,7 +240,7 @@ class DynamicEvent(ModelEvent):
     def run(self):
         self.assign(self.evaluate())
 
-    def quasi_run(self, origins, norm=None):
+    def quasi_run(self, origins):
         self.run()
         return origins
 
@@ -277,27 +277,10 @@ class RandomEvent(ModelEvent):
     def run(self):
         self.assign(self.draw())
 
-    def _apply_harmenberg(self, probs, atoms, norm):
-        """
-        Apply Harmenberg permanent-income normalization to ``probs`` in place.
-
-        If ``norm`` matches one of the variable names in ``self.assigns``,
-        scale ``probs`` by the corresponding atoms; otherwise leave ``probs``
-        unchanged.  Returns ``probs`` for chained use.
-        """
-        try:
-            harm_idx = self.assigns.index(norm)
-            probs *= atoms[harm_idx]
-        except ValueError:
-            pass
-        return probs
-
-    def quasi_run(self, origins, norm=None):
+    def quasi_run(self, origins):
         # Get distribution
         atoms = self.dstn.atoms
         probs = self.dstn.pmv.copy()
-
-        probs = self._apply_harmenberg(probs, atoms, norm)
 
         # Expand the set of simulated blobs
         origins_new = self.expand_information(origins, probs, atoms)
@@ -348,7 +331,7 @@ class RandomIndexedEvent(RandomEvent):
             self.dstn[k].reset()
         ModelEvent.reset(self)
 
-    def quasi_run(self, origins, norm=None):
+    def quasi_run(self, origins):
         origins_new = origins.copy()
         J = len(self.dstn)
 
@@ -359,8 +342,6 @@ class RandomIndexedEvent(RandomEvent):
             # Get distribution
             atoms = self.dstn[j].atoms
             probs = self.dstn[j].pmv.copy()
-
-            probs = self._apply_harmenberg(probs, atoms, norm)
 
             # Expand the set of simulated blobs
             origins_new = self.expand_information(
@@ -449,7 +430,7 @@ class MarkovEvent(ModelEvent):
     def run(self):
         self.assign(self.draw())
 
-    def quasi_run(self, origins, norm=None):
+    def quasi_run(self, origins):
         if self.probs in self.parameters:
             probs = self.parameters[self.probs]
             probs_are_param = True
@@ -516,7 +497,7 @@ class EvaluationEvent(ModelEvent):
     def run(self):
         self.assign(self.evaluate())
 
-    def quasi_run(self, origins, norm=None):
+    def quasi_run(self, origins):
         self.run()
         return origins
 
@@ -1266,7 +1247,7 @@ class SimBlock:
         if arrival_N == 0:
             self.init_dstn = master_init_array
 
-    def run_quasi_sim(self, data, j0=0, twist=None, norm=None):
+    def run_quasi_sim(self, data, j0=0, twist=None):
         """
         "Quasi-simulate" this block from given starting data at some event index,
         looping back to end at the same point (only if j0 > 0 and twist is given).
@@ -1286,9 +1267,6 @@ class SimBlock:
             Optional dictionary mapping end-of-block variables back to arrival variables.
             If this is provided *and* j0 > 0, then the quasi-sim is run for a complete
             period, starting and ending at the same index. Else it's run to end of period.
-        norm : str or None
-            The name of the variable on which to perform Harmenberg normalization.
-
         Returns
         -------
         None
@@ -1316,7 +1294,7 @@ class SimBlock:
             event = self.events[j]
             event.data = self.data  # Give event *all* data directly
             event.N = self.N
-            origin_array = event.quasi_run(origin_array, norm=norm)
+            origin_array = event.quasi_run(origin_array)
             self.N = self.data["pmv_"].size
 
         # If we didn't start at the beginning and there is a twist, loop back to
@@ -1331,7 +1309,7 @@ class SimBlock:
                 event = self.events[j]
                 event.data = self.data  # Give event *all* data directly
                 event.N = self.N
-                origin_array = event.quasi_run(origin_array, norm=norm)
+                origin_array = event.quasi_run(origin_array)
                 self.N = self.data["pmv_"].size
 
         # Assign the origin array as an attribute of self
@@ -1763,7 +1741,6 @@ class AgentSimulator:
             block.reset()
         self.grid_specs = grid_specs_other
         self.norm = norm
-        self.newborn_growth = newborn_growth
 
         # Extract the master transition matrices into a single list
         p2p_trans_arrays = [self.periods[t].trans_array for t in these_t]
@@ -1786,22 +1763,19 @@ class AgentSimulator:
                 continue
             if "dead" not in self.periods[t].matrices.keys():
                 continue
+            dead = self.periods[t].matrices["dead"]
             if norm is None:
-                death_prbs = self.periods[t].matrices["dead"][:, 1]
-                p2p_trans_arrays[t] *= np.tile(
-                    np.reshape(1 - death_prbs, (K, 1)), (1, K)
-                )
-                p2p_trans_arrays[t] += np.reshape(death_prbs, (K, 1)) * newborn_dstn
+                deficit = dead[:, 1]
+                surv_mass = 1.0 - deficit
             else:
                 # Under an income-weighted measure, the mass that survives from an
                 # arrival state is the expected growth of the normalizing level
                 # among its survivors (relative to newborn_growth), not the
                 # survival probability; newborns take the complement. This makes
                 # the stationary distribution the income-weighted one. It reduces
-                # to the branch above whenever the weights average to one.
-                surv_mass = self.periods[t].matrices["dead"][:, 0]
-                death_mass = self.periods[t].matrices["dead"][:, 1]
-                if np.max(death_mass) <= 1e-12:
+                # to the unweighted case whenever the weights average to one.
+                surv_mass = dead[:, 0]
+                if np.max(dead[:, 1]) <= 1e-12:
                     # No mortality, so no newborns: the level of the normalizing
                     # variable trends upward forever and only the cross-section
                     # relative to that trend is stationary. The block's transition
@@ -1823,9 +1797,9 @@ class AgentSimulator:
                         "inherit as newborn_growth."
                     )
                 deficit = np.maximum(deficit, 0.0)
-                p2p_trans_arrays[t] *= np.reshape(surv_mass, (K, 1))
-                p2p_trans_arrays[t] += np.reshape(deficit, (K, 1)) * newborn_dstn
                 newborn_shares[t] = deficit
+            p2p_trans_arrays[t] *= np.reshape(surv_mass, (K, 1))
+            p2p_trans_arrays[t] += np.reshape(deficit, (K, 1)) * newborn_dstn
 
         # Store the transition arrays as attributes of self
         self.trans_arrays = p2p_trans_arrays

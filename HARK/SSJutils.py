@@ -11,7 +11,7 @@ from HARK._numba import njit
 
 
 def _prepare_ssj_computation(
-    agent, outcomes, grids, norm, solved, verbose, newborn_growth=1.0
+    agent, outcomes, grids, norm, solved, verbose, newborn_growth=None
 ):
     """
     Shared setup for make_basic_SSJ_matrices and calc_shock_response_manually.
@@ -32,14 +32,16 @@ def _prepare_ssj_computation(
         Whether the agent's model has already been solved.
     verbose : bool
         Whether to display timing/progress to screen.
-    newborn_growth : float
+    newborn_growth : float or None
         Growth factor of the normalizing level that newborns inherit (see
-        AgentSimulator.make_transition_matrices).
+        AgentSimulator.make_transition_matrices). None takes the agent's
+        PermGroFacAgg, or 1.0 if it has none.
 
     Returns
     -------
     setup : dict
         Dictionary containing:
+        - newborn_growth : float     newborn_growth, with None resolved
         - outcomes : [str]           normalized list of outcome variable names
         - no_list : bool             True if outcomes was passed as a single string
         - simulator_backup : object  agent._simulator backup, or None if not present
@@ -60,6 +62,10 @@ def _prepare_ssj_computation(
         no_list = True
     else:
         no_list = False
+    if newborn_growth is None:
+        newborn_growth = float(
+            np.asarray(getattr(agent, "PermGroFacAgg", 1.0)).ravel()[0]
+        )
 
     # Store the simulator if it exists
     if hasattr(agent, "_simulator"):
@@ -119,6 +125,7 @@ def _prepare_ssj_computation(
         )
 
     return {
+        "newborn_growth": newborn_growth,
         "outcomes": outcomes,
         "no_list": no_list,
         "simulator_backup": simulator_backup,
@@ -289,13 +296,10 @@ def make_basic_SSJ_matrices(
         One or more sequence space Jacobian arrays over the outcome variables
         with respect to the named shock variable.
     """
-    if newborn_growth is None:
-        newborn_growth = float(
-            np.asarray(getattr(agent, "PermGroFacAgg", 1.0)).ravel()[0]
-        )
     setup = _prepare_ssj_computation(
         agent, outcomes, grids, norm, solved, verbose, newborn_growth
     )
+    newborn_growth = setup["newborn_growth"]
     outcomes = setup["outcomes"]
     no_list = setup["no_list"]
     simulator_backup = setup["simulator_backup"]
@@ -997,13 +1001,10 @@ def calc_shock_response_manually(
     dYdX : np.array or [np.array]
         One or more vectors of length T_max.
     """
-    if newborn_growth is None:
-        newborn_growth = float(
-            np.asarray(getattr(agent, "PermGroFacAgg", 1.0)).ravel()[0]
-        )
     setup = _prepare_ssj_computation(
         agent, outcomes, grids, norm, solved, verbose, newborn_growth
     )
+    newborn_growth = setup["newborn_growth"]
     outcomes = setup["outcomes"]
     no_list = setup["no_list"]
     simulator_backup = setup["simulator_backup"]

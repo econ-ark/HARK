@@ -1,8 +1,11 @@
 import unittest
+from copy import deepcopy
 
 import numpy as np
 
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.ConsumptionSaving.ConsNewKeynesianModel import NewKeynesianConsumerType
+from HARK.utilities import make_grid_exp_mult
 from tests import HARK_PRECISION
 
 
@@ -96,9 +99,8 @@ class test_NeutralMeasureWithGrowth(unittest.TestCase):
     primitives.
     """
 
-    def _agents(self):
-        from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-
+    @classmethod
+    def setUpClass(cls):
         A = IndShockConsumerType(
             cycles=0, tolerance=1e-12
         )  # LivPrb 0.98, PermGroFac 1.01
@@ -124,11 +126,12 @@ class test_NeutralMeasureWithGrowth(unittest.TestCase):
         N.solve()
         N.neutral_measure = True
         N.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
-        return A, N
+        cls.solved_agents = (A, N)
+
+    def _agents(self):
+        return deepcopy(self.solved_agents)
 
     def test_matches_simulator_with_growth(self):
-        from HARK.utilities import make_grid_exp_mult
-
         A, N = self._agents()
         N.define_distribution_grid(dist_mGrid=make_grid_exp_mult(1e-4, 100.0, 1000, 3))
         N.calc_transition_matrix()

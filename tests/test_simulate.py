@@ -611,9 +611,13 @@ class testsForIncomeWeightedMeasure(unittest.TestCase):
     Monte Carlo and error-path tests.
     """
 
+    @classmethod
+    def setUpClass(cls):
+        cls.solved_agent = IndShockConsumerType(cycles=0, tolerance=1e-12)
+        cls.solved_agent.solve()
+
     def setUp(self):
-        self.agent = IndShockConsumerType(cycles=0, tolerance=1e-12)
-        self.agent.solve()
+        self.agent = deepcopy(self.solved_agent)
         self.grid_specs = {
             "kNrm": {"min": 0.0, "max": 40.0, "N": 301, "order": 2.5},
             "cNrm": {"min": 0.0, "max": 3.0, "N": 201},
