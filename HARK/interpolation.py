@@ -3578,6 +3578,7 @@ class ValueFuncCRRA(MetricObject):
     """
 
     distance_criteria = ["func", "CRRA"]
+    vScale = 1.0  # Class default, so instances pickled before vScale existed load
 
     def __init__(self, vFuncNvrs, CRRA, illegal_value=None, vScale=1.0):
         self.vFuncNvrs = deepcopy(vFuncNvrs)

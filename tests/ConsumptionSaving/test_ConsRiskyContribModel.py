@@ -129,6 +129,25 @@ class test_(unittest.TestCase):
             places=HARK_PRECISION,
         )
 
+    def test_finite_cont_share_value(self):
+        # Continuous share with AdjustPrb < 1 builds the share-stage value function,
+        # which at grid nodes is consumption-stage value at the optimal share
+        cont_params = copy(self.par_finite)
+        cont_params["DiscreteShareBool"] = False
+        cont_params["vFuncBool"] = True
+        agent = RiskyContribConsumerType(**cont_params)
+        agent.solve()
+        Sha = agent.solution[0].stage_sols["Sha"]
+        Cns = agent.solution[0].stage_sols["Cns"]
+        mNrm, nNrm = (
+            x.ravel()
+            for x in np.meshgrid(agent.mNrmGrid[[3, 10, 20]], agent.nNrmGrid[[3, 10]])
+        )
+        Share = Sha.ShareFunc_Adj(mNrm, nNrm)
+        np.testing.assert_allclose(
+            Sha.vFunc_Adj(mNrm, nNrm), Cns.vFunc(mNrm, nNrm, Share), rtol=1e-12
+        )
+
     def test_finite_disc_share(self):
         # Finite horizon with discrete contribution share
         disc_params = copy(self.par_finite)

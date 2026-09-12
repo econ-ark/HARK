@@ -1291,7 +1291,7 @@ def solve_RiskyContrib_Sha(
 
             # Evaluate the inverse value function at the optimal shares
             if vFuncBool:
-                vNvrsSha = vFunc_Cns_next.func(mNrm_tiled, nNrm_tiled, opt_Share)
+                vNvrsSha = vFunc_Cns_next.vFuncNvrs(mNrm_tiled, nNrm_tiled, opt_Share)
 
     dvdmNvrsSha = cFunc_next(mNrm_tiled, nNrm_tiled, opt_Share)
     dvdnSha = dvdnFunc_Cns_next(mNrm_tiled, nNrm_tiled, opt_Share)

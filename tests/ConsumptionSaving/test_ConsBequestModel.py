@@ -93,7 +93,15 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
         OtherType.solve()
         mNrm = 10.0
         cFunc = OtherType.solution[0].cFuncAdj
-        self.assertAlmostEqual(cFunc(mNrm), 1.70249, places=HARK_PRECISION)
+        self.assertAlmostEqual(cFunc(mNrm), 1.70232, places=HARK_PRECISION)
+
+        # The terminal agent holds no assets, so a fixed share costs nothing and
+        # one period earlier AdjustPrb does not matter
+        AdjusterType = BequestWarmGlowPortfolioType(
+            AdjustPrb=1.0, vFuncBool=True, DiscreteShareBool=True
+        )
+        AdjusterType.solve()
+        self.assertEqual(cFunc(mNrm), AdjusterType.solution[0].cFuncAdj(mNrm))
 
     def test_invalid(self):
         BadType = BequestWarmGlowPortfolioType(BeqFac=1.0, BoroCnstArt=-1.0)
@@ -101,6 +109,17 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
 
         BadType = BequestWarmGlowPortfolioType(DiscreteShareBool=True, vFuncBool=False)
         self.assertRaises(ValueError, BadType.solve)
+
+
+class testWarmGlowPortfolioTerminal(unittest.TestCase):
+    def test_fixed_share_functions_match_adjuster(self):
+        """The terminal agent holds no assets, so the fixed share is irrelevant."""
+        agent = BequestWarmGlowPortfolioType(BeqMPC=0.5, BeqInt=1.0)
+        solution = agent.solution_terminal
+        m = np.array([0.5, 2.0, 5.0])
+        Share = np.full_like(m, 0.3)
+        np.testing.assert_array_equal(solution.cFuncFxd(m, Share), solution.cFuncAdj(m))
+        np.testing.assert_array_equal(solution.vFuncFxd(m, Share), solution.vFuncAdj(m))
 
 
 class testLogUtilityValue(unittest.TestCase):

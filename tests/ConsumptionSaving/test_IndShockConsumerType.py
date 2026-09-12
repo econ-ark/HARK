@@ -177,6 +177,40 @@ class testIndShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(A0, A1)
 
 
+class testLogUtilityLimit(unittest.TestCase):
+    """
+    Value at CRRA = 1 is the limit of value as CRRA approaches 1.
+
+    CRRA utility is 1 / (1 - CRRA) + log(c) + O(1 - CRRA). The constant's weight,
+    sum_s (DiscFac * LivPrb)**s, is the same at every CRRA, so it cancels from the
+    average of value at CRRA = 1 - d and 1 + d, which is log-utility value plus
+    O(d**2). Richardson extrapolation over d = 0.01 and 0.02 removes that term.
+    Eleven periods exercise the recursion for the scale of log(P) in value, which
+    one period before the terminal period does not (issue #75).
+    """
+
+    def assert_log_limit(self, AgentType):
+        m = np.linspace(0.3, 15.0, 30)
+
+        def value(CRRA):
+            agent = AgentType(CRRA=CRRA, cycles=10, vFuncBool=True)
+            agent.solve()
+            vFunc = agent.solution[0].vFunc
+            if isinstance(vFunc, list):  # One per Markov state
+                vFunc = vFunc[0]
+            return vFunc(m)
+
+        avg = {d: 0.5 * (value(1.0 - d) + value(1.0 + d)) for d in (0.01, 0.02)}
+        limit = (4.0 * avg[0.01] - avg[0.02]) / 3.0
+        np.testing.assert_allclose(value(1.0), limit, rtol=0, atol=1e-5)
+
+    def test_IndShock(self):
+        self.assert_log_limit(IndShockConsumerType)
+
+    def test_Markov(self):
+        self.assert_log_limit(MarkovConsumerType)
+
+
 class testBufferStock(unittest.TestCase):
     """Tests of the results of the BufferStock REMARK."""
 

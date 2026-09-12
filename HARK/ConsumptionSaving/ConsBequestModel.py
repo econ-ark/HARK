@@ -183,7 +183,7 @@ def make_warmglow_portfolio_solution_terminal(CRRA, BeqFac, BeqShift, aXtraGrid)
 
     # Take consumption function from the no portfolio choice solution
     cFuncAdj_terminal = solution_terminal_no_port.cFunc
-    cFuncFxd_terminal = lambda m, s: solution_terminal_no_port(m)
+    cFuncFxd_terminal = lambda m, s: solution_terminal_no_port.cFunc(m)
 
     # Risky share is irrelevant-- no end-of-period assets; set to zero
     ShareFuncAdj_terminal = ConstantFunction(0.0)
@@ -191,7 +191,7 @@ def make_warmglow_portfolio_solution_terminal(CRRA, BeqFac, BeqShift, aXtraGrid)
 
     # Value function is simply utility from consuming market resources
     vFuncAdj_terminal = solution_terminal_no_port.vFunc
-    vFuncFxd_terminal = lambda m, s: solution_terminal_no_port.cFunc(m)
+    vFuncFxd_terminal = lambda m, s: solution_terminal_no_port.vFunc(m)
 
     # Marginal value of market resources is marg utility at the consumption function
     vPfuncAdj_terminal = solution_terminal_no_port.vPfunc

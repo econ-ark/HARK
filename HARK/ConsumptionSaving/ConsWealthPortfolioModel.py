@@ -40,6 +40,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.rewards import (
     UtilityFuncCRRA,
+    CRRAWealthUtility,
     CRRAWealthUtilityP,
 )
 from HARK.utilities import NullFunc, make_assets_grid
@@ -361,10 +362,13 @@ def solve_one_period_WealthPortfolio(
         cNrm_temp = cFuncNow(mNrm_temp)
         aNrm_temp = np.maximum(mNrm_temp - cNrm_temp, 0.0)  # Fix tiny violations
         Share_temp = ShareFuncNow(mNrm_temp)
-        v_temp = uFunc(cNrm_temp) + end_v_func(aNrm_temp, Share_temp)
-        vNvrs_temp, vNvrsP_temp = decurve_value(
-            uFunc, v_temp, vScaleNow, vP=uFunc.der(cNrm_temp)
+        # Utility is over consumption and end-of-period wealth
+        u_temp = CRRAWealthUtility(cNrm_temp, aNrm_temp, CRRA, WealthShare, WealthShift)
+        v_temp = u_temp + end_v_func(aNrm_temp, Share_temp)
+        vP_temp = CRRAWealthUtilityP(
+            cNrm_temp, aNrm_temp, CRRA, WealthShare, WealthShift
         )
+        vNvrs_temp, vNvrsP_temp = decurve_value(uFunc, v_temp, vScaleNow, vP=vP_temp)
         vNvrsFunc = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
