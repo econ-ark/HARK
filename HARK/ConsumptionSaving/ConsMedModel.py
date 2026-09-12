@@ -19,6 +19,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     make_persistent_income_process_dict,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    calc_v_scales,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
@@ -553,6 +554,15 @@ def solve_one_period_ConsMedShock(
     solution_now : dict
         Solution to this period's consumption-saving problem, as a dictionary.
     """
+    # With log utility the pseudo-inverse of value is exp(v), which underflows where
+    # medical need drives value far below zero, so the value function can't be built.
+    if vFuncBool and CRRA == 1.0:
+        raise ValueError(
+            "MedShockConsumerType can't construct its value function with log "
+            "utility (CRRA = 1): exp(v) underflows where medical need dominates "
+            "value. Set vFuncBool to False or use CRRA != 1."
+        )
+
     # Define the utility functions for this period
     uCon = UtilityFuncCRRA(CRRA)
     uMed = UtilityFuncCRRA(CRRAmed)  # Utility function for normalized medical care
@@ -1313,6 +1323,8 @@ class ConsMedExtMargSolution(MetricObject):
         Grid of permanent income levels during the period (after shocks).
     CRRA : float
         Coefficient of relative risk aversion
+    vScale : float
+        Scale of the value functions (see ValueFuncCRRA.vScale).
     """
 
     distance_criteria = ["cFunc"]
@@ -1327,6 +1339,7 @@ class ConsMedExtMargSolution(MetricObject):
         CareProbFunc=None,
         pLvl=None,
         CRRA=None,
+        vScale=1.0,
     ):
         self.pLvl = pLvl
         self.CRRA = CRRA
@@ -1344,7 +1357,9 @@ class ConsMedExtMargSolution(MetricObject):
             self.cFunc = None
         if vNvrsFuncMid_by_pLvl is not None:
             vNvrsFuncMid = LinearInterpOnInterp1D(vNvrsFuncMid_by_pLvl, pLvl)
-            self.vFuncMid = ValueFuncCRRA(vNvrsFuncMid, CRRA, illegal_value=-np.inf)
+            self.vFuncMid = ValueFuncCRRA(
+                vNvrsFuncMid, CRRA, illegal_value=-np.inf, vScale=vScale
+            )
         if ExpMedFunc is not None:
             self.ExpMedFunc = ExpMedFunc
         if CareProbFunc is not None:
@@ -1465,6 +1480,15 @@ def solve_one_period_ConsMedExtMarg(
     Wp = lambda x: BeqFac * uP(x + BeqShift)
     n = lambda x: CRRAutility_inv(x, rho=CRRA)
 
+    # Scale of value this period (see ValueFuncCRRA.vScale). With log utility the
+    # warm glow bequest adds a log term to value, as in the bequest model. The
+    # pseudo-terminal value is zero, so it has no scale.
+    vFuncNext = solution_next.vFunc_by_pLvl[0]
+    vScaleNext = 0.0 if isinstance(vFuncNext, ConstantFunction) else vFuncNext.vScale
+    _, vScaleNow = calc_v_scales(
+        CRRA, DiscFac * LivPrb, vScaleNext, extra=(1.0 - LivPrb) * BeqFac
+    )
+
     # Make grids of pLvl x aLvl
     pLvl = np.exp(pLogGrid) * pLvlMean
     aLvl = np.dot(
@@ -1505,7 +1529,7 @@ def solve_one_period_ConsMedExtMarg(
         v_cnst = u(c_cnst) + EndOfPrd_v[0, j]
         b_temp = np.concatenate([b_cnst, bLvl[:, j]])
         v_temp = np.concatenate([v_cnst, v_mid[:, j]])
-        vNvrs_temp = n(v_temp)
+        vNvrs_temp = n(v_temp / vScaleNow)
         vNvrsFunc_j = LinearInterp(
             np.insert(b_temp, 0, 0.0), np.insert(vNvrs_temp, 0, 0.0)
         )
@@ -1534,9 +1558,10 @@ def solve_one_period_ConsMedExtMarg(
     care_prob_array = np.empty_like(bLvl_if_care)
     for j in range(pLvlCount):
         # Evaluate value function for (bLvl,pLvl_j), including MedCost=0
-        v_if_care = u(vNvrsFuncMid_by_pLvl[j](bLvl_if_care[:, j, :]))
+        v_if_care = vScaleNow * u(vNvrsFuncMid_by_pLvl[j](bLvl_if_care[:, j, :]))
         v_if_not = np.reshape(
-            u(vNvrsFuncMid_by_pLvl[j](bLvl_if_not[:, j])), (mNrmGrid.size, 1)
+            vScaleNow * u(vNvrsFuncMid_by_pLvl[j](bLvl_if_not[:, j])),
+            (mNrmGrid.size, 1),
         )
         cant_pay = bLvl_if_care[:, j, :] <= 0.0
         v_if_care[cant_pay] = -np.inf
@@ -1580,7 +1605,7 @@ def solve_one_period_ConsMedExtMarg(
     MedCost_probs = np.reshape(MedCost_pmv, (1, 1, MedCostCount))
     v_before_shk = np.sum(v_at_Dcsn * MedCost_probs, axis=2)
     vP_before_shk = np.sum(vP_at_Dcsn * MedCost_probs, axis=2)
-    vNvrs_before_shk = n(v_before_shk)
+    vNvrs_before_shk = n(v_before_shk / vScaleNow)
     vPnvrs_before_shk = CRRAutilityP_inv(vP_before_shk, CRRA)
 
     # Compute expected medical expenses at each state space point
@@ -1610,7 +1635,7 @@ def solve_one_period_ConsMedExtMarg(
         vPnvrs_temp = np.insert(vPnvrs_before_shk[:, j], 0, 0.0)
         vNvrsFunc_temp = LinearInterp(m_temp, vNvrs_temp)
         vPnvrsFunc_temp = LinearInterp(m_temp, vPnvrs_temp)
-        vFunc_temp = lambda x: u(vNvrsFunc_temp(x))
+        vFunc_temp = lambda x: vScaleNow * u(vNvrsFunc_temp(x))
         vPfunc_temp = lambda x: uP(vPnvrsFunc_temp(x))
 
         # Compute expectation over TranShkDstn
@@ -1622,7 +1647,7 @@ def solve_one_period_ConsMedExtMarg(
     # Compute expectation over persistent shocks by using pLvlMrkvArray
     v_arvl = np.dot(v_by_kLvl_and_pLvl, pLogMrkvArray.T)
     vP_arvl = np.dot(vP_by_kLvl_and_pLvl, pLogMrkvArray.T)
-    vNvrs_arvl = n(v_arvl)
+    vNvrs_arvl = n(v_arvl / vScaleNow)
     vPnvrs_arvl = CRRAutilityP_inv(vP_arvl, CRRA)
 
     # Construct "arrival" (marginal) value function by pLvl
@@ -1631,7 +1656,7 @@ def solve_one_period_ConsMedExtMarg(
     for j in range(pLvlCount):
         vNvrsFunc_temp = LinearInterp(kLvlGrid, vNvrs_arvl[:, j])
         vPnvrsFunc_temp = LinearInterp(kLvlGrid, vPnvrs_arvl[:, j])
-        vFuncArvl_by_pLvl.append(ValueFuncCRRA(vNvrsFunc_temp, CRRA))
+        vFuncArvl_by_pLvl.append(ValueFuncCRRA(vNvrsFunc_temp, CRRA, vScale=vScaleNow))
         vPfuncArvl_by_pLvl.append(MargValueFuncCRRA(vPnvrsFunc_temp, CRRA))
 
     # Gather elements and return the solution object
@@ -1644,6 +1669,7 @@ def solve_one_period_ConsMedExtMarg(
         CRRA=CRRA,
         ExpMedFunc=ExpCareFunc,
         CareProbFunc=ProbCareFunc,
+        vScale=vScaleNow,
     )
     return solution_now
 

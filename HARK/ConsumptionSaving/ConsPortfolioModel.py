@@ -11,6 +11,8 @@ import numpy as np
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    calc_v_scales,
+    decurve_value,
     make_lognormal_pLvl_init_dstn,
     make_lognormal_kNrm_init_dstn,
 )
@@ -318,7 +320,14 @@ def calc_end_of_prd_dvdx(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
 
 
 def calc_v_intermed(
-    shocks, b_nrm, share, adjust_prob, perm_gro_fac, crra, v_func_adj, v_func_fxd
+    shocks,
+    b_nrm,
+    share,
+    adjust_prob,
+    perm_gro_fac,
+    crra,
+    v_func_adj,
+    v_func_fxd,
 ):
     """
     Calculate "intermediate" value from next period's bank balances, the
@@ -334,8 +343,7 @@ def calc_v_intermed(
     else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
         v_next = v_adj
 
-    v_intermed = (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
-    return v_intermed
+    return v_func_adj.renormalize(v_next, shocks["PermShk"] * perm_gro_fac)
 
 
 def calc_end_of_prd_v(shocks, a_nrm, share, rfree, v_func):
@@ -409,7 +417,15 @@ def calc_end_of_prd_dvdx_joint(
 
 
 def calc_end_of_prd_v_joint(
-    shocks, a_nrm, share, rfree, adjust_prob, perm_gro_fac, crra, v_func_adj, v_func_fxd
+    shocks,
+    a_nrm,
+    share,
+    rfree,
+    adjust_prob,
+    perm_gro_fac,
+    crra,
+    v_func_adj,
+    v_func_fxd,
 ):
     """
     Evaluate end-of-period value, based on the shock distribution S, values
@@ -427,7 +443,7 @@ def calc_end_of_prd_v_joint(
     else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
         v_next = v_adj
 
-    return (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
+    return v_func_adj.renormalize(v_next, shocks["PermShk"] * perm_gro_fac)
 
 
 def solve_one_period_ConsPortfolio(
@@ -560,6 +576,12 @@ def solve_one_period_ConsPortfolio(
     PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
     MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
 
+    # Scales of value next period, at the end of this period and now (see
+    # ValueFuncCRRA.vScale), which exist only when value functions are requested
+    if vFuncBool:
+        vScaleNext = vFuncAdj_next.vScale
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vScaleNext)
+
     # Also perform an alternate calculation for human wealth under risky returns
 
     # This correctly accounts for risky returns and risk aversion
@@ -665,9 +687,9 @@ def solve_one_period_ConsPortfolio(
             )
 
             # Construct the "intermediate value function" for this period
-            vNvrs_intermed = uFunc.inv(v_intermed)
+            vNvrs_intermed = decurve_value(uFunc, v_intermed, vScaleNext)
             vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
-            vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
+            vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA, vScale=vScaleNext)
 
             # Calculate end-of-period value by taking expectations
             EndOfPrd_v = DiscFacEff * expected(
@@ -675,11 +697,13 @@ def solve_one_period_ConsPortfolio(
                 RiskyDstn,
                 args=(aNrmNow, ShareNext, Rfree, vFunc_intermed),
             )
-            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
+            EndOfPrd_vNvrs = decurve_value(uFunc, EndOfPrd_v, EndOfPrdvScale)
 
             # Now make an end-of-period value function over aNrm and Share
             EndOfPrd_vNvrsFunc = BilinearInterp(EndOfPrd_vNvrs, aNrmGrid, ShareGrid)
-            EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+            EndOfPrd_vFunc = ValueFuncCRRA(
+                EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale
+            )
             # This will be used later to make the value function for this period
 
     # If the income shock distribution and risky return distribution are *NOT*
@@ -728,10 +752,10 @@ def solve_one_period_ConsPortfolio(
                     vFuncFxd_next,
                 ),
             )
-            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
-
             # value transformed through inverse utility
-            EndOfPrd_vNvrsP = EndOfPrd_dvda * uFunc.derinv(EndOfPrd_v, order=(0, 1))
+            EndOfPrd_vNvrs, EndOfPrd_vNvrsP = decurve_value(
+                uFunc, EndOfPrd_v, EndOfPrdvScale, EndOfPrd_dvda
+            )
 
             # Construct the end-of-period value function
             EndOfPrd_vNvrsFunc_by_Share = []
@@ -744,7 +768,9 @@ def solve_one_period_ConsPortfolio(
             EndOfPrd_vNvrsFunc = LinearInterpOnInterp1D(
                 EndOfPrd_vNvrsFunc_by_Share, ShareGrid
             )
-            EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+            EndOfPrd_vFunc = ValueFuncCRRA(
+                EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale
+            )
 
     # Find the optimal risky asset share either by choosing the best value among
     # the discrete grid choices, or by satisfying the FOC with equality (continuous)
@@ -868,23 +894,25 @@ def solve_one_period_ConsPortfolio(
         aNrm_temp = np.maximum(mNrm_temp - cNrm_temp, 0.0)  # Fix tiny violations
         Share_temp = ShareFuncAdj_now(mNrm_temp)
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vNvrs_temp, vNvrsP_temp = decurve_value(
+            uFunc, v_temp, vScaleNow, uFunc.der(cNrm_temp)
+        )
         vNvrsFuncAdj = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),  # dfdx_list
         )
         # Re-curve the pseudo-inverse value function
-        vFuncAdj_now = ValueFuncCRRA(vNvrsFuncAdj, CRRA)
+        vFuncAdj_now = ValueFuncCRRA(vNvrsFuncAdj, CRRA, vScale=vScaleNow)
 
         # Construct the value function when the agent *can't* adjust his portfolio
         mNrm_temp, Share_temp = np.meshgrid(aXtraGrid, ShareGrid)
         cNrm_temp = cFuncFxd_now(mNrm_temp, Share_temp)
         aNrm_temp = mNrm_temp - cNrm_temp
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vNvrs_temp, vNvrsP_temp = decurve_value(
+            uFunc, v_temp, vScaleNow, uFunc.der(cNrm_temp)
+        )
         vNvrsFuncFxd_by_Share = []
         for j in range(ShareCount):
             vNvrsFuncFxd_by_Share.append(
@@ -895,7 +923,7 @@ def solve_one_period_ConsPortfolio(
                 )
             )
         vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
-        vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, CRRA)
+        vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, CRRA, vScale=vScaleNow)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFuncAdj_now = NullFunc()

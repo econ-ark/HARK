@@ -1,5 +1,6 @@
 from HARK.distributions import Bernoulli, Lognormal, MeanOneLogNormal
 from HARK.model import Control, DBlock, RBlock
+from HARK.rewards import CRRAutility
 
 """
 Blocks for consumption saving problem (not normalized)
@@ -35,7 +36,7 @@ consumption_block = DBlock(
             "p": lambda PermGroFac, p: PermGroFac * p,
             "a": lambda m, c: m - c,
         },
-        "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
+        "reward": {"u": lambda c, CRRA: CRRAutility(c, CRRA)},
     }
 )
 
@@ -52,7 +53,7 @@ consumption_block_normalized = DBlock(
             "c": Control(["m"]),
             "a": "m - c",
         },
-        "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
+        "reward": {"u": lambda c, CRRA: CRRAutility(c, CRRA)},
     }
 )
 

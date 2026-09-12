@@ -119,6 +119,46 @@ class testIndShockConsumerType(unittest.TestCase):
         TestType = IndShockConsumerType(cycles=0, CRRA=1.0)
         TestType.check_conditions()
 
+    def test_value_one_period_before_terminal(self):
+        """
+        Value one period before the end matches the Bellman equation on the income draws.
+
+        Terminal value is u(m), so with m' = R * a / (PermGroFac * psi) + theta the
+        value is u(c) + beta * E[(PermGroFac * psi)**(1 - CRRA) * u(m')]. With log
+        utility the growth factor enters additively instead, as
+        u(c) + beta * E[log(m') + log(PermGroFac * psi)] (issue #75).
+        """
+        for CRRA in (1.0, 2.0):
+            agent = IndShockConsumerType(cycles=1, CRRA=CRRA, vFuncBool=True)
+            agent.solve()
+            solution = agent.solution[0]
+            PermShk, TranShk = agent.IncShkDstn[0].atoms
+            growth = agent.PermGroFac[0] * PermShk
+            beta = agent.DiscFac * agent.LivPrb[0]
+            m = solution.mNrmMin + np.array([0.5, 2.0, 10.0, 19.0])
+            c = solution.cFunc(m)
+            mNext = agent.Rfree[0] * (m - c)[:, None] / growth + TranShk
+            if CRRA == 1.0:
+                vNext = np.log(mNext) + np.log(growth)
+                v = np.log(c) + beta * vNext @ agent.IncShkDstn[0].pmv
+            else:
+                vNext = growth ** (1.0 - CRRA) * mNext ** (1.0 - CRRA) / (1.0 - CRRA)
+                v = (
+                    c ** (1.0 - CRRA) / (1.0 - CRRA)
+                    + beta * vNext @ agent.IncShkDstn[0].pmv
+                )
+            np.testing.assert_allclose(solution.vFunc(m), v, rtol=0, atol=2e-6)
+
+    def test_log_utility_value_satisfies_envelope_condition(self):
+        """With log utility, v'(m) = 1 / c(m) on the grid and beyond its top."""
+        agent = IndShockConsumerType(cycles=0, CRRA=1.0, vFuncBool=True)
+        agent.solve()
+        solution = agent.solution[0]
+        m = np.array([0.5, 1.0, 5.0, 15.0, 40.0])
+        step = 1e-5
+        vP = (solution.vFunc(m + step) - solution.vFunc(m - step)) / (2 * step)
+        np.testing.assert_allclose(vP * solution.cFunc(m), 1.0, rtol=0.05)
+
     def test_invalid_beta(self):
         TestType = IndShockConsumerType(DiscFac=-0.1, cycles=0)
         self.assertRaises(ValueError, TestType.solve)
@@ -135,6 +175,40 @@ class testIndShockConsumerType(unittest.TestCase):
         TestType.simulate()
         A1 = np.mean(TestType.state_now["aLvl"])
         self.assertAlmostEqual(A0, A1)
+
+
+class testLogUtilityLimit(unittest.TestCase):
+    """
+    Value at CRRA = 1 is the limit of value as CRRA approaches 1.
+
+    CRRA utility is 1 / (1 - CRRA) + log(c) + O(1 - CRRA). The constant's weight,
+    sum_s (DiscFac * LivPrb)**s, is the same at every CRRA, so it cancels from the
+    average of value at CRRA = 1 - d and 1 + d, which is log-utility value plus
+    O(d**2). Richardson extrapolation over d = 0.01 and 0.02 removes that term.
+    Eleven periods exercise the recursion for the scale of log(P) in value, which
+    one period before the terminal period does not (issue #75).
+    """
+
+    def assert_log_limit(self, AgentType):
+        m = np.linspace(0.3, 15.0, 30)
+
+        def value(CRRA):
+            agent = AgentType(CRRA=CRRA, cycles=10, vFuncBool=True)
+            agent.solve()
+            vFunc = agent.solution[0].vFunc
+            if isinstance(vFunc, list):  # One per Markov state
+                vFunc = vFunc[0]
+            return vFunc(m)
+
+        avg = {d: 0.5 * (value(1.0 - d) + value(1.0 + d)) for d in (0.01, 0.02)}
+        limit = (4.0 * avg[0.01] - avg[0.02]) / 3.0
+        np.testing.assert_allclose(value(1.0), limit, rtol=0, atol=1e-5)
+
+    def test_IndShock(self):
+        self.assert_log_limit(IndShockConsumerType)
+
+    def test_Markov(self):
+        self.assert_log_limit(MarkovConsumerType)
 
 
 class testBufferStock(unittest.TestCase):
