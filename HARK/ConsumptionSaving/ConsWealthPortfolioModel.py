@@ -82,10 +82,7 @@ def calc_med_v(shocks, b_nrm, perm_gro_fac, crra, v_func):
     """
     m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
     v_next = v_func(m_nrm)
-    if crra == 1.0:
-        # With log utility, permanent income growth adds a level term to value
-        return v_next + v_func.vScale * np.log(shocks["PermShk"] * perm_gro_fac)
-    return (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
+    return v_func.renormalize(v_next, shocks["PermShk"] * perm_gro_fac)
 
 
 def calc_end_v(shocks, a_nrm, share, rfree, v_func):

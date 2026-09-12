@@ -762,11 +762,7 @@ def solve_one_period_ConsPortfolioWarmGlow(
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 v_next = vAdj_next
 
-            if CRRA == 1.0:
-                # With log utility, permanent income growth adds a level term to value
-                return v_next + vScaleNext * np.log(S["PermShk"] * PermGroFac)
-            v_intermed = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
-            return v_intermed
+            return vFuncAdj_next.renormalize(v_next, S["PermShk"] * PermGroFac)
 
         # Calculate intermediate value by taking expectations over income shocks
         v_intermed = expected(calc_v_intermed, IncShkDstn, args=(bNrmNext, ShareNext))

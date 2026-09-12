@@ -467,17 +467,22 @@ def solve_one_period_ConsPF(
     vNow = uFunc(cNrmNow) + EndOfPrdv
     vNvrsNow = decurve_value(uFunc, vNow, vScaleNow)
 
-    def calc_vNvrs_log(mNrm, cNrm):
-        # Pseudo-inverse value of consuming cNrm at mNrm, from the Bellman
-        # equation, which gives the slope of vNvrs above the top kink
-        mNrmNext = Rfree / PermGroFac * (mNrm - cNrm) + 1.0
-        vNext = solution_next.vFunc(mNrmNext) + vScaleNext * np.log(PermGroFac)
-        return decurve_value(uFunc, uFunc(cNrm) + DiscFacEff * vNext, vScaleNow)
+    def calc_vNvrs_slope_log(mNrm, cNrm, vNvrs):
+        # Slope of vNvrs above the top kink (mNrm, cNrm, vNvrs) with log utility,
+        # from the Bellman equation one unit of m higher, where consumption is
+        # higher by MPCmin
+        mNrmXtra = mNrm + 1.0
+        cNrmXtra = cNrm + MPCminNow
+        mNrmNext = Rfree / PermGroFac * (mNrmXtra - cNrmXtra) + 1.0
+        vFuncNext = solution_next.vFunc
+        vNext = vFuncNext.renormalize(vFuncNext(mNrmNext), PermGroFac)
+        vNvrsXtra = decurve_value(
+            uFunc, uFunc(cNrmXtra) + DiscFacEff * vNext, vScaleNow
+        )
+        return vNvrsXtra - vNvrs
 
     if CRRA == 1.0:
-        mNrmXtra = mNrmNow[-1] + 1.0
-        vNvrsXtra = calc_vNvrs_log(mNrmXtra, cNrmNow[-1] + MPCminNow)
-        vNvrsSlopeMin = vNvrsXtra - vNvrsNow[-1]
+        vNvrsSlopeMin = calc_vNvrs_slope_log(mNrmNow[-1], cNrmNow[-1], vNvrsNow[-1])
     else:
         vNvrsSlopeMin = MPCminNow ** (-CRRA / (1.0 - CRRA))
 
@@ -528,17 +533,13 @@ def solve_one_period_ConsPF(
 
             # Adjust vNvrs grid for this three node structure
             mNextCrit = BoroCnstArt * Rfree + 1.0
-            if CRRA == 1.0:
-                vNextCrit = solution_next.vFunc(mNextCrit) + vScaleNext * np.log(
-                    PermGroFac
-                )
-            else:
-                vNextCrit = PermGroFac ** (1.0 - CRRA) * solution_next.vFunc(mNextCrit)
+            vNextCrit = solution_next.vFunc.renormalize(
+                solution_next.vFunc(mNextCrit), PermGroFac
+            )
             vCrit = uFunc(cCrit) + DiscFacEff * vNextCrit
             vNvrsCrit = decurve_value(uFunc, vCrit, vScaleNow)
             if CRRA == 1.0:
-                vNvrsXtra = calc_vNvrs_log(mCrit + 1.0, cCrit + MPCminNow)
-                vNvrsSlopeMin = vNvrsXtra - vNvrsCrit
+                vNvrsSlopeMin = calc_vNvrs_slope_log(mCrit, cCrit, vNvrsCrit)
             vNvrsNow = np.array([0.0, vNvrsCrit, vNvrsCrit + vNvrsSlopeMin])
 
     # If the mNrm and cNrm grids have become too large, throw out the last
@@ -674,13 +675,9 @@ def calc_v_next(shock, a, rfree, crra, perm_gro_fac, vfunc_next):
             vfunc_next.vScale * log(PermShk * perm_gro_fac).
     """
     m_nrm_next = calc_m_nrm_next(shock, a, rfree, perm_gro_fac)
-    if crra == 1.0:
-        return vfunc_next(m_nrm_next) + vfunc_next.vScale * np.log(
-            shock["PermShk"] * perm_gro_fac
-        )
-    return (
-        shock["PermShk"] ** (1.0 - crra) * perm_gro_fac ** (1.0 - crra)
-    ) * vfunc_next(m_nrm_next)
+    return vfunc_next.renormalize(
+        vfunc_next(m_nrm_next), shock["PermShk"], perm_gro_fac
+    )
 
 
 def make_EndOfPrd_vFunc(

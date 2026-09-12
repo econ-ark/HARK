@@ -493,10 +493,10 @@ def solve_one_period_ConsGenIncProcess(
         # value is linear in mLvl. Log utility has no closed-form slope, so evaluate the
         # Bellman equation at mLvl = 1, consuming MPCmin and carrying the rest forward.
         if CRRA == 1.0:
-            v_at_one = np.log(MPCminNow) + DiscFacEff * vFuncNext(
+            v_at_one = uFunc(MPCminNow) + DiscFacEff * vFuncNext(
                 np.array([Rfree * (1.0 - MPCminNow)]), np.array([0.0])
             )
-            MPCminNvrs = np.exp(v_at_one[0] / vScaleNow)
+            MPCminNvrs = decurve_value(uFunc, v_at_one[0], vScaleNow)
         else:
             MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         m_temp = np.reshape(mLvl_temp[:, 0], (aNrmCount + 1, 1))

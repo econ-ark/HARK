@@ -2098,12 +2098,9 @@ class ConsPortfolioSolver(MetricObject):
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 v_next = vAdj_next
 
-            if self.CRRA == 1.0:
-                # With log utility, permanent income growth adds a level term to value
-                return v_next + self.vScaleNext * np.log(
-                    shocks["PermShk"] * self.PermGroFac
-                )
-            return (shocks["PermShk"] * self.PermGroFac) ** (1.0 - self.CRRA) * v_next
+            return self.vFuncAdj_next.renormalize(
+                v_next, shocks["PermShk"] * self.PermGroFac
+            )
 
         # Calculate intermediate value by taking expectations over income shocks
         v_intermed = self.IncShkDstn.expected(
@@ -2161,10 +2158,9 @@ class ConsPortfolioSolver(MetricObject):
         aNrm_temp = mNrm_temp - cNrm_temp
         Share_temp = self.ShareFuncAdj_now(mNrm_temp)
         v_temp = self.u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = self.uinv(v_temp / self.vScaleNow)
-        vNvrsP_temp = (
-            self.uP(cNrm_temp) * self.uinvP(v_temp / self.vScaleNow) / self.vScaleNow
-        )
+        v_scaled = v_temp / self.vScaleNow
+        vNvrs_temp = self.uinv(v_scaled)
+        vNvrsP_temp = self.uP(cNrm_temp) * self.uinvP(v_scaled) / self.vScaleNow
         vNvrsFuncAdj = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
@@ -2180,10 +2176,9 @@ class ConsPortfolioSolver(MetricObject):
         cNrm_temp = self.cFuncFxd_now(mNrm_temp, Share_temp)
         aNrm_temp = mNrm_temp - cNrm_temp
         v_temp = self.u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = self.uinv(v_temp / self.vScaleNow)
-        vNvrsP_temp = (
-            self.uP(cNrm_temp) * self.uinvP(v_temp / self.vScaleNow) / self.vScaleNow
-        )
+        v_scaled = v_temp / self.vScaleNow
+        vNvrs_temp = self.uinv(v_scaled)
+        vNvrsP_temp = self.uP(cNrm_temp) * self.uinvP(v_scaled) / self.vScaleNow
         vNvrsFuncFxd_by_Share = []
         for j in range(self.ShareCount):
             vNvrsFuncFxd_by_Share.append(

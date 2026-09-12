@@ -3573,8 +3573,8 @@ class ValueFuncCRRA(MetricObject):
     vScale : float, optional
         Multiplies the re-curved value, so vFunc = vScale * u(vFuncNvrs). It is
         1 except with log utility, where value is vScale * log(c) + constant at
-        high resources, vScale = 1 / MPCmin, and u_inv(vFunc / vScale) is the
-        transform that is linear there.
+        high resources (vScale = 1 / MPCmin without a bequest motive), and
+        u_inv(vFunc / vScale) is the transform that is linear there.
     """
 
     distance_criteria = ["func", "CRRA"]
@@ -3623,6 +3623,40 @@ class ValueFuncCRRA(MetricObject):
 
     def _eval_and_grad(self, *args):
         return (self.__call__(*args), self.gradient(*args))
+
+    def renormalize(self, v, *growth):
+        """
+        Express value normalized by next period's permanent income in units of
+        this period's, given the factors by which permanent income grows between
+        them (e.g. PermShk and PermGroFac).
+
+        With CRRA != 1, V(M, P) = P**(1 - CRRA) * v(m), so v is multiplied by
+        each growth factor raised to 1 - CRRA, in the order given. With log
+        utility, V(M, P) = v(m) + vScale * log(P), so vScale times the log of
+        their product is added instead.
+
+        Parameters
+        ----------
+        v : float or np.array
+            Value normalized by next period's permanent income.
+        growth : float or np.array
+            Growth factors of permanent income. Each is raised to 1 - CRRA on its
+            own, so pass a product to raise it as a single factor.
+
+        Returns
+        -------
+        v : float or np.array
+            Value normalized by this period's permanent income.
+        """
+        if self.CRRA == 1.0:
+            total = growth[0]
+            for g in growth[1:]:
+                total = total * g
+            return v + self.vScale * np.log(total)
+        factor = growth[0] ** (1.0 - self.CRRA)
+        for g in growth[1:]:
+            factor = factor * g ** (1.0 - self.CRRA)
+        return factor * v
 
 
 def _eval_c_and_mpc(cFunc, *cFuncArgs):

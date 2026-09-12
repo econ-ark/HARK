@@ -250,10 +250,7 @@ def calc_v_next(shocks, a_nrm, G, R, rho, v_func):
     """
     m_nrm = calc_m_nrm_next(shocks, a_nrm, G, R)
     v_next = v_func(m_nrm)
-    if rho == 1.0:
-        # With log utility, permanent income growth adds a level term to value
-        return v_next + v_func.vScale * np.log(shocks["PermShk"] * G)
-    return (shocks["PermShk"] * G) ** (1.0 - rho) * v_next
+    return v_func.renormalize(v_next, shocks["PermShk"] * G)
 
 
 def solve_one_period_WealthUtility(

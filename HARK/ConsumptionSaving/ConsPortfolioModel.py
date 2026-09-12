@@ -343,11 +343,7 @@ def calc_v_intermed(
     else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
         v_next = v_adj
 
-    if crra == 1.0:
-        # With log utility, permanent income growth adds a level term to value
-        return v_next + v_func_adj.vScale * np.log(shocks["PermShk"] * perm_gro_fac)
-    v_intermed = (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
-    return v_intermed
+    return v_func_adj.renormalize(v_next, shocks["PermShk"] * perm_gro_fac)
 
 
 def calc_end_of_prd_v(shocks, a_nrm, share, rfree, v_func):
@@ -447,10 +443,7 @@ def calc_end_of_prd_v_joint(
     else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
         v_next = v_adj
 
-    if crra == 1.0:
-        # With log utility, permanent income growth adds a level term to value
-        return v_next + v_func_adj.vScale * np.log(shocks["PermShk"] * perm_gro_fac)
-    return (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
+    return v_func_adj.renormalize(v_next, shocks["PermShk"] * perm_gro_fac)
 
 
 def solve_one_period_ConsPortfolio(

@@ -452,14 +452,9 @@ def solve_one_period_ConsMarkov(
             return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
 
         def calc_vNext(S, a, R):
-            if CRRA == 1.0:
-                # With log utility, permanent income growth adds a level term to value
-                return vFuncNext(calc_mNrmNext(S, a, R)) + vFuncNext.vScale * np.log(
-                    S["PermShk"] * PermGroFac
-                )
-            return (
-                S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)
-            ) * vFuncNext(calc_mNrmNext(S, a, R))
+            return vFuncNext.renormalize(
+                vFuncNext(calc_mNrmNext(S, a, R)), S["PermShk"], PermGroFac
+            )
 
         def calc_vPnext(S, a, R):
             return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))

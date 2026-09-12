@@ -854,11 +854,7 @@ def solve_one_period_ConsPortChoice(
                 """
                 mNrm_next = calc_mNrm_next(S, b)
                 v_next = vFunc_next(mNrm_next)
-                if CRRA == 1.0:
-                    # With log utility, permanent income growth adds a level term
-                    return v_next + vScaleNext * np.log(S["PermShk"] * PermGroFac)
-                v_intermed = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
-                return v_intermed
+                return vFunc_next.renormalize(v_next, S["PermShk"] * PermGroFac)
 
             # Calculate intermediate value by taking expectations over income shocks
             v_intermed = expected(calc_v_intermed, IncShkDstn, args=(bNrmNext))
@@ -938,11 +934,7 @@ def solve_one_period_ConsPortChoice(
             """
             mNrm_next = calc_mNrm_next(S, a, z)
             v_next = vFunc_next(mNrm_next)
-            if CRRA == 1.0:
-                # With log utility, permanent income growth adds a level term
-                return v_next + vScaleNext * np.log(S["PermShk"] * PermGroFac)
-            EndOfPrd_v = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
-            return EndOfPrd_v
+            return vFunc_next.renormalize(v_next, S["PermShk"] * PermGroFac)
 
         calc_EndOfPrd_dvda = lambda S, a, z: calc_EndOfPrd_dvdx(S, a, z)[0]
         calc_EndOfPrd_dvds = lambda S, a, z: calc_EndOfPrd_dvdx(S, a, z)[1]
