@@ -1401,6 +1401,18 @@ class AgentType(Model):
         """
         return
 
+    def solve_stationary(self, verbose=False):
+        """Solve an infinite-horizon problem for its stationary solution directly.
+
+        ``solve_agent`` calls this instead of iterating cycles when the
+        agent's ``stationary_method`` is not ``"iterate"``.  Models that have
+        such a solver override it; this default has none.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} has no stationary solver for "
+            f"stationary_method={getattr(self, 'stationary_method', None)!r}."
+        )
+
     def pre_solve(self):
         """
         A method that is run immediately before the model is solved, to check inputs or to prepare
@@ -2347,6 +2359,14 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         encounter in his "lifetime".
     """
     # Check to see whether this is an (in)finite horizon problem
+    method = getattr(agent, "stationary_method", "iterate")
+    if method != "iterate":
+        if agent.cycles != 0 or from_solution is not None:
+            raise ValueError(
+                f"stationary_method={method!r} applies to an infinite-horizon solve "
+                f"(cycles=0) from the terminal solution; this agent has cycles={agent.cycles}."
+            )
+        return agent.solve_stationary(verbose)
     cycles_left = agent.cycles  # NOQA
     infinite_horizon = cycles_left == 0  # NOQA
 
