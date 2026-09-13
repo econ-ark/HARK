@@ -534,6 +534,35 @@ def _build_fake_news(
     return FN
 
 
+def _lc_surviving_mass(matrices, K, norm):
+    """
+    Mass carried by the survivors from each arrival state of one life-cycle
+    period: the survival probability, or under norm the survivors' income-
+    weighted mass (which includes the growth of the normalizing level realized
+    within the period, relative to newborn_growth), as AgentSimulator.
+    make_transition_matrices reads it. Ones when the model has no mortality.
+    """
+    if "dead" not in matrices:
+        return np.ones(K)
+    dead = matrices["dead"]
+    if norm is None:
+        return 1.0 - dead[:, 1]
+    return dead[:, 0]
+
+
+def _lc_cohort_dstns(newborn_dstn, trans_by_age, surv_by_age):
+    """
+    Arrival distributions of one birth cohort at each age, carrying its mass:
+    newborns have mass one, and the mass that survives from each arrival state
+    (surv_by_age[a], per state) moves along the survivors' transition
+    (trans_by_age[a], rows conditional on survival).
+    """
+    dstns = [np.asarray(newborn_dstn, dtype=float).copy()]
+    for a in range(len(trans_by_age) - 1):
+        dstns.append(np.dot(surv_by_age[a] * dstns[a], trans_by_age[a]))
+    return dstns
+
+
 def make_flat_LC_SSJ_matrices(
     agent,
     shock,
@@ -550,6 +579,7 @@ def make_flat_LC_SSJ_matrices(
     construct=True,
     offset=False,
     verbose=False,
+    newborn_growth=1.0,
 ):
     """
     Constructs one or more sequence space Jacobian (SSJ) matrices for specified
@@ -592,20 +622,33 @@ def make_flat_LC_SSJ_matrices(
         Size of the SSJ matrices: the maximum number of periods to consider.
         The default is 100.
     norm : str or None
-        Name of the model variable to normalize by for Harmenberg aggregation,
-        if any. For many HARK models, this should be 'PermShk', which enables
-        the grid over permanent income to be omitted as an explicit state.
+        Name of the block variable whose realized value weights each probability
+        mass, for Harmenberg (income-weighted) aggregation, if any; it lets the
+        grid over permanent income be omitted as an explicit state. Two usages
+        are consistent, and give the same Jacobians for shocks that leave the
+        income process alone: ``norm='G'`` (the growth factor of the normalized
+        level, ``PermGroFac * PermShk`` in HARK's model files) with ``trend=None``,
+        under which each cohort's income-weighted mass carries the deterministic
+        growth by age and responds to shocks that change it; or ``norm='PermShk'``
+        with ``trend='PermGroFac'``, under which the shock alone weights the
+        masses and the deterministic growth is applied to the outcomes by age
+        afterwards. Naming a variable that already includes the growth *and*
+        passing ``trend`` counts it twice. Under ``norm`` the outcome arrays carry
+        the growth of the normalizing level realized within the period, and the
+        Jacobians are expressed per unit of the newborn cohort's first-period
+        level (the same convention as ``trend``, whose factor starts at one).
     trend : str or None
         Name of the model variable that represents the "normalization trend factor"
         for the outcomes. For example, most consumption-saving models in HARK are
         normalized by permanent income, which grows by factor `PermGroFac` each
         period of the life-cycle; `PermGroFac` should be named as the `trend` for
         any model outputs that are normalized by permanent income (i.e. they have
-        `Nrm` in their name). In contrast, if you wanted the fraction of agents
-        that have `Lbr > 0.0` for `LaborIntMargConsumerType`, a binary indicator
-        for this outcome should *not* have `PermGroFac` named as the `trend`--
-        you don't want to upweight people who have accumulated more income growth
-        more when calculating the employment rate!
+        `Nrm` in their name) when ``norm`` weights by the shock alone. In contrast,
+        if you wanted the fraction of agents that have `Lbr > 0.0` for
+        `LaborIntMargConsumerType`, a binary indicator for this outcome should
+        *not* have `PermGroFac` named as the `trend`-- you don't want to upweight
+        people who have accumulated more income growth more when calculating the
+        employment rate! Leave it None when ``norm`` already carries the growth.
     pop_gro : float
         Constant population growth factor, defaulting to 1. Each successive
         birth cohort is this factor bigger than the prior birth cohort. With flat
@@ -644,6 +687,14 @@ def make_flat_LC_SSJ_matrices(
         but it represents the value of R that will occur at the start of t+1.
     verbose : bool
         Whether to display timing/progress to screen. The default is False.
+    newborn_growth : float
+        Per-period growth factor of the normalizing level that successive newborn
+        cohorts inherit (a common trend), by which the weights under ``norm`` are
+        divided. With flat demographics and no aggregate productivity growth,
+        which is all this function implements (see ``prod_gro``), newborns arrive
+        at a fixed level and the default of 1.0 is the consistent value; it is not
+        taken from the agent's ``PermGroFacAgg``, because that is exactly the
+        cohort trend this function does not yet model.
 
     Returns
     -------
@@ -700,10 +751,26 @@ def make_flat_LC_SSJ_matrices(
         agent.initialize_sym()
         X = agent._simulator  # for easier referencing
 
-        # Construct the transition matrices for the long run model
-        X.make_transition_matrices(grids, norm)
+        # Construct the transition matrices for the long run model. A cohort
+        # model handles death and replacement itself, age by age, so ask for
+        # every period explicitly: that skips the population-level replacement
+        # (and its stationarity check) that the one-period infinite-horizon
+        # model needs in its last period.
+        X.make_transition_matrices(
+            grids,
+            norm,
+            for_t=range(len(X.periods)),
+            newborn_growth=newborn_growth,
+        )
         LR_trans = deepcopy(X.trans_arrays)  # the transition matrices in LR model
         T_age = len(LR_trans)
+        K = X.newborn_dstn.size
+        # Mass that survives from each arrival state at each age: the survival
+        # probability, or under norm the survivors' income-weighted mass, which
+        # carries the growth of the normalizing level realized within the period
+        LR_surv = [
+            _lc_surviving_mass(X.periods[t].matrices, K, norm) for t in range(T_age)
+        ]
         if T_max < T_age:
             raise ValueError(
                 "T_max must be greater than or equal to T_age in order to pad "
@@ -742,7 +809,6 @@ def make_flat_LC_SSJ_matrices(
         # Find the steady state for the long run model
         t0 = time()
         X.simulate_cohort_by_grids(outcomes=["dead"] + outcomes, calc_dstn=True)
-        SS_dstn = deepcopy(X.state_dstn_by_age)
         SS_outcomes = {}
         for j in range(J):
             name = outcomes[j]
@@ -750,15 +816,18 @@ def make_flat_LC_SSJ_matrices(
                 np.dot(LR_outcomes[j][t], outcome_grids[j][t]) for t in range(T_age)
             ]
 
-        # Re-apply mortality to downweight older ages
+        # The cohort's arrival distribution by age, carrying its mass: the mass
+        # that survives from each arrival state times the survivors' transition.
+        # Under norm this is the income-weighted mass, so older cohorts carry
+        # the growth of the normalizing level accumulated since birth.
+        SS_dstn = _lc_cohort_dstns(X.newborn_dstn, LR_trans, LR_surv)
+
+        # Population size for the per capita normalization counts people: the
+        # unweighted survival rates by age
         survival_by_age = 1.0 - X.history_avg["dead"]
-        survival_by_age[-1] = 0.0  # Force automatic death
-        cum_liv_prb = 1.0
-        pop_sum = 0.0
-        for a in range(T_age):
-            SS_dstn[a] *= cum_liv_prb
-            pop_sum += cum_liv_prb
-            cum_liv_prb *= survival_by_age[a]
+        pop_sum = float(
+            np.sum(np.cumprod(np.concatenate(([1.0], survival_by_age[:-1]))))
+        )
 
         t1 = time()
         if verbose:
@@ -775,8 +844,9 @@ def make_flat_LC_SSJ_matrices(
             E_temp = [[SS_outcomes[name][a].copy()] for a in range(T_age)]
             for t in range(1, T_age):
                 for a in range(T_age - t):
-                    S = survival_by_age[a]
-                    E_temp[a].append(np.dot(S * LR_trans[a], E_temp[a + 1][-1]))
+                    E_temp[a].append(
+                        np.dot(LR_surv[a][:, None] * LR_trans[a], E_temp[a + 1][-1])
+                    )
             E_vecs[name] = E_temp
         t1 = time()
 
@@ -835,8 +905,15 @@ def make_flat_LC_SSJ_matrices(
             X = agent._simulator  # for easier typing
             if l < 0:
                 setattr(X.periods[0], shock, shock_val_new)
-            X.make_transition_matrices(grids, norm, for_t=range(k + 1))
+            X.make_transition_matrices(
+                grids, norm, for_t=range(k + 1), newborn_growth=newborn_growth
+            )
             shocked_trans = deepcopy(X.trans_arrays)
+            # Under norm a shock to the income process moves the surviving mass
+            # itself (a level response), so the news term uses the shocked masses
+            shocked_surv = [
+                _lc_surviving_mass(X.periods[a].matrices, K, norm) for a in range(k + 1)
+            ]
             shocked_outcomes = []
             for var in outcomes:
                 temp_outcomes = []
@@ -856,9 +933,9 @@ def make_flat_LC_SSJ_matrices(
             for a in range(k + 1):
                 if a >= T_age - 1:
                     continue
-                S = survival_by_age[a]
                 D_dstn_news = (
-                    np.dot(S * shocked_trans[a].T, SS_dstn[a]) - SS_dstn[a + 1]
+                    np.dot(shocked_surv[a] * SS_dstn[a], shocked_trans[a])
+                    - SS_dstn[a + 1]
                 )
                 update_FN_mats(
                     fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, k
@@ -890,6 +967,14 @@ def make_flat_LC_SSJ_matrices(
         # Apply normalization factors
         SSJ_by_age *= np.reshape(trend_adj_cum, (1, T_age, 1, 1))
         SSJ_by_age /= pop_sum * eps
+        if norm is not None:
+            # The outcome arrays carry the growth of the normalizing level realized
+            # within the period, so the newborn cohort's first-period mass exceeds
+            # its arrival mass by that growth. Divide by it to express the responses
+            # per unit of the cohort's first-period level, the convention of the
+            # trend adjustment above (whose factor starts at one) and of
+            # make_basic_SSJ_matrices (per unit of the post-growth level).
+            SSJ_by_age /= float(np.sum(np.dot(SS_dstn[0], LR_outcomes[0][0])))
 
         t1 = time()
         if verbose:

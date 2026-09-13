@@ -22,6 +22,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import PersistentShockConsumerType
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.SSJutils import _lc_cohort_dstns, _lc_surviving_mass
 
 
 class testsForIndShk(unittest.TestCase):
@@ -743,3 +744,109 @@ class testsForIncomeWeightedMeasure(unittest.TestCase):
         )
         self.assertEqual(J2.shape, (40, 40))
         self.assertTrue(np.all(np.isfinite(J2)))
+
+
+class testsForLifeCycleWeightedMeasure(unittest.TestCase):
+    """
+    The income-weighted measure in the life-cycle Jacobian helper: a birth
+    cohort's weighted mass carries the deterministic growth by age, so norm='G'
+    with no trend adjustment agrees with norm='PermShk' plus trend='PermGroFac'
+    for shocks that leave the income process alone, the masses match their
+    closed form, and a shock to the growth factor moves the masses.
+    """
+
+    T = 10
+
+    @classmethod
+    def setUpClass(cls):
+        params = deepcopy(init_lifecycle)
+        for key in ["PermShkStd", "TranShkStd", "Rfree", "LivPrb", "PermGroFac"]:
+            params[key] = list(params[key][: cls.T])
+        params["T_cycle"] = cls.T
+        params["T_age"] = cls.T
+        cls.solved_agent = IndShockConsumerType(**params)
+        cls.solved_agent.solve()
+        cls.grid_specs = {
+            "kNrm": {"min": 0.0, "max": 30.0, "N": 100, "order": 2.0},
+            "cNrm": {"min": 0.0, "max": 10.0, "N": 101},
+        }
+
+    def _cohort_masses(self, norm):
+        agent = deepcopy(self.solved_agent)
+        agent.initialize_sym()
+        X = agent._simulator
+        X.make_transition_matrices(self.grid_specs, norm, for_t=range(self.T))
+        K = X.newborn_dstn.size
+        surv = [
+            _lc_surviving_mass(X.periods[t].matrices, K, norm) for t in range(self.T)
+        ]
+        dstns = _lc_cohort_dstns(X.newborn_dstn, X.trans_arrays, surv)
+        return X, np.array([np.sum(d) for d in dstns])
+
+    def test_cohort_masses_match_closed_form(self):
+        # Under norm='G' the mass alive at age a, per unit of newborn arrival
+        # mass, is the product over earlier ages of survival times the growth
+        # factor (the shocks have mean one); under norm='PermShk', survival alone.
+        X, masses_G = self._cohort_masses("G")
+        liv = np.array([X.periods[t].content["LivPrb"] for t in range(self.T)])
+        gro = np.array([X.periods[t].content["PermGroFac"] for t in range(self.T)])
+        closed_G = np.concatenate(([1.0], np.cumprod(liv * gro)[:-1]))
+        self.assertTrue(np.allclose(masses_G, closed_G, rtol=1e-10, atol=0.0))
+        X, masses_P = self._cohort_masses("PermShk")
+        closed_P = np.concatenate(([1.0], np.cumprod(liv)[:-1]))
+        self.assertTrue(np.allclose(masses_P, closed_P, rtol=1e-10, atol=0.0))
+
+    def test_growth_weighting_matches_shock_weighting_with_trend(self):
+        # A shock that leaves the income process alone: the deterministic growth
+        # is carried by the weighted masses (norm='G') or applied afterwards by
+        # the trend factor (norm='PermShk', trend='PermGroFac'); same Jacobians.
+        J_G_A, J_G_C = deepcopy(self.solved_agent).make_basic_SSJ(
+            "Rfree",
+            ["aNrm", "cNrm"],
+            self.grid_specs,
+            T_max=20,
+            norm="G",
+            offset=True,
+            solved=True,
+        )
+        J_P_A, J_P_C = deepcopy(self.solved_agent).make_basic_SSJ(
+            "Rfree",
+            ["aNrm", "cNrm"],
+            self.grid_specs,
+            T_max=20,
+            norm="PermShk",
+            trend="PermGroFac",
+            offset=True,
+            solved=True,
+        )
+        self.assertTrue(np.all(np.isfinite(J_G_C)))
+        self.assertTrue(np.allclose(J_G_C, J_P_C, rtol=1e-8, atol=1e-10))
+        self.assertTrue(np.allclose(J_G_A, J_P_A, rtol=1e-8, atol=1e-10))
+
+    def test_growth_shock_moves_the_weighted_mass(self):
+        # A shock to the growth factor raises the income-weighted mass of every
+        # later age (a level response). The growth weighting carries it; the
+        # shock-only weighting with a fixed trend adjustment cannot, so its
+        # Jacobian omits the level term and the summed response is smaller.
+        J_G = deepcopy(self.solved_agent).make_basic_SSJ(
+            "PermGroFac",
+            "cNrm",
+            self.grid_specs,
+            T_max=20,
+            norm="G",
+            offset=True,
+            solved=True,
+        )
+        J_P = deepcopy(self.solved_agent).make_basic_SSJ(
+            "PermGroFac",
+            "cNrm",
+            self.grid_specs,
+            T_max=20,
+            norm="PermShk",
+            trend="PermGroFac",
+            offset=True,
+            solved=True,
+        )
+        self.assertTrue(np.all(np.isfinite(J_G)))
+        self.assertFalse(np.allclose(J_G, J_P, rtol=1e-6, atol=1e-8))
+        self.assertGreater(np.sum(J_G), np.sum(J_P))
