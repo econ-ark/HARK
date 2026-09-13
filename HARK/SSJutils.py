@@ -1616,3 +1616,223 @@ def update_FN_mats(FN_mats, evecs, dD1, A, a, k):  # pragma: no cover
             for g in range(G):
                 v += evecs[t - 1, j, g] * dD1[g]
             FN_mats[j, a + t, t, k - a] += v
+
+
+def _scalar_parameter(value, name):
+    """
+    Return a parameter of a one-period infinite-horizon model as a float,
+    accepting a float or a singleton list or array (the form HARK's time-varying
+    parameters take when T_cycle is 1).
+    """
+    arr = np.asarray(value, dtype=float).ravel()
+    if arr.size != 1:
+        raise ValueError(
+            name
+            + " must be a single number (or a singleton list) for this check, which "
+            "is for one-period infinite-horizon models."
+        )
+    return float(arr[0])
+
+
+def flow_budget_residuals(SSJ_C, SSJ_A, Rfree, LivPrb, SSJ_Y=None, newborn_growth=1.0):
+    """
+    Residuals of the household flow-budget identity along each column of a set
+    of sequence space Jacobians from make_basic_SSJ.
+
+    In the units make_basic_SSJ reports (responses per unit of the period's
+    normalizing level), the responses of consumption C, end-of-period assets A
+    and labor income Y to a perturbation dated s satisfy, at every date t,
+
+        dC[t, s] + dA[t, s] - rho * dA[t-1, s] - dY[t, s] = cash[t, s],
+
+    with dA[-1, s] = 0 and rho = Rfree * LivPrb / newborn_growth: survivors bring
+    Rfree times their end-of-period assets into the next period, the dead bring
+    nothing (their replacements' initial assets belong to the steady state and
+    do not respond), and the normalizing level grows by newborn_growth per
+    period. The left side is the period's uses of resources less what arrives
+    from last period and from labor income, so cash[t, s] is what the
+    perturbation itself injects at date t: nothing, for a perturbation that
+    reaches the household through labor income (with dY included) or through
+    preferences; for a perturbation of the return factor, the return on the
+    assets brought into the period, LivPrb * A_ss / newborn_growth, on the date
+    the perturbed return is paid (row s for make_basic_SSJ with offset=True) and
+    nothing elsewhere. Without SSJ_Y the residual is the cash delivered including
+    labor income; for a perturbation of income that is its delivery on its own
+    date, the same amount in every column.
+
+    Parameters
+    ----------
+    SSJ_C : np.array
+        Sequence space Jacobian of consumption (cNrm), shape (T, T).
+    SSJ_A : np.array
+        Sequence space Jacobian of end-of-period assets (aNrm), shape (T, T).
+    Rfree : float or [float]
+        Risk free return factor of the long run model.
+    LivPrb : float or [float]
+        Survival probability of the long run model.
+    SSJ_Y : np.array or None
+        Sequence space Jacobian of labor income (yNrm), shape (T, T), when it
+        was requested as an outcome. The default is None.
+    newborn_growth : float
+        Per-period growth factor of the normalizing level that newborns inherit,
+        as passed to make_basic_SSJ (whose default of None means the agent's
+        PermGroFacAgg, 1.0 for most agents). The default is 1.0.
+
+    Returns
+    -------
+    residuals : np.array
+        The residual dC + dA - rho * dA(-1) - dY (dY omitted when SSJ_Y is None),
+        shape (T, T); entry [t, s] is date t of the perturbation dated s.
+    """
+    C = np.asarray(SSJ_C, dtype=float)
+    A = np.asarray(SSJ_A, dtype=float)
+    if C.ndim != 2 or C.shape[0] != C.shape[1] or A.shape != C.shape:
+        raise ValueError("SSJ_C and SSJ_A must be square arrays of the same shape.")
+    rho = (
+        _scalar_parameter(Rfree, "Rfree")
+        * _scalar_parameter(LivPrb, "LivPrb")
+        / float(newborn_growth)
+    )
+    residuals = C + A
+    residuals[1:, :] -= rho * A[:-1, :]
+    if SSJ_Y is not None:
+        Y = np.asarray(SSJ_Y, dtype=float)
+        if Y.shape != C.shape:
+            raise ValueError("SSJ_Y must have the same shape as SSJ_C and SSJ_A.")
+        residuals -= Y
+    return residuals
+
+
+def check_flow_budget(
+    SSJ_C,
+    SSJ_A,
+    Rfree,
+    LivPrb,
+    SSJ_Y=None,
+    newborn_growth=1.0,
+    A_ss=None,
+    tol=1e-6,
+):
+    """
+    Check sequence space Jacobians from make_basic_SSJ against the household
+    flow-budget identity (see flow_budget_residuals), raising a ValueError that
+    names the offending date and perturbation date if it fails.
+
+    With SSJ_Y given, the residual must vanish at every date in every column.
+    If A_ss is given, the perturbation is one of the return factor and the
+    residual must instead equal LivPrb * A_ss / newborn_growth on the diagonal
+    (the return on the assets brought into the period) and vanish elsewhere.
+    Without SSJ_Y or A_ss the residual is the cash the perturbation delivers,
+    and the check is the weaker one that needs no income Jacobian: every column
+    delivers only on its own date, and the same amount in every column (the
+    same experiment moved in time), the amount being taken from the columns
+    themselves.
+
+    Parameters
+    ----------
+    SSJ_C, SSJ_A, Rfree, LivPrb, SSJ_Y, newborn_growth
+        As in flow_budget_residuals.
+    A_ss : float or None
+        Steady state end-of-period assets per unit of the period's normalizing
+        level (the long run average of aNrm, as get_long_run_average reports
+        it), for a perturbation of the return factor. The default is None.
+        LivPrb * A_ss / newborn_growth equals the assets brought into the period
+        only up to the discretization of the assets-to-capital transition (of
+        the order of 1e-6 with a few hundred grid nodes), so give this case a
+        tolerance to match; the check without SSJ_Y and A_ss is exact.
+    tol : float
+        Largest violation allowed, relative to the largest entry of the
+        Jacobians and of the cash delivered. The default is 1e-6.
+
+    Returns
+    -------
+    worst : float
+        The largest violation found, relative to that scale.
+    """
+    residuals = flow_budget_residuals(
+        SSJ_C, SSJ_A, Rfree, LivPrb, SSJ_Y, newborn_growth
+    )
+    T = residuals.shape[0]
+    if A_ss is not None:
+        cash = _scalar_parameter(LivPrb, "LivPrb") * float(A_ss) / float(newborn_growth)
+    elif SSJ_Y is None:
+        cash = float(np.median(np.diag(residuals)))
+    else:
+        cash = 0.0
+    expected = np.zeros_like(residuals)
+    expected[np.arange(T), np.arange(T)] = cash
+    scale = max(np.max(np.abs(SSJ_C)), np.max(np.abs(SSJ_A)), abs(cash))
+    if SSJ_Y is not None:
+        scale = max(scale, np.max(np.abs(SSJ_Y)))
+    if scale == 0.0:
+        scale = 1.0
+    violation = np.abs(residuals - expected) / scale
+    worst = float(np.max(violation))
+    if worst > tol:
+        t, s = np.unravel_index(np.argmax(violation), violation.shape)
+        raise ValueError(
+            "The flow-budget identity fails: at date t={} of the perturbation dated "
+            "s={} the residual is {:.4e} where {:.4e} was expected ({:.2e} of the "
+            "Jacobians' scale; tolerance {:.1e}).".format(
+                t, s, residuals[t, s], expected[t, s], worst, tol
+            )
+        )
+    return worst
+
+
+def aggregate_SSJs(SSJs, weights):
+    """
+    Aggregate sequence space Jacobians over types as a weighted sum.
+
+    Parameters
+    ----------
+    SSJs : list
+        One entry per type: the output of make_basic_SSJ for the same shock,
+        outcomes and T_max on each type, so an np.array, a list of them or a
+        dict of them, in the same structure for every type.
+    weights : array-like
+        One weight per type, its share of the aggregate. In the units of
+        make_basic_SSJ (responses per unit of each type's normalizing level) the
+        response per unit of the population's level uses each type's share of
+        that level: its population share when the types' newborns start at the
+        same level and share the same survival and growth (they then have the
+        same mean level whatever their preferences), and its population share
+        times its mean level relative to the population's otherwise. The weights
+        are used as given, not normalized.
+
+    Returns
+    -------
+    SSJ : np.array, [np.array] or {str: np.array}
+        The weighted sum, in the structure of one type's entry.
+    """
+    weights = np.asarray(weights, dtype=float).ravel()
+    if len(SSJs) == 0 or weights.size != len(SSJs):
+        raise ValueError("Pass one weight per type, and at least one type.")
+    return _weighted_sum(list(SSJs), weights)
+
+
+def _weighted_sum(items, weights):
+    first = items[0]
+    if isinstance(first, dict):
+        keys = list(first.keys())
+        for item in items[1:]:
+            if not isinstance(item, dict) or set(item.keys()) != set(keys):
+                raise ValueError("Every type must have the same outcome names.")
+        return {
+            key: _weighted_sum([item[key] for item in items], weights) for key in keys
+        }
+    if isinstance(first, (list, tuple)):
+        n = len(first)
+        for item in items[1:]:
+            if not isinstance(item, (list, tuple)) or len(item) != n:
+                raise ValueError("Every type must have the same number of outcomes.")
+        return [_weighted_sum([item[j] for item in items], weights) for j in range(n)]
+    arrays = [np.asarray(item, dtype=float) for item in items]
+    shape = arrays[0].shape
+    for arr in arrays[1:]:
+        if arr.shape != shape:
+            raise ValueError("Every type's Jacobian must have the same shape.")
+    total = np.zeros(shape)
+    for w, arr in zip(weights, arrays):
+        total += w * arr
+    return total

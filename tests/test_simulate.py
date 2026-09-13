@@ -22,7 +22,19 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import PersistentShockConsumerType
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.SSJutils import _lc_cohort_dstns, _lc_surviving_mass
+from HARK.SSJutils import (
+    _lc_cohort_dstns,
+    _lc_surviving_mass,
+    aggregate_SSJs,
+    check_flow_budget,
+    flow_budget_residuals,
+)
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType_constructors_default,
+)
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_HANK_lognormal_income_process_unemployment,
+)
 
 
 class testsForIndShk(unittest.TestCase):
@@ -937,3 +949,216 @@ class testsForGhostRun(unittest.TestCase):
             agent.make_basic_SSJ(
                 "Rfree", "cNrm", self.grid_specs, T_max=20, norm="G", ghost=True
             )
+
+
+# Grids for the flow-budget tests: labor income yNrm is an outcome, so the
+# identity can be checked exactly rather than by the pattern of the delivery.
+_FB_GRIDS = {
+    "kNrm": {"min": 0.0, "max": 60.0, "N": 201, "nest": 3},
+    "cNrm": {"min": 0.0, "max": 4.0, "N": 201},
+    "aNrm": {"min": 0.0, "max": 60.0, "N": 201},
+    "yNrm": {"min": 0.0, "max": 4.0, "N": 201},
+}
+_FB_T = 60
+
+
+def _fb_agent(**kwargs):
+    # the HANK income process, so that the wage is a parameter that can be perturbed
+    constructors = IndShockConsumerType_constructors_default.copy()
+    constructors["IncShkDstn"] = construct_HANK_lognormal_income_process_unemployment
+    params = dict(
+        cycles=0,
+        tolerance=1e-10,
+        tax_rate=[0.0],
+        labor=[1.0],
+        wage=[1.0],
+        Rfree=[1.03],
+        LivPrb=[0.98],
+        PermGroFac=[1.0],
+        DiscFac=0.96,
+        constructors=constructors,
+    )
+    params.update(kwargs)
+    agent = IndShockConsumerType(**params)
+    agent.solve()
+    return agent
+
+
+def _fb_ssjs(agent, shock, **kwargs):
+    kw = dict(T_max=_FB_T, norm="G", offset=True, solved=True, ghost=True)
+    kw.update(kwargs)
+    return deepcopy(agent).make_basic_SSJ(
+        shock, ["cNrm", "aNrm", "yNrm"], _FB_GRIDS, **kw
+    )
+
+
+def _fb_A_ss(agent, newborn_growth=1.0):
+    # steady state assets per unit of the period's level, as the notebook computes them
+    a = deepcopy(agent)
+    a.initialize_sym()
+    X = a._simulator
+    X.make_transition_matrices(_FB_GRIDS, "G", newborn_growth=newborn_growth)
+    X.find_steady_state()
+    return float(X.get_long_run_average("aNrm"))
+
+
+class testsForFlowBudgetAndAggregation(unittest.TestCase):
+    """
+    The household flow-budget identity as a check on SSJs (flow_budget_residuals,
+    check_flow_budget) and the aggregation of SSJs over types (aggregate_SSJs).
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.agent = _fb_agent()
+        cls.A_ss = _fb_A_ss(cls.agent)
+
+    def test_residuals_on_constructed_matrices(self):
+        # matrices built to satisfy the identity exactly, with growth and a trend
+        rng = np.random.default_rng(0)
+        T = 8
+        rho = 1.02 * 0.99 / 1.005
+        A = rng.normal(size=(T, T))
+        Y = 0.4 * np.eye(T)
+        C = Y + rho * np.vstack([np.zeros((1, T)), A[:-1]]) - A
+        res = flow_budget_residuals(C, A, 1.02, [0.99], Y, newborn_growth=1.005)
+        self.assertLess(np.max(np.abs(res)), 1e-13)
+        self.assertLess(
+            check_flow_budget(C, A, 1.02, [0.99], Y, newborn_growth=1.005), 1e-13
+        )
+        # parameters must be scalars of a one-period model; shapes must agree
+        with self.assertRaises(ValueError):
+            flow_budget_residuals(C, A, [1.02, 1.03], 0.99, Y)
+        with self.assertRaises(ValueError):
+            flow_budget_residuals(C, A[:4, :4], 1.02, 0.99)
+        with self.assertRaises(ValueError):
+            flow_budget_residuals(C, A, 1.02, 0.99, Y[:4, :4])
+
+    def test_income_perturbation_closes_the_budget(self):
+        agent = self.agent
+        C, A, Y = _fb_ssjs(agent, "wage")
+        self.assertLess(
+            check_flow_budget(C, A, agent.Rfree, agent.LivPrb, SSJ_Y=Y), 1e-8
+        )
+        # the income Jacobian is the delivery itself: one unit of income per unit
+        # of wage (labor one, no tax), on the date of the perturbation
+        self.assertTrue(np.allclose(Y, np.eye(_FB_T), atol=1e-8))
+        # without the income Jacobian, the same cash on every column's own date
+        self.assertLess(check_flow_budget(C, A, agent.Rfree, agent.LivPrb), 1e-8)
+        res = flow_budget_residuals(C, A, agent.Rfree, agent.LivPrb)
+        self.assertTrue(np.allclose(res, np.eye(_FB_T), atol=1e-8))
+        # an accounting identity holds without the ghost run as well
+        C0, A0, Y0 = _fb_ssjs(agent, "wage", ghost=False)
+        self.assertLess(
+            check_flow_budget(C0, A0, agent.Rfree, agent.LivPrb, SSJ_Y=Y0), 1e-8
+        )
+
+    def test_return_perturbation_delivers_the_assets_brought_in(self):
+        agent = self.agent
+        C, A, Y = _fb_ssjs(agent, "Rfree")
+        # labor income does not respond to the return factor
+        self.assertLess(np.max(np.abs(Y)), 1e-8)
+        # the residual is LivPrb * A_ss on the diagonal: the return on the assets
+        # brought into the period, paid at the date of the perturbation (offset=True)
+        # (LivPrb * A_ss equals the assets brought in up to the discretization of the
+        # assets-to-capital transition: 1.5e-7 here, against 1e-11 on the identity itself)
+        res = flow_budget_residuals(C, A, agent.Rfree, agent.LivPrb, SSJ_Y=Y)
+        expected = 0.98 * self.A_ss * np.eye(_FB_T)
+        self.assertLess(np.max(np.abs(res - expected)) / self.A_ss, 1e-6)
+        self.assertLess(
+            check_flow_budget(C, A, agent.Rfree, agent.LivPrb, SSJ_Y=Y, A_ss=self.A_ss),
+            1e-6,
+        )
+        # the exact check without the return term does not accept it
+        with self.assertRaises(ValueError):
+            check_flow_budget(C, A, agent.Rfree, agent.LivPrb, SSJ_Y=Y)
+        # the pattern check needs no income Jacobian and no A_ss
+        self.assertLess(check_flow_budget(C, A, agent.Rfree, agent.LivPrb), 1e-8)
+
+    def test_survivor_factor_carries_growth_and_trend(self):
+        # with permanent income growth, survivors' assets are carried at Rfree * LivPrb
+        # per unit of a level that newborns do not share (newborn_growth 1.0), and at
+        # Rfree * LivPrb / PermGroFac per unit of a trend they do inherit
+        agent = _fb_agent(PermGroFac=[1.01])
+        for newborn_growth, wrong in ((1.0, 1.01), (1.01, 1.0)):
+            C, A, Y = _fb_ssjs(agent, "wage", newborn_growth=newborn_growth)
+            self.assertLess(
+                check_flow_budget(
+                    C,
+                    A,
+                    agent.Rfree,
+                    agent.LivPrb,
+                    SSJ_Y=Y,
+                    newborn_growth=newborn_growth,
+                ),
+                1e-8,
+            )
+            with self.assertRaises(ValueError):
+                check_flow_budget(
+                    C,
+                    A,
+                    agent.Rfree,
+                    agent.LivPrb,
+                    SSJ_Y=Y,
+                    newborn_growth=wrong,
+                    tol=1e-4,
+                )
+
+    def test_check_locates_a_broken_column(self):
+        agent = self.agent
+        C, A, Y = _fb_ssjs(agent, "wage")
+        A_bad = A.copy()
+        A_bad[:, 7] *= 1.01
+        with self.assertRaises(ValueError) as cm:
+            check_flow_budget(C, A_bad, agent.Rfree, agent.LivPrb, SSJ_Y=Y)
+        self.assertIn("s=7", str(cm.exception))
+        with self.assertRaises(ValueError):
+            check_flow_budget(C, A_bad, agent.Rfree, agent.LivPrb)
+
+    def test_aggregate_over_types(self):
+        patient = _fb_agent(DiscFac=0.97)
+        impatient = _fb_agent(DiscFac=0.93)
+        weights = (0.3, 0.7)
+        J_p = _fb_ssjs(patient, "wage")
+        J_i = _fb_ssjs(impatient, "wage")
+        J = aggregate_SSJs([J_p, J_i], weights)
+        self.assertEqual(len(J), 3)
+        for j in range(3):
+            self.assertTrue(np.allclose(J[j], 0.3 * J_p[j] + 0.7 * J_i[j]))
+        # the identity is linear, so the aggregate satisfies it with the same factor
+        # (to the fake-news assembly's own linearization error at the finite-difference
+        # step: 2e-7 for the patient type at the far end of column 0, 1e-11 for the other)
+        self.assertLess(
+            check_flow_budget(J[0], J[1], patient.Rfree, patient.LivPrb, SSJ_Y=J[2]),
+            1e-6,
+        )
+        # for the return factor, with the steady state aggregated by the same weights
+        R_p = _fb_ssjs(patient, "Rfree")
+        R_i = _fb_ssjs(impatient, "Rfree")
+        R = aggregate_SSJs([R_p, R_i], weights)
+        A_ss = 0.3 * _fb_A_ss(patient) + 0.7 * _fb_A_ss(impatient)
+        self.assertLess(
+            check_flow_budget(
+                R[0],
+                R[1],
+                patient.Rfree,
+                patient.LivPrb,
+                SSJ_Y=R[2],
+                A_ss=A_ss,
+                tol=1e-5,
+            ),
+            1e-5,
+        )
+        # dict and single-array structures give the same numbers
+        D = aggregate_SSJs([dict(zip("CAY", J_p)), dict(zip("CAY", J_i))], weights)
+        self.assertTrue(np.array_equal(D["A"], J[1]))
+        self.assertTrue(np.array_equal(aggregate_SSJs([J_p[0], J_i[0]], weights), J[0]))
+        # one weight per type, the same structure and shape for every type
+        with self.assertRaises(ValueError):
+            aggregate_SSJs([J_p, J_i], [1.0])
+        with self.assertRaises(ValueError):
+            aggregate_SSJs([J_p, J_i[:2]], weights)
+        with self.assertRaises(ValueError):
+            aggregate_SSJs([J_p[0], J_i[0][:30, :30]], weights)
+        with self.assertRaises(ValueError):
+            aggregate_SSJs([dict(zip("CAY", J_p)), dict(zip("CAX", J_i))], weights)
