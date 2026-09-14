@@ -1549,3 +1549,83 @@ class testMarkovShuffleEndToEnd(unittest.TestCase):
             f"the plain shuffle.",
         )
         self.assertLess(gaps["balanced"], 0.5 * gaps["shuffle_only"])
+
+
+class testStoppingRuleAndTargetReport(unittest.TestCase):
+    """The contraction stopping rule and the target part of the convergence report (issue #1837)."""
+
+    quarterly = dict(
+        Rfree=[1.01],
+        PermGroFac=[1.0025],
+        LivPrb=[0.995],
+        CRRA=2.0,
+        PermShkStd=[0.06],
+        TranShkStd=[0.2],
+        UnempPrb=0.05,
+        IncUnemp=0.3,
+    )
+
+    def test_contraction_rule_makes_the_tolerance_bind_at_the_target(self):
+        p = dict(self.quarterly, DiscFac=0.99)
+        ref = IndShockConsumerType(cycles=0, tolerance=1e-12, **p)
+        ref.solve()
+        step = IndShockConsumerType(cycles=0, report_convergence=True, **p)
+        step.solve()
+        contraction = IndShockConsumerType(
+            cycles=0, stopping_rule="contraction", report_convergence=True, **p
+        )
+        contraction.solve()
+        self.assertGreater(contraction.completed_cycles, step.completed_cycles)
+        knots = step.convergence_report["target_population_knots"]
+        m = np.array(knots)
+        err_step = np.max(np.abs(step.solution[0].cFunc(m) - ref.solution[0].cFunc(m)))
+        err_contraction = np.max(
+            np.abs(contraction.solution[0].cFunc(m) - ref.solution[0].cFunc(m))
+        )
+        # at the default tolerance 1e-6 the step rule leaves consumption at the
+        # target several times further away than that; the contraction rule
+        # brings it under the tolerance (measured 4.8e-6 against 2.7e-7)
+        self.assertGreater(err_step, 1e-6)
+        self.assertLess(err_contraction, 1e-6)
+        self.assertLess(contraction.convergence_report["implied_distance"], 1e-6)
+
+    def test_targets_knots_and_steps_in_the_report(self):
+        a = IndShockConsumerType(cycles=0, report_convergence=True)
+        a.solve()
+        rep = a.convergence_report
+        # the individual target agrees with HARK's own (whose locus omits E[1/psi], a 4e-4 effect)
+        a.check_conditions(verbose=False)
+        a.calc_stable_points()
+        self.assertAlmostEqual(
+            rep["target_individual"], a.solution[0].mNrmTrg, delta=2e-3
+        )
+        # the mortality-adjusted population target lies below it, newborns being poor
+        self.assertLess(rep["target_population"], rep["target_individual"])
+        self.assertAlmostEqual(rep["newborn_m"], 1.0, delta=1e-3)
+        lo, hi = rep["target_population_knots"]
+        self.assertTrue(lo <= rep["target_population"] < hi)
+        self.assertFalse(rep["target_population_above_grid"])
+        # the target region is converged far tighter than the grid as a whole
+        self.assertLess(rep["last_step_at_target_population"], rep["last_step"])
+        self.assertLess(
+            rep["implied_distance_at_target_population"], rep["implied_distance"]
+        )
+
+    def test_target_above_the_grid_is_flagged(self):
+        a = IndShockConsumerType(
+            cycles=0, report_convergence=True, **dict(self.quarterly, DiscFac=0.998)
+        )
+        a.solve()
+        rep = a.convergence_report
+        self.assertTrue(rep["target_population_above_grid"])
+        self.assertTrue(rep["target_individual_above_grid"])
+        top = float(np.asarray(a.solution[0].cFunc.functions[0].x_list)[-1])
+        self.assertEqual(rep["target_population_knots"][1], top)
+
+    def test_state_dependent_solutions_are_declined_gracefully(self):
+        from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+
+        a = MarkovConsumerType(cycles=0, report_convergence=True)
+        a.solve()
+        self.assertIn("target_note", a.convergence_report)
+        self.assertIn("cycles", a.convergence_report)
