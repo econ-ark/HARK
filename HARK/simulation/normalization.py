@@ -110,6 +110,12 @@ def _stationary_distribution(transition_matrix):
     return pi / pi.sum()
 
 
+def _log_moments(dstn):
+    """``(E[log x], E[(log x)**2])`` over a discrete distribution's atoms."""
+    log_atoms = np.log(dstn.atoms.flatten())
+    return float(np.dot(dstn.pmv, log_atoms)), float(np.dot(dstn.pmv, log_atoms**2))
+
+
 def _warn_once(agent, key, message):
     """Emit ``message`` the first time ``key`` is raised for ``agent``.
 
@@ -135,6 +141,11 @@ class _NormalizationIndexMixin:
     the logic lives here rather than being duplicated.
     """
 
+    @property
+    def _T_cycle(self):
+        """Periods in the cycle, reading a missing or zero ``T_cycle`` as 1."""
+        return int(getattr(self, "T_cycle", 1)) or 1
+
     def _income_dstn_index(self):
         """Per-agent index into ``IncShkDstn`` / ``PermGroFac`` for this period.
 
@@ -144,9 +155,8 @@ class _NormalizationIndexMixin:
         ``t_age`` and ``t_cycle`` are advanced, i.e. anywhere inside
         ``sim_one_period``.
         """
-        T_cycle = int(getattr(self, "T_cycle", 1)) or 1
         t_cycle = np.asarray(self.t_cycle, dtype=int)
-        idx = (t_cycle - 1) % T_cycle
+        idx = (t_cycle - 1) % self._T_cycle
         newborn = np.asarray(self.t_age, dtype=int) == 0
         return np.where(newborn, 0, idx)
 
@@ -179,13 +189,13 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
     def get_shocks(self):
         """Draw shocks, then normalize cross-sectional means if enabled."""
         super().get_shocks()
-        if not getattr(self, "normalize_shocks", False):
+        if not self.normalize_shocks:
             return
         self._normalize_shock_means()
 
     def read_shocks_from_history(self):
         """Replay stored shocks, warning that normalization is bypassed."""
-        if getattr(self, "normalize_shocks", False):
+        if self.normalize_shocks:
             _warn_once(
                 self,
                 "read_shocks",
@@ -197,20 +207,22 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
             )
         super().read_shocks_from_history()
 
-    def _shock_group_labels(self, idx=None):
+    def _mrkv_labels(self):
+        """Per-agent discrete (Markov) state as integers, or None if there is none."""
+        if "Mrkv" not in getattr(self, "shocks", {}):
+            return None
+        return np.asarray(self.shocks["Mrkv"]).astype(int)
+
+    def _shock_group_labels(self, idx):
         """Integer group labels: agents sharing an income process and target.
 
-        ``idx`` is the period index from :meth:`_income_dstn_index`, accepted
-        so a caller that already has it need not recompute it. Omitted, it is
-        computed here.
+        ``idx`` is the period index from :meth:`_income_dstn_index`.
         """
-        columns = [self._income_dstn_index() if idx is None else idx]
-        if "Mrkv" in getattr(self, "shocks", {}):
-            columns.append(np.asarray(self.shocks["Mrkv"]).astype(int))
-        keys = np.column_stack(columns)
+        mrkv = self._mrkv_labels()
+        keys = np.column_stack([idx] if mrkv is None else [idx, mrkv])
         return np.unique(keys, axis=0, return_inverse=True)[1].reshape(-1)
 
-    def _perm_shk_mean_target(self, idx=None):
+    def _perm_shk_mean_target(self, idx):
         """Per-agent cross-sectional mean of ``shocks["PermShk"]``.
 
         This is ``PermGroFac`` for the period each agent drew from, because
@@ -218,20 +230,13 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
         storing it (see the module docstring). Returns None when
         ``PermGroFac`` is missing or has a shape this mixin cannot resolve,
         in which case ``PermShk`` is left untouched rather than normalized
-        to a guess.
-
-        ``idx`` is the period index from :meth:`_income_dstn_index`, accepted
-        so a caller that already has it need not recompute it. Omitted, it is
-        computed here.
+        to a guess. ``idx`` is the period index from
+        :meth:`_income_dstn_index`.
         """
         PermGroFac = getattr(self, "PermGroFac", None)
         if PermGroFac is None:
             return None
-        if idx is None:
-            idx = self._income_dstn_index()
-        mrkv = None
-        if "Mrkv" in getattr(self, "shocks", {}):
-            mrkv = np.asarray(self.shocks["Mrkv"]).astype(int)
+        mrkv = self._mrkv_labels()
 
         target = np.empty(len(idx), dtype=float)
         for i in np.unique(idx):
@@ -260,7 +265,7 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
         # Also checked in dual_measure.setup_Q_measure, which fails faster.
         # Repeated here because normalize_shocks can be set after that call,
         # and the composition silently reverses dual mode's headline result
-        # (P pinned exactly, Q left noisy). See _refuse_shock_normalization.
+        # (P pinned exactly, Q left noisy). See dual_measure._refuse_normalization.
         if getattr(self, "dual_measure", False):
             raise NotImplementedError(
                 f"{type(self).__name__} has dual_measure and normalize_shocks "
@@ -404,18 +409,11 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
             weights = self._stationary_weights(
                 len(dstn), t, context="a state-dependent PermShkDstn"
             )
-            first = np.zeros(len(dstn))
-            second = np.zeros(len(dstn))
-            for s, d in enumerate(dstn):
-                log_atoms = np.log(d.atoms.flatten())
-                first[s] = np.dot(d.pmv, log_atoms)
-                second[s] = np.dot(d.pmv, log_atoms**2)
+            first, second = np.array([_log_moments(d) for d in dstn]).T
             e1 = float(np.dot(weights, first))
             e2 = float(np.dot(weights, second))
         else:
-            log_atoms = np.log(dstn.atoms.flatten())
-            e1 = float(np.dot(dstn.pmv, log_atoms))
-            e2 = float(np.dot(dstn.pmv, log_atoms**2))
+            e1, e2 = _log_moments(dstn)
         return e1, max(e2 - e1**2, 0.0)
 
     def _stationary_weights(self, n_states, t=0, context="state-dependent growth"):
@@ -489,7 +487,7 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         from the permanent shock: ``get_shocks`` redraws a random ``PermShk``
         for them and pins only ``TranShk``.
         """
-        T_cycle = int(getattr(self, "T_cycle", 1)) or 1
+        T_cycle = self._T_cycle
         return [0] + [(j - 1) % T_cycle for j in range(1, int(age_k) + 1)]
 
     def _analytical_log_pLvl_moments(self, age_k):
@@ -507,6 +505,10 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         ``sigma_k`` omits the Markov-path variance contribution, which is
         exactly why the ``"auto"`` moments mode is mean-only there.
 
+        Cached per age, since every simulated period asks again for every age
+        present and recomputing each walk from birth made a run cost cubic in
+        its length. :meth:`initialize_sim` clears the cache.
+
         Parameters
         ----------
         age_k : int
@@ -518,6 +520,12 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         mu_k : float
         sigma_k : float
         """
+        cache = getattr(self, "_pLvl_norm_age_cache", None)
+        if cache is None:
+            cache = {}
+            self._pLvl_norm_age_cache = cache
+        if age_k in cache:
+            return cache[age_k]
         mu_k = float(getattr(self, "pLogInitMean", getattr(self, "pLvlInitMean", 0.0)))
         p_init_std = float(
             getattr(self, "pLogInitStd", getattr(self, "pLvlInitStd", 0.0))
@@ -527,10 +535,11 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
             step_mean, step_var = self._log_pLvl_step_moments(t)
             mu_k += step_mean
             var_k += step_var
-        return float(mu_k), float(np.sqrt(var_k))
+        cache[age_k] = (float(mu_k), float(np.sqrt(var_k)))
+        return cache[age_k]
 
     def _resolved_moments_mode(self):
-        mode = getattr(self, "pLvl_norm_moments", "auto")
+        mode = self.pLvl_norm_moments
         if mode == "auto":
             return "mean" if self._growth_is_vector() else "mean_and_std"
         if mode not in ("mean", "mean_and_std"):
@@ -553,7 +562,7 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         with a warning rather than normalized to a target that does not
         apply to them.
         """
-        if not getattr(self, "normalize_pLvl", False):
+        if not self.normalize_pLvl:
             return
 
         # Mirrors the check in _normalize_shock_means; see
@@ -580,7 +589,7 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         # Not observed on any tested model; kept because "measured dead today"
         # is a weaker claim than "positive by construction".
         log_p = np.log(np.maximum(self.state_now["pLvl"], 1e-16))
-        T_cycle = int(getattr(self, "T_cycle", 1)) or 1
+        T_cycle = self._T_cycle
         t_cycle = np.asarray(self.t_cycle, dtype=int)
         skipped_small = 0
         skipped_mixed = 0
@@ -652,13 +661,14 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
     # ------------------------------------------------------------------
 
     def initialize_sim(self):
-        """Reset the moment cache and check that the hook will actually fire."""
+        """Reset the moment caches and check that the hook will actually fire."""
         super().initialize_sim()
         self._pLvl_norm_step_cache = {}
-        if not getattr(self, "normalize_pLvl", False):
+        self._pLvl_norm_age_cache = {}
+        if not self.normalize_pLvl:
             return
         self._warn_if_hook_unreachable()
-        if int(getattr(self, "T_cycle", 1)) > 1 and self._growth_is_vector():
+        if self._T_cycle > 1 and self._growth_is_vector():
             _warn_once(
                 self,
                 "lifecycle_markov",
@@ -696,8 +706,6 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         )
 
     def post_state_hook(self):
-        """Run the normalization; chain to any base-class hook first."""
-        sup = getattr(super(), "post_state_hook", None)
-        if sup is not None:
-            sup()
+        """Run the normalization after any base-class hook."""
+        super().post_state_hook()
         self.post_sim_normalize_pLvl()

@@ -17,8 +17,7 @@ Covers:
 5. Markov (vector-growth) machinery: stationary-weighted drift, the
    automatic mean-only moments mode, and the scalar-ness of the targets
    (the shape regression that motivated the Markov generalization).
-6. Composition with DualMeasureMixin (skipped until HARK.dual_measure
-   is merged).
+6. Composition with DualMeasureMixin.
 """
 
 import numpy as np
@@ -299,10 +298,8 @@ def test_markov_moments_are_scalars_and_auto_mode_is_mean_only():
 
 
 def test_composition_with_dual_measure():
-    dual = pytest.importorskip("HARK.dual_measure")
-
     class DualNormalized(
-        dual.DualMeasureMixin,
+        DualMeasureMixin,
         PermanentIncomeNormalizationMixin,
         IndShockConsumerType,
     ):
@@ -324,7 +321,7 @@ def test_pLvl_normalization_preserves_level_quantities():
     rescaling the normalized states would silently change every agent's
     wealth in level terms.
 
-    Nothing tested it. Disabling that loop entirely leaves all 13 other tests
+    Nothing tested it. Disabling that loop entirely leaves every other test
     in this file green, because none of them tracks `mNrm` or `bNrm` or
     asserts on any level quantity. So the failure mode was silent corruption
     of every simulation with `normalize_pLvl=True`, with no error and no
