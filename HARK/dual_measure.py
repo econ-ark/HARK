@@ -305,9 +305,7 @@ class DualMeasureMixin:
 
     def _any_reweighting_happened(self):
         """True when at least one Q distribution differs from its P source."""
-        return not all(
-            _Q_equals_P(p, q) for p, q in zip(self.IncShkDstn, self.IncShkDstn_Q)
-        )
+        return len(self.Q_degenerate_periods) < len(self.IncShkDstn_Q)
 
     # ------------------------------------------------------------------
     # Initialization
@@ -354,6 +352,7 @@ class DualMeasureMixin:
         """
         if self.dual_measure:
             self._step_Q_measure()
+            self._Q_stepped = True
         super()._sim_period_epilogue()
 
     # ------------------------------------------------------------------
@@ -622,7 +621,15 @@ class DualMeasureMixin:
         for _ in range(sim_periods):
             # One period of the unmodified P pipeline, including its own
             # history recording and its own t_sim increment.
+            self._Q_stepped = False
             super().simulate(1)
+            if not self._Q_stepped:
+                raise NotImplementedError(
+                    f"{type(self).__name__}.sim_one_period does not call "
+                    "_sim_period_epilogue(), where DualMeasureMixin runs the Q "
+                    "step, so dual mode would leave history_Q all NaN. Call "
+                    "self._sim_period_epilogue() at the end of that pipeline."
+                )
             self._record_Q_history(self.t_sim - 1)
 
         return self.history

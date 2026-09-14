@@ -802,6 +802,38 @@ def test_setup_q_measure_admits_models_whose_get_Rport_is_measure_neutral():
         assert agent.dual_measure is True
 
 
+def test_dual_simulate_refuses_a_pipeline_that_skips_the_epilogue():
+    """The Q step runs from `_sim_period_epilogue`, so a subclass whose own
+    `sim_one_period` never calls it would fill `history_Q` with NaN. An
+    override that delegates through `super().sim_one_period()` still
+    reaches it and must be admitted.
+    """
+
+    class Bespoke(DualIndShock):
+        def sim_one_period(self):
+            self._sim_period_prologue()
+            self.get_states()
+            self.get_controls()
+            self.get_poststates()
+            self.t_age = self.t_age + 1
+
+    class Delegating(DualIndShock):
+        def sim_one_period(self):
+            super().sim_one_period()
+
+    bespoke = _small_agent(Bespoke, t_sim=3)
+    bespoke.setup_Q_measure()
+    bespoke.initialize_sim()
+    with pytest.raises(NotImplementedError, match="_sim_period_epilogue"):
+        bespoke.simulate()
+
+    agent = _small_agent(Delegating, t_sim=3)
+    agent.setup_Q_measure()
+    agent.initialize_sim()
+    agent.simulate()
+    assert np.isfinite(agent.history_Q["cNrm"]).all()
+
+
 def test_dual_mode_on_leaves_the_p_history_and_rng_untouched():
     """Enabling dual mode must not perturb the P measure at all.
 
