@@ -239,11 +239,50 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
 
 
 class testMarkovValueFunc(unittest.TestCase):
+    def test_value_discounts_by_survival(self):
+        """
+        Value one period before the end matches the Bellman equation, survival included.
+
+        With terminal value u(m), value in state i is u(c) + DiscFac * LivPrb[i]
+        * sum_j MrkvArray[i, j] * E[(PermGroFac[j] * psi)**(1 - CRRA) * u(m'_j)],
+        where LivPrb[i] is the survival probability from the current state.
+        """
+        params = deepcopy(init_indshk_markov)
+        params["MrkvArray"] = [np.array([[0.9, 0.1], [0.3, 0.7]])]
+        params["constructors"] = dict(params["constructors"])
+        params["constructors"]["MrkvArray"] = None
+        params.update(
+            cycles=1,
+            vFuncBool=True,
+            LivPrb=[np.array([0.90, 0.95])],
+            Rfree=[np.array([1.03, 1.03])],
+            PermGroFac=[np.array([1.01, 0.99])],
+        )
+        agent = MarkovConsumerType(**params)
+        agent.solve()
+        solution = agent.solution[0]
+        CRRA = agent.CRRA
+        for i in range(2):
+            m = solution.mNrmMin[i] + np.array([0.5, 2.0, 10.0])
+            c = solution.cFunc[i](m)
+            vNext = np.zeros_like(m)
+            for j in range(2):
+                PermShk, TranShk = agent.IncShkDstn[0][j].atoms
+                growth = agent.PermGroFac[0][j] * PermShk
+                mNext = agent.Rfree[0][j] * (m - c)[:, None] / growth + TranShk
+                uNext = growth ** (1.0 - CRRA) * mNext ** (1.0 - CRRA) / (1.0 - CRRA)
+                vNext += agent.MrkvArray[0][i, j] * uNext @ agent.IncShkDstn[0][j].pmv
+            v = (
+                c ** (1.0 - CRRA) / (1.0 - CRRA)
+                + agent.DiscFac * agent.LivPrb[0][i] * vNext
+            )
+            np.testing.assert_allclose(solution.vFunc[i](m), v, rtol=0, atol=1e-2)
+
     def test_vFunc(self):
         agent = MarkovConsumerType(cycles=0, vFuncBool=True)
         agent.solve()
-        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -30.78459, places=4)
-        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -30.37644, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.15152, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.91514, places=4)
 
 
 class testRatchet(unittest.TestCase):
@@ -436,3 +475,52 @@ class testTimeVaryingSimulationTiming(unittest.TestCase):
             implied = (h["mNrm"][s] - h["TranShk"][s]) * h["PermShk"][s]
             implied /= h["aNrm"][s - 1]
             np.testing.assert_allclose(implied, Rfree[s - 1], rtol=1e-12)
+
+
+class testNewbornMarkovStates(unittest.TestCase):
+    """Newborns must start the simulation in the state drawn from MrkvInitDstn."""
+
+    def test_initial_states_follow_MrkvPrbsInit(self):
+        # No deaths, so every agent in period 0 is one born by initialize_sim.
+        agent = MarkovConsumerType(
+            AgentCount=10_000,
+            T_sim=2,
+            MrkvPrbsInit=np.array([0.3, 0.7]),
+            LivPrb=[np.array([1.0, 1.0])],
+            seed=0,
+        )
+        agent.solve()
+        agent.track_vars = ["Mrkv"]
+        agent.initialize_sim()
+        drawn = agent.state_now["Mrkv"].astype(int)
+        agent.simulate()
+        first = agent.history["Mrkv"][0].astype(int)
+        np.testing.assert_array_equal(first, drawn)
+        shares = np.bincount(first, minlength=2) / agent.AgentCount
+        np.testing.assert_allclose(shares, [0.3, 0.7], atol=0.02)
+
+    def test_newborn_after_death_keeps_drawn_state(self):
+        # Everyone is born in state 1 and moves to state 0 the next period, so
+        # in every period the newborns, and only they, are in state 1.
+        params = deepcopy(init_indshk_markov)
+        params["constructors"] = dict(params["constructors"])
+        params["constructors"]["MrkvArray"] = None
+        params.update(
+            cycles=0,
+            MrkvArray=[np.array([[1.0, 0.0], [1.0, 0.0]])],
+            MrkvPrbsInit=np.array([0.0, 1.0]),
+            LivPrb=[np.array([0.8, 0.8])],
+            AgentCount=500,
+            T_sim=10,
+            T_age=None,
+            seed=1,
+        )
+        agent = MarkovConsumerType(**params)
+        agent.solve()
+        agent.track_vars = ["Mrkv", "t_age"]
+        agent.initialize_sim()
+        agent.simulate()
+        Mrkv = agent.history["Mrkv"].astype(int)
+        newborn = agent.history["t_age"] == 1  # t_age is recorded after the increment
+        self.assertTrue(newborn[1:].any())
+        np.testing.assert_array_equal(Mrkv, newborn.astype(int))
