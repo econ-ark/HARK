@@ -281,8 +281,12 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
     def initialize_sim(self):
         MarkovConsumerType.initialize_sim(self)
         if self._hierarchical:
-            self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
-            self.MicroMrkvNow = self.micro_from_combined(self.shocks["Mrkv"])
+            self._split_mrkv()
+
+    def _split_mrkv(self):
+        """Set ``MacroMrkvNow`` and ``MicroMrkvNow`` from the combined ``shocks["Mrkv"]``."""
+        self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
+        self.MicroMrkvNow = self.micro_from_combined(self.shocks["Mrkv"])
 
     # ----- Markov state drawing ----------------------------------------------
 
@@ -295,23 +299,17 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         self.get_macro_markov_states()
         self.get_micro_markov_states()
 
-        N = self.num_micro_states
-
+        Mrkv = (self.num_micro_states * self.MacroMrkvNow + self.MicroMrkvNow).astype(
+            int
+        )
         if getattr(self, "global_markov", False):
-            self.shocks["Mrkv"] = (N * self.MacroMrkvNow + self.MicroMrkvNow).astype(
-                int
-            )
-        else:
-            dont_change = self.t_age == 0
-            if self.t_sim == 0:
-                dont_change[:] = True
-            MrkvPrev = self.shocks["Mrkv"].copy()
-            self.shocks["Mrkv"] = (N * self.MacroMrkvNow + self.MicroMrkvNow).astype(
-                int
-            )
-            self.shocks["Mrkv"][dont_change] = MrkvPrev[dont_change]
-            self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
-            self.MicroMrkvNow = self.micro_from_combined(self.shocks["Mrkv"])
+            self.shocks["Mrkv"] = Mrkv
+            return
+        # Newborns, and everyone in the first period, keep the state they hold.
+        keep = (self.t_age == 0) | (self.t_sim == 0)
+        Mrkv[keep] = self.shocks["Mrkv"][keep]
+        self.shocks["Mrkv"] = Mrkv
+        self._split_mrkv()
 
     def get_macro_markov_states(self):
         """Read the aggregate Markov state.  Override in subclasses.
@@ -321,7 +319,7 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         """
         if "MrkvAgg" in self.shocks:
             macro = int(self.shocks["MrkvAgg"])
-            self.MacroMrkvNow = macro * np.ones(self.AgentCount, dtype=int)
+            self.MacroMrkvNow = np.full(self.AgentCount, macro, dtype=int)
         else:
             self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
 
