@@ -690,7 +690,8 @@ def solve_one_period_ConsMarkov(
             for j in range(StateCountNext):
                 if possible_transitions[i, j]:
                     BegOfPrd_v_temp[j, :] = BegOfPrd_vFunc_list[j](aNrm_for_vFunc)
-            EndOfPrd_v = np.dot(MrkvArray[i, :], BegOfPrd_v_temp)
+            # Survival is from the current state, as for EndOfPrd_vP above
+            EndOfPrd_v = LivPrb_list[i] * np.dot(MrkvArray[i, :], BegOfPrd_v_temp)
 
             # Calculate (normalized) value and marginal value at each gridpoint
             v_now = uFunc(cNrm_for_vFunc) + EndOfPrd_v
@@ -1020,7 +1021,11 @@ class MarkovConsumerType(IndShockConsumerType):
         if not self.global_markov:
             N = np.sum(which_agents)
             _kw = {"shuffle": True} if getattr(self, "init_shuffle", False) else {}
-            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(N, **_kw)
+            MrkvInit = self.MrkvInitDstn.draw(N, **_kw)
+            self.state_now["Mrkv"][which_agents] = MrkvInit
+            # get_markov_states keeps newborns at their shocks["Mrkv"] value, so
+            # the draw is written there too or MrkvPrbsInit never takes effect.
+            self.shocks["Mrkv"][which_agents] = MrkvInit
 
     def get_markov_states(self):
         """
