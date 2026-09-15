@@ -146,13 +146,15 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
 
 class testPortfolioConsumerTypeSticky(unittest.TestCase):
-    def setUp(self):
+    # Both tests only read the deterministic solution, so solve once.
+    @classmethod
+    def setUpClass(cls):
         # Make another example type, but this one can only update their risky portfolio
         # share in any particular period with 15% probability.
-        self.sticky = cpm.PortfolioConsumerType(AdjustPrb=0.15, cycles=0)
+        cls.sticky = cpm.PortfolioConsumerType(AdjustPrb=0.15, cycles=0)
 
         # Solve the model under the given parameters
-        self.sticky.solve()
+        cls.sticky.solve()
 
     def test_cFunc(self):
         self.assertAlmostEqual(

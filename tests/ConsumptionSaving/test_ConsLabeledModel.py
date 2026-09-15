@@ -13,6 +13,7 @@ Tests cover:
 """
 
 import unittest
+from copy import deepcopy
 from types import SimpleNamespace
 
 import numpy as np
@@ -66,11 +67,16 @@ class test_PerfForesightLabeledType(unittest.TestCase):
 
 
 class test_IndShockConsumerType(unittest.TestCase):
+    # The solve is deterministic and the tests only read it, so solve once.
+    @classmethod
+    def setUpClass(cls):
+        cls.solved_agent = IndShockLabeledType(cycles=10)
+        cls.solved_agent.solve()
+
     def setUp(self):
-        self.agent = IndShockLabeledType(cycles=10)
+        self.agent = deepcopy(self.solved_agent)
 
     def test_IndShockLabeledType(self):
-        self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         m = self.agent.solution[0].policy["mNrm"].to_numpy()
 
@@ -79,24 +85,27 @@ class test_IndShockConsumerType(unittest.TestCase):
 
     def test_consumption_increasing_in_wealth(self):
         """Consumption should be monotonically increasing in market resources."""
-        self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         # Check monotonicity (all differences should be non-negative)
         self.assertTrue(np.all(np.diff(c) >= 0))
 
 
 class test_RiskyAssetLabeledType(unittest.TestCase):
+    # The solve is deterministic and the tests only read it, so solve once.
+    @classmethod
+    def setUpClass(cls):
+        cls.solved_agent = RiskyAssetLabeledType()
+        cls.solved_agent.cycles = 10
+        cls.solved_agent.solve()
+
     def setUp(self):
-        self.agent = RiskyAssetLabeledType()
-        self.agent.cycles = 10
+        self.agent = deepcopy(self.solved_agent)
 
     def test_solve(self):
-        self.agent.solve()
         self.assertIsNotNone(self.agent.solution)
         self.assertEqual(len(self.agent.solution), 11)  # 10 cycles + terminal
 
     def test_policy_shape(self):
-        self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"]
         m = self.agent.solution[0].policy["mNrm"]
         self.assertGreater(len(c), 0)
@@ -104,13 +113,11 @@ class test_RiskyAssetLabeledType(unittest.TestCase):
 
     def test_consumption_positive(self):
         """Consumption should be non-negative."""
-        self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         self.assertTrue(np.all(c >= 0))
 
     def test_solution_values(self):
         """Check that solution values are reasonable."""
-        self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         m = self.agent.solution[0].policy["mNrm"].to_numpy()
         # Consumption at moderate wealth should be positive and reasonable
@@ -119,29 +126,31 @@ class test_RiskyAssetLabeledType(unittest.TestCase):
 
 
 class test_PortfolioLabeledType(unittest.TestCase):
+    # The solve is deterministic and the tests only read it, so solve once.
+    @classmethod
+    def setUpClass(cls):
+        cls.solved_agent = PortfolioLabeledType()
+        cls.solved_agent.cycles = 10
+        cls.solved_agent.solve()
+
     def setUp(self):
-        self.agent = PortfolioLabeledType()
-        self.agent.cycles = 10
+        self.agent = deepcopy(self.solved_agent)
 
     def test_solve(self):
-        self.agent.solve()
         self.assertIsNotNone(self.agent.solution)
         self.assertEqual(len(self.agent.solution), 10)
 
     def test_policy_shape(self):
-        self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"]
         self.assertGreater(len(c), 0)
 
     def test_consumption_positive(self):
         """Consumption should be non-negative."""
-        self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         self.assertTrue(np.all(c >= 0))
 
     def test_solution_values(self):
         """Check that solution values are reasonable."""
-        self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         m = self.agent.solution[0].policy["mNrm"].to_numpy()
         self.assertAlmostEqual(c[5], 0.65750, places=HARK_PRECISION)
@@ -149,7 +158,6 @@ class test_PortfolioLabeledType(unittest.TestCase):
 
     def test_continuation_exists(self):
         """Portfolio model should have continuation function."""
-        self.agent.solve()
         self.assertIsNotNone(self.agent.solution[0].continuation)
 
 
