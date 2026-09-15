@@ -30,37 +30,29 @@ from HARK.rewards import (
 )
 
 
+def _first_diff_approx(func, x, delta, *args):
+    """Centered first-difference approximation to the derivative of func at x."""
+    return (func(x + delta, *args) - func(x - delta, *args)) / (2.0 * delta)
+
+
+def _assert_derivative_matches(test, deriv, func, c_vals, param_vals):
+    """
+    Check the closed-form derivative "deriv" of "func" against a first-difference
+    approximation at every (consumption, parameter) pair on the grid.
+    """
+    for c in c_vals:
+        for param in param_vals:
+            diff = abs(deriv(c, param) - _first_diff_approx(func, c, 0.000001, param))
+            test.assertLess(diff, 0.01)
+
+
 class testsForCRRA(unittest.TestCase):
     def setUp(self):
         self.c_vals = np.linspace(0.5, 10.0, 20)
         self.CRRA_vals = np.linspace(1.0, 10.0, 10)
 
-    def first_diff_approx(self, func, x, delta, *args):
-        """
-        Take the first (centered) difference approximation to the derivative of a function.
-
-        """
-        return (func(x + delta, *args) - func(x - delta, *args)) / (2.0 * delta)
-
     def derivative_func_comparison(self, deriv, func):
-        """
-        This method computes the first difference approximation to the derivative of a function
-        "func" and the (supposedly) closed-form derivative of that function ("deriv") over a
-        grid.  It then checks that these two things are "close enough."
-        """
-
-        # Loop through different values of consumption
-        for c in self.c_vals:
-            # Loop through different values of risk aversion
-            for CRRA in self.CRRA_vals:
-                # Calculate the difference between the derivative of the function and the
-                # first difference approximation to that derivative.
-                diff = abs(
-                    deriv(c, CRRA) - self.first_diff_approx(func, c, 0.000001, CRRA)
-                )
-
-                # Make sure the derivative and its approximation are close
-                self.assertLess(diff, 0.01)
+        _assert_derivative_matches(self, deriv, func, self.c_vals, self.CRRA_vals)
 
     def test_CRRAutilityP(self):
         # Test the first derivative of the utility function
@@ -97,32 +89,8 @@ class testsForCARA(unittest.TestCase):
         self.c_vals = np.linspace(0.5, 10.0, 20)
         self.CARA_vals = np.linspace(0.005, 0.5, 21)
 
-    def first_diff_approx(self, func, x, delta, *args):
-        """
-        Take the first (centered) difference approximation to the derivative of a function.
-
-        """
-        return (func(x + delta, *args) - func(x - delta, *args)) / (2.0 * delta)
-
     def derivative_func_comparison(self, deriv, func):
-        """
-        This method computes the first difference approximation to the derivative of a function
-        "func" and the (supposedly) closed-form derivative of that function ("deriv") over a
-        grid.  It then checks that these two things are "close enough."
-        """
-
-        # Loop through different values of consumption
-        for c in self.c_vals:
-            # Loop through different values of risk aversion
-            for CARA in self.CARA_vals:
-                # Calculate the difference between the derivative of the function and the
-                # first difference approximation to that derivative.
-                diff = abs(
-                    deriv(c, CARA) - self.first_diff_approx(func, c, 0.000001, CARA)
-                )
-
-                # Make sure the derivative and its approximation are close
-                self.assertLess(diff, 0.01)
+        _assert_derivative_matches(self, deriv, func, self.c_vals, self.CARA_vals)
 
     def test_CARAutilityP(self):
         # Test the first derivative of the utility function
