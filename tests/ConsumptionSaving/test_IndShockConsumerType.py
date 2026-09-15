@@ -30,11 +30,6 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.agent.get_shocks()
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.agent.shocks["PermShk"][0], 1.04274, place = HARK_PRECISION)
-        # self.assertAlmostEqual(self.agent.shocks["PermShk"][1], 0.92781, place = HARK_PRECISION)
-        # self.assertAlmostEqual(self.agent.shocks["TranShk"][0], 0.88176, place = HARK_PRECISION)
-
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
         LifecycleExample.cycles = 1
@@ -80,12 +75,6 @@ class testIndShockConsumerType(unittest.TestCase):
     def test_simulated_values(self):
         self.agent.initialize_sim()
         self.agent.simulate()
-
-        # MPCnow depends on assets, which are stochastic
-        # self.assertAlmostEqual(self.agent.MPCnow[1], 0.57115, place = HARK_PRECISION)
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438, place = HARK_PRECISION)
 
     def test_income_dist_random_seeds(self):
         a1 = IndShockConsumerType(seed=1000)
@@ -285,20 +274,10 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         self.assertAlmostEqual(
             IndShockExample.solution[0].mNrmStE, 1.54882, places=HARK_PRECISION
         )
-        # self.assertAlmostEqual(
-        #    IndShockExample.solution[0].cFunc.functions[0].x_list[0],
-        #    -0.25018,
-        #    places=HARK_PRECISION,
-        # )
-        # This test is commented out because it was trivialized by revisions to the "worst income shock" code.
-        # The bottom x value of the unconstrained consumption function will definitely be zero, so this is pointless.
 
         IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "who_dies"]
         IndShockExample.initialize_sim()
         IndShockExample.simulate()
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(        #    IndShockExample.history["mNrm"][0][0], 1.01702, place = HARK_PRECISION        # )
 
     def test_euler_error_function(self):
         IndShockExample = self.IndShockExample
@@ -367,7 +346,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
         self.assertEqual(len(LifecycleExample.solution), 11)
 
-        mMin = np.min(
+        np.min(
             [
                 LifecycleExample.solution[t].mNrmMin
                 for t in range(LifecycleExample.T_cycle)
@@ -393,7 +372,7 @@ class testIndShockConsumerTypeLifecycleRfree(unittest.TestCase):
 
         self.assertEqual(len(LifecycleRfreeExample.solution), 11)
 
-        mMin = np.min(
+        np.min(
             [
                 LifecycleRfreeExample.solution[t].mNrmMin
                 for t in range(LifecycleRfreeExample.T_cycle)

@@ -254,7 +254,7 @@ class testIndShockConsumerTypeFastLifecycle(unittest.TestCase):
 
         self.assertEqual(len(LifecycleExample.solution), 11)
 
-        mMin = np.min(
+        np.min(
             [
                 LifecycleExample.solution[t].mNrmMin
                 for t in range(LifecycleExample.T_cycle)

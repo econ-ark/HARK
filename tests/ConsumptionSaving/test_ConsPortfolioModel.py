@@ -42,7 +42,7 @@ class TestPortfolioConsumerType(PortfolioConsumerTypeTestCase):
         )
 
     def test_null_solution(self):
-        soln = cpm.PortfolioSolution()
+        cpm.PortfolioSolution()
 
     def test_sim_one_period(self):
         self.pcct.T_sim = 30
@@ -73,9 +73,6 @@ class TestPortfolioConsumerType(PortfolioConsumerTypeTestCase):
             self.pcct.state_now["aNrm"][0],
             self.pcct.state_now["mNrm"][0] - self.pcct.controls["cNrm"][0],
         )
-
-        # a drawn shock ; may not be robust to RNG/disitrubition implementations
-        # self.assertAlmostEqual(self.pcct.shocks["Adjust"][0], 1.0)
 
 
 class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):

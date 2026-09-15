@@ -84,10 +84,10 @@ class testsForCRRA(unittest.TestCase):
         a = U(x)
         b = U(x, order=0)
         self.assertAlmostEqual(a, b)
-        c = U(x, order=1)
-        d = U(x, order=2)
-        e = U(x, order=3)
-        f = U(x, order=4)
+        U(x, order=1)
+        U(x, order=2)
+        U(x, order=3)
+        U(x, order=4)
         self.assertRaises(ValueError, U, x, 5)
         self.assertRaises(ValueError, U.inverse, x, (2, 1))
 
@@ -159,15 +159,15 @@ class testsForCARA(unittest.TestCase):
         a = U(x)
         b = U(x, order=0)
         self.assertAlmostEqual(a, b)
-        c = U(x, order=1)
-        d = U(x, order=2)
-        e = U(x, order=3)
+        U(x, order=1)
+        U(x, order=2)
+        U(x, order=3)
         self.assertRaises(ValueError, U, x, 4)
-        f = U.inverse(y, order=(0, 0))
-        g = U.inverse(y, order=(1, 0))
-        h = U.inverse(y, order=(0, 1))
-        i = U.inverse(y, order=(1, 1))
-        j = U.derinv(y)
+        U.inverse(y, order=(0, 0))
+        U.inverse(y, order=(1, 0))
+        U.inverse(y, order=(0, 1))
+        U.inverse(y, order=(1, 1))
+        U.derinv(y)
         self.assertRaises(ValueError, U.inverse, y, (2, 1))
 
 
@@ -182,8 +182,8 @@ class testsForStoneGeary(unittest.TestCase):
         a = U(x)
         b = U(x, order=0)
         self.assertAlmostEqual(a, b)
-        c = U(x, order=1)
-        d = U(x, order=2)
+        U(x, order=1)
+        U(x, order=2)
         self.assertRaises(ValueError, U, x, 3)
 
     def test_inverse(self):
@@ -193,9 +193,9 @@ class testsForStoneGeary(unittest.TestCase):
         a = Uinv(x)
         b = Uinv(x, order=(0, 0))
         self.assertAlmostEqual(a, b)
-        c = Uinv(x, order=(0, 1))
-        d = Uinv(x, order=(1, 0))
-        e = Uinv(x, order=(1, 1))
+        Uinv(x, order=(0, 1))
+        Uinv(x, order=(1, 0))
+        Uinv(x, order=(1, 1))
         self.assertRaises(ValueError, Uinv, x, (2, 1))
 
 
@@ -209,10 +209,10 @@ class testsForCobbDouglas(unittest.TestCase):
         x = self.x
         y = self.y
         U = self.U
-        a = U(x, y)
-        b = U.derivative(x, y, axis=0)
-        c = U.derivative(x, y, axis=1)
-        d = U.inverse(x, y)
+        U(x, y)
+        U.derivative(x, y, axis=0)
+        U.derivative(x, y, axis=1)
+        U.inverse(x, y)
         self.assertRaises(ValueError, U.derivative, x, y, 2)
 
 
@@ -226,10 +226,10 @@ class testsForCobbDouglasCRRA(unittest.TestCase):
         x = self.x
         y = self.y
         U = self.U
-        a = U(x, y)
-        b = U.derivative(x, y, axis=0)
-        c = U.derivative(x, y, axis=1)
-        d = U.inverse(x, y)
+        U(x, y)
+        U.derivative(x, y, axis=0)
+        U.derivative(x, y, axis=1)
+        U.inverse(x, y)
         self.assertRaises(ValueError, U.derivative, x, y, 2)
 
 
@@ -241,10 +241,10 @@ class testsForCES(unittest.TestCase):
     def test_funcs(self):
         U = self.U
         x = self.x
-        a = U(x)
-        b = U.derivative(x, 0)
-        c = U.derivative(x, 1)
-        d = U.derivative(x, 2)
+        U(x)
+        U.derivative(x, 0)
+        U.derivative(x, 1)
+        U.derivative(x, 2)
 
 
 class testsForUtilityFunction(unittest.TestCase):
@@ -255,15 +255,15 @@ class testsForUtilityFunction(unittest.TestCase):
         U = UtilityFunction(u, uP, uinv)
 
         x = 5.0
-        a = U(x)
-        b = U.der(x)
-        c = U.inv(-x)
+        U(x)
+        U.der(x)
+        U.inv(-x)
 
     def test_invalid(self):
         u = lambda c: CRRAutility(c, 3.0)
         U = UtilityFunction(u)
 
         x = 5.0
-        a = U(x)
+        U(x)
         self.assertRaises(NotImplementedError, U.der, x)
         self.assertRaises(NotImplementedError, U.inv, -x)

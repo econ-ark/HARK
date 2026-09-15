@@ -227,7 +227,7 @@ class testSimulatorClass(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(SSJ_base, SSJ_ult, atol=1e-4)))
 
     def test_SSJ_no_list(self):
-        dC_daBar = self.agent.make_basic_SSJ(
+        self.agent.make_basic_SSJ(
             "BoroCnstArt",
             "cNrm",
             self.grid_specs,
@@ -236,7 +236,7 @@ class testSimulatorClass(unittest.TestCase):
             eps=-0.001,
         )
 
-        dC_dsigma_psi = self.agent.make_basic_SSJ(
+        self.agent.make_basic_SSJ(
             "PermShkStd",
             "cNrm",
             self.grid_specs,
