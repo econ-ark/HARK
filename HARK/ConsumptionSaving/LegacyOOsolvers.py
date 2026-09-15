@@ -38,6 +38,7 @@ from HARK.rewards import (
 from HARK.utilities import make_grid_exp_mult
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
+    calc_v_scales,
     utility,
     utility_inv,
     utility_invP,
@@ -2061,6 +2062,16 @@ class ConsPortfolioSolver(MetricObject):
             "eop_dvds_fxd": self.EndOfPrddvds,
         }
 
+    def set_v_scales(self):
+        """
+        Set the scales of next period's value, end-of-period value, and value now
+        (see ValueFuncCRRA.vScale and calc_v_scales).
+        """
+        self.vScaleNext = self.vFuncAdj_next.vScale
+        self.EndOfPrdvScale, self.vScaleNow = calc_v_scales(
+            self.CRRA, self.DiscFac * self.LivPrb, self.vScaleNext
+        )
+
     def add_vFunc(self):
         """
         Creates the value function for this period and adds it to the solution.
@@ -2074,6 +2085,7 @@ class ConsPortfolioSolver(MetricObject):
         Construct the end-of-period value function for this period, storing it
         as an attribute of self for use by other methods.
         """
+        self.set_v_scales()
 
         def v_intermed_dist(shocks, b_nrm, Share_next):
             mNrm_next = self.m_nrm_next(shocks, b_nrm)
@@ -2086,18 +2098,22 @@ class ConsPortfolioSolver(MetricObject):
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 v_next = vAdj_next
 
-            return (shocks["PermShk"] * self.PermGroFac) ** (1.0 - self.CRRA) * v_next
+            return self.vFuncAdj_next.renormalize(
+                v_next, shocks["PermShk"] * self.PermGroFac
+            )
 
         # Calculate intermediate value by taking expectations over income shocks
         v_intermed = self.IncShkDstn.expected(
             v_intermed_dist, self.bNrmNext, self.ShareNext
         )
 
-        vNvrs_intermed = self.uinv(v_intermed)
+        vNvrs_intermed = self.uinv(v_intermed / self.vScaleNext)
         vNvrsFunc_intermed = BilinearInterp(
             vNvrs_intermed, self.bNrmGrid, self.ShareGrid
         )
-        vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, self.CRRA)
+        vFunc_intermed = ValueFuncCRRA(
+            vNvrsFunc_intermed, self.CRRA, vScale=self.vScaleNext
+        )
 
         def EndOfPrdv_dist(shock, a_nrm, Share_next):
             # Calculate future realizations of bank balances bNrm
@@ -2118,7 +2134,7 @@ class ConsPortfolioSolver(MetricObject):
             * self.RiskyDstn.expected(EndOfPrdv_dist, self.aNrm_tiled, self.ShareNext)
         )
 
-        self.EndOfPrdvNvrs = self.uinv(self.EndOfPrdv)
+        self.EndOfPrdvNvrs = self.uinv(self.EndOfPrdv / self.EndOfPrdvScale)
 
     def make_vFunc(self):
         """
@@ -2132,7 +2148,9 @@ class ConsPortfolioSolver(MetricObject):
         EndOfPrdvNvrsFunc = BilinearInterp(
             self.EndOfPrdvNvrs, self.aNrmGrid, self.ShareGrid
         )
-        EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
+        EndOfPrdvFunc = ValueFuncCRRA(
+            EndOfPrdvNvrsFunc, self.CRRA, vScale=self.EndOfPrdvScale
+        )
 
         # Construct the value function when the agent can adjust his portfolio
         mNrm_temp = self.aXtraGrid  # Just use aXtraGrid as our grid of mNrm values
@@ -2140,23 +2158,27 @@ class ConsPortfolioSolver(MetricObject):
         aNrm_temp = mNrm_temp - cNrm_temp
         Share_temp = self.ShareFuncAdj_now(mNrm_temp)
         v_temp = self.u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = self.uinv(v_temp)
-        vNvrsP_temp = self.uP(cNrm_temp) * self.uinvP(v_temp)
+        v_scaled = v_temp / self.vScaleNow
+        vNvrs_temp = self.uinv(v_scaled)
+        vNvrsP_temp = self.uP(cNrm_temp) * self.uinvP(v_scaled) / self.vScaleNow
         vNvrsFuncAdj = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),  # dfdx_list
         )
         # Re-curve the pseudo-inverse value function
-        self.vFuncAdj_now = ValueFuncCRRA(vNvrsFuncAdj, self.CRRA)
+        self.vFuncAdj_now = ValueFuncCRRA(
+            vNvrsFuncAdj, self.CRRA, vScale=self.vScaleNow
+        )
 
         # Construct the value function when the agent *can't* adjust his portfolio
         mNrm_temp, Share_temp = np.meshgrid(self.aXtraGrid, self.ShareGrid)
         cNrm_temp = self.cFuncFxd_now(mNrm_temp, Share_temp)
         aNrm_temp = mNrm_temp - cNrm_temp
         v_temp = self.u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = self.uinv(v_temp)
-        vNvrsP_temp = self.uP(cNrm_temp) * self.uinvP(v_temp)
+        v_scaled = v_temp / self.vScaleNow
+        vNvrs_temp = self.uinv(v_scaled)
+        vNvrsP_temp = self.uP(cNrm_temp) * self.uinvP(v_scaled) / self.vScaleNow
         vNvrsFuncFxd_by_Share = []
         for j in range(self.ShareCount):
             vNvrsFuncFxd_by_Share.append(
@@ -2167,7 +2189,9 @@ class ConsPortfolioSolver(MetricObject):
                 )
             )
         vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, self.ShareGrid)
-        self.vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, self.CRRA)
+        self.vFuncFxd_now = ValueFuncCRRA(
+            vNvrsFuncFxd, self.CRRA, vScale=self.vScaleNow
+        )
 
     def make_porfolio_solution(self):
         self.solution = PortfolioSolution(
@@ -2454,6 +2478,8 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
         as an attribute of self for use by other methods.
         """
 
+        self.set_v_scales()
+
         def v_dist(shocks, a_nrm, shares):
             r_port = self.r_port(shocks, shares)
             m_nrm_next = self.m_nrm_next(shocks, a_nrm, r_port)
@@ -2465,6 +2491,11 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 v_next = vAdj_next
 
+            if self.CRRA == 1.0:
+                # With log utility, permanent income growth adds a level term to value
+                return v_next + self.vScaleNext * np.log(
+                    shocks["PermShk"] * self.PermGroFac
+                )
             return (shocks["PermShk"] * self.PermGroFac) ** (1.0 - self.CRRA) * v_next
 
         self.EndOfPrdv = (
@@ -2473,7 +2504,7 @@ class ConsPortfolioJointDistSolver(ConsPortfolioDiscreteSolver, ConsPortfolioSol
             * self.ShockDstn.expected(v_dist, self.aNrm_tiled, self.Share_tiled)
         )
 
-        self.EndOfPrdvNvrs = self.uinv(self.EndOfPrdv)
+        self.EndOfPrdvNvrs = self.uinv(self.EndOfPrdv / self.EndOfPrdvScale)
 
     def solve(self):
         """

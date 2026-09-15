@@ -18,6 +18,9 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    calc_v_scales,
+    calc_vNvrs_slope_at_min,
+    decurve_value,
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
@@ -449,9 +452,9 @@ def solve_one_period_ConsMarkov(
             return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
 
         def calc_vNext(S, a, R):
-            return (
-                S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)
-            ) * vFuncNext(calc_mNrmNext(S, a, R))
+            return vFuncNext.renormalize(
+                vFuncNext(calc_mNrmNext(S, a, R)), S["PermShk"], PermGroFac
+            )
 
         def calc_vPnext(S, a, R):
             return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
@@ -502,14 +505,17 @@ def solve_one_period_ConsMarkov(
         # Construct the beginning-of-period value functional conditional on next
         # period's state and add it to the list of value functions
         if vFuncBool:
+            # Scale of this value (see ValueFuncCRRA.vScale); with log utility it
+            # grows like DiscFacEff * log(a) times the scale of value in state j
+            BegOfPrdvScale = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)[0]
+
             # Calculate end-of-period value, its derivative, and their pseudo-inverse
             BegOfPrd_vNext = DiscFacEff * expected(
                 calc_vNext, IncShkDstn, args=(aNrmNext, Rfree)
             )
             # value transformed through inverse utility
-            BegOfPrd_vNvrsNext = uFunc.inv(BegOfPrd_vNext)
-            BegOfPrd_vNvrsPnext = BegOfPrd_vPnext * uFunc.derinv(
-                BegOfPrd_vNext, order=(0, 1)
+            BegOfPrd_vNvrsNext, BegOfPrd_vNvrsPnext = decurve_value(
+                uFunc, BegOfPrd_vNext, BegOfPrdvScale, BegOfPrd_vPnext
             )
             BegOfPrd_vNvrsNext = np.insert(BegOfPrd_vNvrsNext, 0, 0.0)
             BegOfPrd_vNvrsPnext = np.insert(
@@ -523,7 +529,9 @@ def solve_one_period_ConsMarkov(
                 aNrm_temp,
                 BegOfPrd_vNvrsNext,
             )
-            BegOfPrd_vFunc = ValueFuncCRRA(BegOfPrd_vNvrsFunc, CRRA)
+            BegOfPrd_vFunc = ValueFuncCRRA(
+                BegOfPrd_vNvrsFunc, CRRA, vScale=BegOfPrdvScale
+            )
             BegOfPrd_vFunc_list.append(BegOfPrd_vFunc)
 
     # BegOfPrdvP is marginal value conditional on *next* period's state.
@@ -699,13 +707,17 @@ def solve_one_period_ConsMarkov(
 
             # Make a "decurved" value function with the inverse utility function
             # value transformed through inverse utility
-            vNvrs_now = uFunc.inv(v_now)
-            vNvrsP_now = vP_now * uFunc.derinv(v_now, order=(0, 1))
+            vScaleNextAll = np.array([vFunc.vScale for vFunc in solution_next.vFunc])
+            vScaleNow = calc_v_scales(
+                CRRA, DiscFac * LivPrb_list[i], np.dot(MrkvArray[i, :], vScaleNextAll)
+            )[1]
+            vNvrs_now, vNvrsP_now = decurve_value(uFunc, v_now, vScaleNow, vP_now)
+            vNvrsSlopeMax = calc_vNvrs_slope_at_min(
+                CRRA, MPCmaxEff[i], vNvrs_now[0], mNrm_for_vFunc[0] - mNrmMin_i
+            )
             mNrm_temp = np.insert(mNrm_for_vFunc, 0, mNrmMin_i)  # add the lower bound
             vNvrs_now = np.insert(vNvrs_now, 0, 0.0)
-            vNvrsP_now = np.insert(
-                vNvrsP_now, 0, MPCmaxEff[i] ** (-CRRA / (1.0 - CRRA))
-            )
+            vNvrsP_now = np.insert(vNvrsP_now, 0, vNvrsSlopeMax)
             # MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
             vNvrsFuncNow = LinearInterp(
                 mNrm_temp,
@@ -716,7 +728,7 @@ def solve_one_period_ConsMarkov(
             # TODO: Resolve this strange issue; extrapolation is suppressed for now.
 
             # "Recurve" the decurved value function and add it to the list
-            vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+            vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA, vScale=vScaleNow)
 
         else:
             vFuncNow = NullFunc()

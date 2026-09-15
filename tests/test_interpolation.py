@@ -948,6 +948,14 @@ class TestValueFuncCRRA(unittest.TestCase):
         check = self.Y ** (1 - rho) / (1 - rho)
         self.assertTrue(np.all(np.isclose(output, check)))
 
+    def test_vScale_missing_from_instance(self):
+        # An instance pickled before vScale existed unpickles without it
+        del self.vFunc.__dict__["vScale"]
+        output = self.vFunc(self.W, self.X, self.Y, self.Z)
+        rho = self.vFunc.CRRA
+        check = self.Y ** (1 - rho) / (1 - rho)
+        self.assertTrue(np.all(np.isclose(output, check)))
+
 
 class TestMargValueFuncCRRA(unittest.TestCase):
     def setUp(self):

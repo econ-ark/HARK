@@ -148,3 +148,27 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.assertEqual(
             constrained_agent.solution[0].mNrmStE, constrained_agent.solution[0].mNrmTrg
         )
+
+    def test_value_function_matches_closed_form(self):
+        """
+        Unconstrained infinite-horizon value matches its closed form, log utility included.
+
+        Consumption is c = MPC * (m + hNrm) with MPC = 1 - (beta * R)**(1 / CRRA) / R,
+        where beta includes LivPrb. Value is u(c) / MPC when CRRA != 1. With log
+        utility it is log(c) / MPC + beta * log(beta * R) / MPC**2 (issue #75).
+        """
+        m = np.array([0.0, 1.0, 5.0, 50.0])
+        for CRRA in (1.0, 2.0):
+            agent = PerfForesightConsumerType(cycles=0, CRRA=CRRA, BoroCnstArt=None)
+            agent.solve()
+            solution = agent.solution[0]
+            beta = agent.DiscFac * agent.LivPrb[0]
+            R = agent.Rfree[0]
+            MPC = 1.0 - (beta * R) ** (1.0 / CRRA) / R
+            c = MPC * (m + solution.hNrm)
+            if CRRA == 1.0:
+                v = np.log(c) / MPC + beta * np.log(beta * R) / MPC**2
+            else:
+                v = c ** (1.0 - CRRA) / (1.0 - CRRA) / MPC
+            np.testing.assert_allclose(solution.cFunc(m), c, rtol=1e-10)
+            np.testing.assert_allclose(solution.vFunc(m), v, rtol=1e-10)

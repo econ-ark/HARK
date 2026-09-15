@@ -3570,14 +3570,21 @@ class ValueFuncCRRA(MetricObject):
         If provided, value to return for "out-of-bounds" inputs that return NaN
         from the pseudo-inverse value function. Most common choice is -np.inf,
         which makes the outcome infinitely bad.
+    vScale : float, optional
+        Multiplies the re-curved value, so vFunc = vScale * u(vFuncNvrs). It is
+        1 except with log utility, where value is vScale * log(c) + constant at
+        high resources (vScale = 1 / MPCmin without a bequest motive), and
+        u_inv(vFunc / vScale) is the transform that is linear there.
     """
 
     distance_criteria = ["func", "CRRA"]
+    vScale = 1.0  # Class default, so instances pickled before vScale existed load
 
-    def __init__(self, vFuncNvrs, CRRA, illegal_value=None):
+    def __init__(self, vFuncNvrs, CRRA, illegal_value=None, vScale=1.0):
         self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
         self.illegal_value = illegal_value
+        self.vScale = vScale
 
         if hasattr(vFuncNvrs, "grid_list"):
             self.grid_list = vFuncNvrs.grid_list
@@ -3601,22 +3608,56 @@ class ValueFuncCRRA(MetricObject):
             same size as the state inputs.
         """
         temp = self.vFuncNvrs(*vFuncArgs)
-        v = CRRAutility(temp, self.CRRA)
+        v = self.vScale * CRRAutility(temp, self.CRRA)
         if self.illegal_value is not None:
             illegal = np.isnan(temp)
             v[illegal] = self.illegal_value
         return v
 
     def gradient(self, *args):
-        # V(s) = u(vFuncNvrs(s)), so by the chain rule
-        # dV/ds_i = u'(vFuncNvrs(s)) * d vFuncNvrs / ds_i.
+        # V(s) = vScale * u(vFuncNvrs(s)), so by the chain rule
+        # dV/ds_i = vScale * u'(vFuncNvrs(s)) * d vFuncNvrs / ds_i.
         NvrsGrad = self.vFuncNvrs.gradient(*args)
-        marg_u = CRRAutilityP(self.vFuncNvrs(*args), self.CRRA)
+        marg_u = self.vScale * CRRAutilityP(self.vFuncNvrs(*args), self.CRRA)
         grad = [g * marg_u for g in NvrsGrad]
         return grad
 
     def _eval_and_grad(self, *args):
         return (self.__call__(*args), self.gradient(*args))
+
+    def renormalize(self, v, *growth):
+        """
+        Express value normalized by next period's permanent income in units of
+        this period's, given the factors by which permanent income grows between
+        them (e.g. PermShk and PermGroFac).
+
+        With CRRA != 1, V(M, P) = P**(1 - CRRA) * v(m), so v is multiplied by
+        each growth factor raised to 1 - CRRA, in the order given. With log
+        utility, V(M, P) = v(m) + vScale * log(P), so vScale times the log of
+        their product is added instead.
+
+        Parameters
+        ----------
+        v : float or np.array
+            Value normalized by next period's permanent income.
+        growth : float or np.array
+            Growth factors of permanent income. Each is raised to 1 - CRRA on its
+            own, so pass a product to raise it as a single factor.
+
+        Returns
+        -------
+        v : float or np.array
+            Value normalized by this period's permanent income.
+        """
+        if self.CRRA == 1.0:
+            total = growth[0]
+            for g in growth[1:]:
+                total = total * g
+            return v + self.vScale * np.log(total)
+        factor = growth[0] ** (1.0 - self.CRRA)
+        for g in growth[1:]:
+            factor = factor * g ** (1.0 - self.CRRA)
+        return factor * v
 
 
 def _eval_c_and_mpc(cFunc, *cFuncArgs):

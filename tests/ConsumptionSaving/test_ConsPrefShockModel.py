@@ -43,6 +43,30 @@ class testPrefShockConsumerType(unittest.TestCase):
         mNrm = 5.0
         self.assertAlmostEqual(vFunc(mNrm), -13.93642, places=HARK_PRECISION)
 
+    def test_log_utility_value_one_period_before_terminal(self):
+        """
+        With log utility, value one period before the end matches the Bellman equation.
+
+        Utility is log(c / eta), averaged over the preference shock eta, and
+        continuation value is log(m') + log(PermGroFac * psi), where permanent
+        income growth enters additively (issue #75).
+        """
+        agent = PrefShockConsumerType(cycles=1, CRRA=1.0, vFuncBool=True)
+        agent.solve()
+        solution = agent.solution[0]
+        PermShk, TranShk = agent.IncShkDstn[0].atoms
+        growth = agent.PermGroFac[0] * PermShk
+        beta = agent.DiscFac * agent.LivPrb[0]
+        m = solution.mNrmMin + np.array([0.5, 2.0, 10.0, 19.0])
+        v = np.zeros_like(m)
+        PrefShkDstn = agent.PrefShkDstn[0]
+        for eta, prob in zip(PrefShkDstn.atoms[0], PrefShkDstn.pmv):
+            c = solution.cFunc(m, np.full_like(m, eta))
+            mNext = agent.Rfree[0] * (m - c)[:, None] / growth + TranShk
+            vNext = (np.log(mNext) + np.log(growth)) @ agent.IncShkDstn[0].pmv
+            v += prob * (np.log(c / eta) + beta * vNext)
+        np.testing.assert_allclose(solution.vFunc(m), v, rtol=0, atol=1e-5)
+
     def test_invalid_cases(self):
         BrokenType = PrefShockConsumerType(CubicBool=True)
         self.assertRaises(ValueError, BrokenType.solve)

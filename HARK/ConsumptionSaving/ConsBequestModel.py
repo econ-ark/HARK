@@ -21,9 +21,14 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    calc_v_next,
+    calc_v_scales,
+    decurve_value,
     make_basic_CRRA_solution_terminal,
+    make_EndOfPrd_vFunc,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
+    make_vFunc_from_values,
 )
 from HARK.Calibration.Assets.AssetProcesses import (
     make_lognormal_RiskyDstn,
@@ -120,13 +125,15 @@ def make_bequest_solution_terminal(CRRA, BeqFac, BeqShift, aXtraGrid):
     aNrmGrid = np.append(0.0, aXtraGrid) if BeqShift != 0.0 else aXtraGrid
     cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
     vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
+    # With log utility, consumption and bequest each add a log(P) term to value
+    vScale = 1.0 + BeqFac if CRRA == 1.0 else 1.0
     cNrmGridW0 = np.append(0.0, cNrmGrid)
     mNrmGridW0 = np.append(0.0, aNrmGrid + cNrmGrid)
-    vNvrsGridW0 = np.append(0.0, utility.inv(vGrid))
+    vNvrsGridW0 = np.append(0.0, utility.inv(vGrid / vScale))
 
     cFunc_term = LinearInterp(mNrmGridW0, cNrmGridW0)
     vNvrsFunc_term = LinearInterp(mNrmGridW0, vNvrsGridW0)
-    vFunc_term = ValueFuncCRRA(vNvrsFunc_term, CRRA)
+    vFunc_term = ValueFuncCRRA(vNvrsFunc_term, CRRA, vScale=vScale)
     vPfunc_term = MargValueFuncCRRA(cFunc_term, CRRA)
     vPPfunc_term = MargMargValueFuncCRRA(cFunc_term, CRRA)
 
@@ -176,7 +183,7 @@ def make_warmglow_portfolio_solution_terminal(CRRA, BeqFac, BeqShift, aXtraGrid)
 
     # Take consumption function from the no portfolio choice solution
     cFuncAdj_terminal = solution_terminal_no_port.cFunc
-    cFuncFxd_terminal = lambda m, s: solution_terminal_no_port(m)
+    cFuncFxd_terminal = lambda m, s: solution_terminal_no_port.cFunc(m)
 
     # Risky share is irrelevant-- no end-of-period assets; set to zero
     ShareFuncAdj_terminal = ConstantFunction(0.0)
@@ -184,7 +191,7 @@ def make_warmglow_portfolio_solution_terminal(CRRA, BeqFac, BeqShift, aXtraGrid)
 
     # Value function is simply utility from consuming market resources
     vFuncAdj_terminal = solution_terminal_no_port.vFunc
-    vFuncFxd_terminal = lambda m, s: solution_terminal_no_port.cFunc(m)
+    vFuncFxd_terminal = lambda m, s: solution_terminal_no_port.vFunc(m)
 
     # Marginal value of market resources is marg utility at the consumption function
     vPfuncAdj_terminal = solution_terminal_no_port.vPfunc
@@ -339,11 +346,6 @@ def solve_one_period_ConsWarmBequest(
     def calc_mNrmNext(S, a, R):
         return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
 
-    def calc_vNext(S, a, R):
-        return (S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)) * vFuncNext(
-            calc_mNrmNext(S, a, R)
-        )
-
     def calc_vPnext(S, a, R):
         return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
 
@@ -407,20 +409,28 @@ def solve_one_period_ConsWarmBequest(
 
     # Construct this period's value function if requested
     if vFuncBool:
-        # Calculate end-of-period value, its derivative, and their pseudo-inverse
-        EndOfPrdv = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNow, Rfree))
-        EndOfPrdv += warm_glow(aNrmNow)
-        EndOfPrdvNvrs = uFunc.inv(EndOfPrdv)
-        # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
-        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
-        EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
-        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        # Scales of end-of-period value and of value now (see ValueFuncCRRA.vScale).
+        # With log utility the bequest adds BeqFacEff * log(P) to value.
+        EndOfPrdvScale, vScaleNow = calc_v_scales(
+            CRRA, DiscFacEff, vFuncNext.vScale, BeqFacEff
+        )
 
-        # Construct the end-of-period value function
-        aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
-        EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+        # Calculate end-of-period value and make the end-of-period value function
+        EndOfPrdv = DiscFacEff * expected(
+            calc_v_next,
+            IncShkDstn,
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
+        )
+        EndOfPrdv += warm_glow(aNrmNow)
+        EndOfPrd_vFunc = make_EndOfPrd_vFunc(
+            uFunc,
+            aNrmNow,
+            EndOfPrdv,
+            EndOfPrdvP,
+            BoroCnstNat,
+            EndOfPrdvScale,
+            interpolator=CubicInterp,
+        )
 
         # Compute expected value and marginal value on a grid of market resources
         mNrm_temp = mNrmMinNow + aXtraGrid
@@ -428,18 +438,18 @@ def solve_one_period_ConsWarmBequest(
         aNrm_temp = mNrm_temp - cNrm_temp
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp)
         vP_temp = uFunc.der(cNrm_temp)
-
-        # Construct the beginning-of-period value function
-        vNvrs_temp = uFunc.inv(v_temp)  # value transformed through inv utility
-        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
-        mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
-        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
-        vNvrsFuncNow = CubicInterp(
-            mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
+        vFuncNow = make_vFunc_from_values(
+            uFunc,
+            mNrm_temp,
+            v_temp,
+            vP_temp,
+            mNrmMinNow,
+            MPCmaxEff,
+            MPCminNow,
+            hNrmNow,
+            vScaleNow,
+            interpolator=CubicInterp,
         )
-        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
     else:
         vFuncNow = NullFunc()  # Dummy object
 
@@ -730,6 +740,12 @@ def solve_one_period_ConsPortfolioWarmGlow(
 
     # Make the end-of-period value function if the value function is requested
     if vFuncBool:
+        # Scales of value next period, at the end of this period and now (see
+        # ValueFuncCRRA.vScale). With log utility the bequest adds BeqFacEff * log(P).
+        vScaleNext = vFuncAdj_next.vScale
+        EndOfPrdvScale, vScaleNow = calc_v_scales(
+            CRRA, DiscFacEff, vScaleNext, BeqFacEff
+        )
 
         def calc_v_intermed(S, b, z):
             """
@@ -746,16 +762,15 @@ def solve_one_period_ConsPortfolioWarmGlow(
             else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
                 v_next = vAdj_next
 
-            v_intermed = (S["PermShk"] * PermGroFac) ** (1.0 - CRRA) * v_next
-            return v_intermed
+            return vFuncAdj_next.renormalize(v_next, S["PermShk"] * PermGroFac)
 
         # Calculate intermediate value by taking expectations over income shocks
         v_intermed = expected(calc_v_intermed, IncShkDstn, args=(bNrmNext, ShareNext))
 
         # Construct the "intermediate value function" for this period
-        vNvrs_intermed = uFunc.inv(v_intermed)
+        vNvrs_intermed = decurve_value(uFunc, v_intermed, vScaleNext)
         vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
-        vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
+        vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA, vScale=vScaleNext)
 
         def calc_EndOfPrd_v(S, a, z):
             # Calculate future realizations of bank balances bNrm
@@ -775,11 +790,11 @@ def solve_one_period_ConsPortfolioWarmGlow(
             calc_EndOfPrd_v, RiskyDstn, args=(aNrmNow, ShareNext)
         )
         EndOfPrd_v += warm_glow(aNrmNow)
-        EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
+        EndOfPrd_vNvrs = decurve_value(uFunc, EndOfPrd_v, EndOfPrdvScale)
 
         # Now make an end-of-period value function over aNrm and Share
         EndOfPrd_vNvrsFunc = BilinearInterp(EndOfPrd_vNvrs, aNrmGrid, ShareGrid)
-        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale)
         # This will be used later to make the value function for this period
 
     # Find the optimal risky asset share either by choosing the best value among
@@ -904,23 +919,25 @@ def solve_one_period_ConsPortfolioWarmGlow(
         aNrm_temp = mNrm_temp - cNrm_temp
         Share_temp = ShareFuncAdj_now(mNrm_temp)
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vNvrs_temp, vNvrsP_temp = decurve_value(
+            uFunc, v_temp, vScaleNow, uFunc.der(cNrm_temp)
+        )
         vNvrsFuncAdj = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),  # dfdx_list
         )
         # Re-curve the pseudo-inverse value function
-        vFuncAdj_now = ValueFuncCRRA(vNvrsFuncAdj, CRRA)
+        vFuncAdj_now = ValueFuncCRRA(vNvrsFuncAdj, CRRA, vScale=vScaleNow)
 
         # Construct the value function when the agent *can't* adjust his portfolio
         mNrm_temp, Share_temp = np.meshgrid(aXtraGrid, ShareGrid)
         cNrm_temp = cFuncFxd_now(mNrm_temp, Share_temp)
         aNrm_temp = mNrm_temp - cNrm_temp
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vNvrs_temp, vNvrsP_temp = decurve_value(
+            uFunc, v_temp, vScaleNow, uFunc.der(cNrm_temp)
+        )
         vNvrsFuncFxd_by_Share = []
         for j in range(ShareCount):
             vNvrsFuncFxd_by_Share.append(
@@ -931,7 +948,7 @@ def solve_one_period_ConsPortfolioWarmGlow(
                 )
             )
         vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
-        vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, CRRA)
+        vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, CRRA, vScale=vScaleNow)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFuncAdj_now = NullFunc()

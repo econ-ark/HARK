@@ -218,16 +218,12 @@ def make_solution_terminal_fast(solution_terminal_class, CRRA):
     Construct the terminal period solution for the fast solver.
 
     At terminal period, consumer consumes everything: c = m.
-    Therefore (for CRRA != 1):
+    Therefore, for any CRRA including log utility:
     - v(m) = u(m)
     - vNvrs(m) = u_inv(v(m)) = u_inv(u(m)) = m
-    - vNvrsP = d(vNvrs)/dm = 1
+    - vNvrsP = d(vNvrs)/dm = 1, and the slope of vFuncNvrs is 1
     - MPCmin = 1 (consume everything)
     - MPCminNvrs = 1 (since MPCmin = 1)
-
-    Note: This function requires CRRA != 1 because the vNvrs transformation
-    vNvrs(m) = u_inv(u(m)) = m only holds for CRRA utility. For log utility
-    (CRRA = 1), u(c) = log(c) and the inverse differs fundamentally.
 
     Parameters
     ----------
@@ -255,6 +251,7 @@ def make_solution_terminal_fast(solution_terminal_class, CRRA):
 
     # At terminal, MPCmin = 1 (consume everything), so MPCminNvrs = 1
     solution_terminal.MPCminNvrs = 1.0
+    solution_terminal.vFuncNvrsSlope = 1.0
 
     # Create grid that covers typical mNrmNext range during backward induction
     # Uses module-level constants for configurability
@@ -325,6 +322,7 @@ def _solveConsPerfForesightNumba(
     cNrmNext,
     hNrmNext,
     MPCminNext,
+    vFuncNvrsSlopeNext,
 ):  # pragma: nocover
     """
     Makes the (linear) consumption function for this period.
@@ -404,8 +402,21 @@ def _solveConsPerfForesightNumba(
     # Relabeling for compatibility with add_mNrmStE
     mNrmMinNow = mNrmNow[0]
 
-    # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
-    vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))
+    # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations.
+    # Log utility has no closed form: with vScale = 1 / MPCmin, v = log(s * (m + h)) / MPCmin
+    # at high m, and the Bellman equation gives the slope s from next period's.
+    if CRRA == 1.0:
+        vFuncNvrsSlope = np.exp(
+            MPCmin
+            * (
+                np.log(MPCmin)
+                + DiscFacEff
+                / MPCminNext
+                * (np.log(vFuncNvrsSlopeNext) + np.log(Rfree * (1.0 - MPCmin)))
+            )
+        )
+    else:
+        vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))
 
     return (
         mNrmNow,
@@ -464,6 +475,7 @@ class ConsPerfForesightSolverFast(ConsPerfForesightSolver):
             self.solution_next.cNrm,
             self.solution_next.hNrm,
             self.solution_next.MPCmin,
+            self.solution_next.vFuncNvrsSlope,
         )
 
         solution = PerfForesightSolution(
@@ -881,33 +893,52 @@ def _add_vFuncNumba(
     mNrmMinNow,
     MPCmaxEff,
     MPCminNow,
+    MPCminNext,
 ):  # pragma: nocover
     """
     Construct the end-of-period value function for this period, storing it
     as an attribute of self for use by other methods.
     """
 
-    # vFunc always cubic
+    # vFunc always cubic. Pseudo-inverse value is u_inv(v / vScale), as in
+    # ValueFuncCRRA; with log utility vScale = 1 / MPCmin and there is no
+    # perfect foresight limit, so it is extrapolated linearly above the grid.
+    if CRRA == 1.0:
+        vScaleNext = 1.0 / MPCminNext
+        vNvrsFuncNow, _ = cubic_interp_fast(
+            mNrmNext.flatten(), mNrmGridNext, vNvrsNext, vNvrsPNext
+        )
+    else:
+        vScaleNext = 1.0
+        vNvrsFuncNow, _ = cubic_interp_fast(
+            mNrmNext.flatten(),
+            mNrmGridNext,
+            vNvrsNext,
+            vNvrsPNext,
+            MPCminNvrsNext * hNrmNext,
+            MPCminNvrsNext,
+        )
 
-    vNvrsFuncNow, _ = cubic_interp_fast(
-        mNrmNext.flatten(),
-        mNrmGridNext,
-        vNvrsNext,
-        vNvrsPNext,
-        MPCminNvrsNext * hNrmNext,
-        MPCminNvrsNext,
-    )
+    vFuncNext = vScaleNext * utility(vNvrsFuncNow, CRRA).reshape(mNrmNext.shape)
 
-    vFuncNext = utility(vNvrsFuncNow, CRRA).reshape(mNrmNext.shape)
-
-    VLvlNext = (
-        PermShkVals_temp ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)
-    ) * vFuncNext
+    if CRRA == 1.0:
+        # With log utility, permanent income growth adds a level term to value
+        VLvlNext = vFuncNext + vScaleNext * np.log(PermShkVals_temp * PermGroFac)
+        EndOfPrdvScale = DiscFacEff * vScaleNext
+        vScaleNow = 1.0 / MPCminNow
+    else:
+        VLvlNext = (
+            PermShkVals_temp ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)
+        ) * vFuncNext
+        EndOfPrdvScale = 1.0
+        vScaleNow = 1.0
     EndOfPrdv = DiscFacEff * np.sum(VLvlNext * ShkPrbs_temp, axis=0)
 
     # value transformed through inverse utility
-    EndOfPrdvNvrs = utility_inv(EndOfPrdv, CRRA)
-    EndOfPrdvNvrsP = EndOfPrdvP * utility_invP(EndOfPrdv, CRRA)
+    EndOfPrdvNvrs = utility_inv(EndOfPrdv / EndOfPrdvScale, CRRA)
+    EndOfPrdvNvrsP = (
+        EndOfPrdvP * utility_invP(EndOfPrdv / EndOfPrdvScale, CRRA) / EndOfPrdvScale
+    )
     EndOfPrdvNvrs = _np_insert(EndOfPrdvNvrs, 0, 0.0)
 
     # This is a very good approximation, vNvrsPP = 0 at the asset minimum
@@ -926,18 +957,25 @@ def _add_vFuncNumba(
     EndOfPrdvNvrsFunc, _ = cubic_interp_fast(
         aNrmNow, aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP
     )
-    EndOfPrdvFunc = utility(EndOfPrdvNvrsFunc, CRRA)
+    EndOfPrdvFunc = EndOfPrdvScale * utility(EndOfPrdvNvrsFunc, CRRA)
 
     vNrmNow = utility(cFuncNow, CRRA) + EndOfPrdvFunc
     vPnow = utilityP(cFuncNow, CRRA)
 
     # Construct the beginning-of-period value function
-    vNvrs = utility_inv(vNrmNow, CRRA)  # value transformed through inverse utility
-    vNvrsP = vPnow * utility_invP(vNrmNow, CRRA)
+    vNvrs = utility_inv(vNrmNow / vScaleNow, CRRA)
+    vNvrsP = vPnow * utility_invP(vNrmNow / vScaleNow, CRRA) / vScaleNow
+    if CRRA == 1.0:
+        # Log utility has no closed-form slopes, so the lower one comes from the
+        # first gridpoint and NaN flags the missing perfect foresight limit
+        vNvrsSlopeMax = vNvrs[0] / (mNrmGrid[0] - mNrmMinNow)
+        MPCminNvrs = np.nan
+    else:
+        vNvrsSlopeMax = MPCmaxEff ** (-CRRA / (1.0 - CRRA))
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
     mNrmGrid = _np_insert(mNrmGrid, 0, mNrmMinNow)
     vNvrs = _np_insert(vNvrs, 0, 0.0)
-    vNvrsP = _np_insert(vNvrsP, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-    MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+    vNvrsP = _np_insert(vNvrsP, 0, vNvrsSlopeMax)
 
     return (
         mNrmGrid,
@@ -1153,6 +1191,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                 self.mNrmMinNow,
                 self.MPCmaxEff,
                 self.MPCminNow,
+                self.solution_next.MPCmin,
             )
 
             # Pack up the solution and return it
@@ -1170,6 +1209,27 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
 # ============================================================================
 
 
+def check_crra_for_fast_solver(CRRA):
+    """
+    Refuse a CRRA within floating point tolerance of 1 without being exactly 1,
+    where the numba solver's CRRA != 1 formulas overflow, and warn for a CRRA in
+    (0.99, 1.01) that is not that close.
+    """
+    if np.isclose(CRRA, 1.0) and CRRA != 1.0:
+        raise ValueError(
+            f"CRRA={CRRA} is too close to 1 for the numba-optimized solver. "
+            "Use CRRA=1 exactly for log utility."
+        )
+    if 0.99 < CRRA < 1.01 and not np.isclose(CRRA, 1.0):
+        warnings.warn(
+            f"CRRA={CRRA} is very close to 1, which may cause numerical "
+            "instability. Consider using the standard solver or a CRRA value "
+            "further from 1.",
+            UserWarning,
+            stacklevel=3,
+        )
+
+
 init_perfect_foresight_fast = init_perfect_foresight.copy()
 perf_foresight_constructor_dict = init_perfect_foresight["constructors"].copy()
 perf_foresight_constructor_dict["solution_terminal"] = make_solution_terminal_fast
@@ -1179,10 +1239,6 @@ init_perfect_foresight_fast["constructors"] = perf_foresight_constructor_dict
 class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     r"""
     A version of the perfect foresight consumer type speed up by numba.
-
-    Note: This fast solver does not support CRRA=1 (log utility) due to the
-    mathematical singularity in the inverse value function transformation.
-    Use the standard PerfForesightConsumerType for log utility.
     """
 
     solution_terminal_class = PerfForesightSolution
@@ -1200,7 +1256,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
         Raises
         ------
         ValueError
-            If CRRA equals 1 (log utility), which is not supported by the fast solver.
+            If CRRA is within floating point tolerance of 1 without being exactly 1.
 
         Warns
         -----
@@ -1208,21 +1264,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             If CRRA is very close to 1 (between 0.99 and 1.01), which may cause
             numerical instability.
         """
-        if np.isclose(self.CRRA, 1.0):
-            raise ValueError(
-                "PerfForesightConsumerTypeFast does not support CRRA=1 (log utility) "
-                "due to mathematical singularities in the numba-optimized solver. "
-                "Please use PerfForesightConsumerType instead for log utility preferences."
-            )
-        # Warn for CRRA values that are close to 1 but not caught by np.isclose
-        if 0.99 < self.CRRA < 1.01 and not np.isclose(self.CRRA, 1.0):
-            warnings.warn(
-                f"CRRA={self.CRRA} is very close to 1, which may cause numerical "
-                "instability. Consider using the standard solver or a CRRA value "
-                "further from 1.",
-                UserWarning,
-                stacklevel=2,
-            )
+        check_crra_for_fast_solver(self.CRRA)
         # Call parent's pre_solve
         super().pre_solve()
 
@@ -1259,7 +1301,9 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
                 np.array([solution.mNrmMin, solution.mNrmMin + 1.0]),
                 np.array([0.0, solution.vFuncNvrsSlope]),
             )
-            vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA)
+            # With log utility the value scale is 1 / MPCmin, as in the solver
+            vScale = 1.0 / solution.MPCmin if self.CRRA == 1.0 else 1.0
+            vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA, vScale=vScale)
             vPfunc = MargValueFuncCRRA(cFunc, self.CRRA)
 
             consumer_solution = ConsumerSolution(
@@ -1312,10 +1356,6 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
     A version of the idiosyncratic shock consumer type sped up by numba.
 
     If CubicBool and vFuncBool are both set to false it's further optimized.
-
-    Note: This fast solver does not support CRRA=1 (log utility) due to the
-    mathematical singularity in the inverse value function transformation.
-    Use the standard IndShockConsumerType for log utility.
     """
 
     solution_terminal_class = IndShockSolution
@@ -1333,7 +1373,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
         Raises
         ------
         ValueError
-            If CRRA equals 1 (log utility), which is not supported by the fast solver.
+            If CRRA is within floating point tolerance of 1 without being exactly 1.
 
         Warns
         -----
@@ -1341,21 +1381,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
             If CRRA is very close to 1 (between 0.99 and 1.01), which may cause
             numerical instability.
         """
-        if np.isclose(self.CRRA, 1.0):
-            raise ValueError(
-                "IndShockConsumerTypeFast does not support CRRA=1 (log utility) "
-                "due to mathematical singularities in the numba-optimized solver. "
-                "Please use IndShockConsumerType instead for log utility preferences."
-            )
-        # Warn for CRRA values that are close to 1 but not caught by np.isclose
-        if 0.99 < self.CRRA < 1.01 and not np.isclose(self.CRRA, 1.0):
-            warnings.warn(
-                f"CRRA={self.CRRA} is very close to 1, which may cause numerical "
-                "instability. Consider using the standard solver or a CRRA value "
-                "further from 1.",
-                UserWarning,
-                stacklevel=2,
-            )
+        check_crra_for_fast_solver(self.CRRA)
         # Call parent's pre_solve
         super().pre_solve()
 
@@ -1422,14 +1448,20 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                 )
 
                 if self.vFuncBool:
+                    # Log utility has no perfect foresight limit above the grid
+                    if self.CRRA == 1.0:
+                        vNvrsLimit = ()
+                    else:
+                        vNvrsLimit = (
+                            solution.MPCminNvrs * solution.hNrm,
+                            solution.MPCminNvrs,
+                        )
                     vNvrsFuncNow = CubicInterp(
-                        solution.mNrmGrid,
-                        solution.vNvrs,
-                        solution.vNvrsP,
-                        solution.MPCminNvrs * solution.hNrm,
-                        solution.MPCminNvrs,
+                        solution.mNrmGrid, solution.vNvrs, solution.vNvrsP, *vNvrsLimit
                     )
-                    vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
+                    # With log utility the value scale is 1 / MPCmin, as in the solver
+                    vScale = 1.0 / solution.MPCmin if self.CRRA == 1.0 else 1.0
+                    vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA, vScale=vScale)
 
                     consumer_solution.vFunc = vFuncNow
 
