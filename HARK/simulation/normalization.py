@@ -40,7 +40,9 @@ HARK folds the expected growth factor into the permanent shock array:
 ``PermShkNow = psi * PermGroFac``, with psi the mean-one innovation (see
 ``IndShockConsumerType.get_shocks``, and ``ConsMarkovModel`` per discrete
 state). The cross-sectional mean of ``shocks["PermShk"]`` is therefore
-``PermGroFac``, not 1.0, and ``ShockNormalizationMixin`` targets that.
+``PermGroFac``, not 1.0, and ``ShockNormalizationMixin`` targets that. The
+GenIncProcess family is the exception: its ``pLvlNextFunc`` carries growth,
+its ``get_shock_growth_factor`` returns 1.0, and the target follows.
 Rescaling ``PermShk`` to 1.0 would delete permanent income growth rather
 than sampling noise, because ``transition()`` applies the array directly as
 ``pLvl = pLvlPrev * PermShk``. Transitory shocks genuinely are mean-one, so
@@ -166,8 +168,9 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
 
     After ``get_shocks()`` draws ``PermShk`` and ``TranShk`` for the
     population, rescales each so that the cross-sectional mean equals its
-    theoretical value: ``PermGroFac`` for ``PermShk`` (HARK folds growth
-    into that array; see the module docstring) and 1.0 for ``TranShk``.
+    theoretical value: the growth factor ``get_shocks`` folded into
+    ``PermShk`` (``PermGroFac`` for most models, 1.0 for the GenIncProcess
+    family; see the module docstring) and 1.0 for ``TranShk``.
     This makes the aggregate effect of sampling noise exact in every
     period, regardless of population size, without touching the
     deterministic growth trend.
@@ -225,16 +228,18 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
     def _perm_shk_mean_target(self, idx):
         """Per-agent cross-sectional mean of ``shocks["PermShk"]``.
 
-        This is ``PermGroFac`` for the period each agent drew from, because
-        HARK multiplies the mean-one innovation by the growth factor before
-        storing it (see the module docstring). Returns None when
-        ``PermGroFac`` is missing or has a shape this mixin cannot resolve,
-        in which case ``PermShk`` is left untouched rather than normalized
-        to a guess. ``idx`` is the period index from
-        :meth:`_income_dstn_index`.
+        This is the growth factor ``get_shocks`` multiplied into each draw for
+        the period the agent drew from: ``PermGroFac`` for most models (see
+        the module docstring), 1.0 for the GenIncProcess family, whose
+        ``pLvlNextFunc`` carries growth. It comes from the agent's
+        ``get_shock_growth_factor`` when defined, else from ``PermGroFac``.
+        Returns None when neither resolves for the period, in which case
+        ``PermShk`` is left untouched rather than normalized to a guess.
+        ``idx`` is the period index from :meth:`_income_dstn_index`.
         """
+        growth = getattr(self, "get_shock_growth_factor", None)
         PermGroFac = getattr(self, "PermGroFac", None)
-        if PermGroFac is None:
+        if growth is None and PermGroFac is None:
             return None
         mrkv = self._mrkv_labels()
 
@@ -242,7 +247,8 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
         for i in np.unique(idx):
             selected = idx == i
             try:
-                entry = np.asarray(PermGroFac[int(i)], dtype=float).flatten()
+                raw = growth(int(i)) if growth is not None else PermGroFac[int(i)]
+                entry = np.asarray(raw, dtype=float).flatten()
             except (IndexError, KeyError, TypeError, ValueError):
                 return None
             if entry.size == 1:

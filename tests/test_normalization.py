@@ -23,6 +23,9 @@ Covers:
 import numpy as np
 import pytest
 
+from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
+    IndShockExplicitPermIncConsumerType,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
@@ -37,6 +40,12 @@ from HARK.simulation.normalization import (
 
 class NormalizedIndShock(
     ShockNormalizationMixin, PermanentIncomeNormalizationMixin, IndShockConsumerType
+):
+    pass
+
+
+class NormalizedExplicitPermInc(
+    ShockNormalizationMixin, IndShockExplicitPermIncConsumerType
 ):
     pass
 
@@ -108,6 +117,38 @@ def test_shock_normalization_preserves_permanent_income_growth():
     growth_normed = normed.history["pLvl"][-1].mean() / normed.history["pLvl"][0].mean()
     assert abs(growth_normed - growth_plain) < 0.01, (growth_plain, growth_normed)
     assert growth_normed > 1.0
+
+
+def test_shock_normalization_keeps_genincprocess_growth_single():
+    """For the GenIncProcess family the PermShk target is 1.0, not PermGroFac.
+
+    Its pLvlNextFunc carries growth, so a PermGroFac target would rescale the
+    pure shock up to PermGroFac and grow pLvl at PermGroFac**2 (issue #1838).
+    With degenerate shocks the normalized agent must follow pLvl = G**n.
+    """
+    T, G = 6, 1.05
+    agent = NormalizedExplicitPermInc(
+        cycles=1,
+        T_cycle=T,
+        T_age=T + 1,
+        PermGroFac=[G] * T,
+        PermShkStd=[0.0] * T,
+        TranShkStd=[0.0] * T,
+        UnempPrb=0.0,
+        LivPrb=[1.0] * T,
+        Rfree=[1.03] * T,
+        pLogInitMean=0.0,
+        pLogInitStd=0.0,
+        AgentCount=5,
+        T_sim=T,
+        normalize_shocks=True,
+    )
+    agent.track_vars = ["pLvl"]
+    agent.solve()
+    agent.initialize_sim()
+    agent.simulate()
+    expected = G ** np.arange(1, T + 1)
+    assert np.allclose(agent.history["pLvl"], expected[:, None], rtol=1e-12, atol=0.0)
 
 
 def test_shock_normalization_no_ops_under_read_shocks_with_warning():

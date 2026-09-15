@@ -7,6 +7,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     IndShockExplicitPermIncConsumerType,
     PersistentShockConsumerType,
 )
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from tests import HARK_PRECISION
 
 GenIncDictionary = {
@@ -91,6 +92,17 @@ class testGrowthEntersSimulatedPermanentIncomeOnce(unittest.TestCase):
         pLvl = agent.history["pLvl"]
         self.assertTrue(np.allclose(pLvl, expected[:, None], rtol=1e-12, atol=0.0))
         self.assertTrue(np.all(agent.history["PermShk"] == 1.0))
+
+    def test_indshock_keeps_growth_in_PermShk(self):
+        # Contrast: IndShockConsumerType's transition applies PermShk alone, so
+        # the simulated shock must still carry PermGroFac.
+        agent = self._agent(IndShockConsumerType)
+        agent.initialize_sim()
+        agent.simulate()
+        expected = self.G ** np.arange(1, self.T + 1)
+        pLvl = agent.history["pLvl"]
+        self.assertTrue(np.allclose(pLvl, expected[:, None], rtol=1e-12, atol=0.0))
+        self.assertTrue(np.all(agent.history["PermShk"] == self.G))
 
     def test_persistent_shock_follows_pLvlNextFunc(self):
         agent = self._agent(PersistentShockConsumerType, PrstIncCorr=0.98)
