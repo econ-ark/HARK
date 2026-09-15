@@ -2279,8 +2279,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if N > 0:
                 # set current income distribution
                 IncShkDstnNow = self.IncShkDstn[t]
-                # and permanent growth factor
-                PermGroFacNow = self.PermGroFac[t]
+                # and the expected growth folded into the permanent shock
+                PermGroFacNow = self.get_shock_growth_factor(t)
                 # Draw income shocks from the discrete distribution
                 if getattr(self, "income_shuffle", False):
                     ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
@@ -2310,7 +2310,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             idx = newborn
             # set current income distribution
             IncShkDstnNow = self.IncShkDstn[0]
-            PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
+            PermGroFacNow = self.get_shock_growth_factor(0)
 
             # Draw income shocks from the discrete distribution
             if getattr(self, "income_shuffle", False):
@@ -2341,6 +2341,25 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store the shocks in self
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
+
+    def get_shock_growth_factor(self, t):
+        """
+        Expected permanent income growth that get_shocks folds into the simulated
+        permanent shock for cycle index t. This model's transition multiplies
+        pLvl by PermShk alone, so the "shock" carries PermGroFac[t]. Subclasses
+        whose transition applies growth elsewhere return 1.0.
+
+        Parameters
+        ----------
+        t : int
+            Index into PermGroFac, as used by get_shocks.
+
+        Returns
+        -------
+        float
+            The growth factor multiplied into each permanent shock draw.
+        """
+        return self.PermGroFac[t]
 
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """

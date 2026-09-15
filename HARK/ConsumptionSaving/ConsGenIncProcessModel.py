@@ -807,6 +807,24 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         t = self.T_retire
         self.pLvlNextFunc[t] = self.pLvlNextFuncRet
 
+    def get_shock_growth_factor(self, t):
+        """
+        No growth in the simulated permanent shock: pLvlNextFunc already carries
+        expected permanent income growth, so PermShk stays the pure draw that the
+        solver and make_pLvlGrid_by_simulation integrate over.
+
+        Parameters
+        ----------
+        t : int
+            Index into PermGroFac, as used by get_shocks (unused here).
+
+        Returns
+        -------
+        float
+            1.0
+        """
+        return 1.0
+
     def sim_birth(self, which_agents):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as

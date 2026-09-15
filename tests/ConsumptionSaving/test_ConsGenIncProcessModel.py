@@ -50,6 +50,71 @@ GenIncDictionary = {
 }
 
 
+class testGrowthEntersSimulatedPermanentIncomeOnce(unittest.TestCase):
+    """
+    For this model family pLvlNextFunc carries expected permanent income growth,
+    so the simulated PermShk must be the pure shock the solver integrates over.
+    With degenerate shocks, simulated pLvl must follow pLvlNextFunc exactly; it
+    used to apply PermGroFac a second time through PermShk (issue #1838).
+    """
+
+    T = 10
+    G = 1.05
+
+    def _agent(self, cls, **extra):
+        agent = cls(
+            cycles=1,
+            T_cycle=self.T,
+            T_age=self.T + 1,
+            PermGroFac=[self.G] * self.T,
+            PermShkStd=[0.0] * self.T,
+            TranShkStd=[0.0] * self.T,
+            UnempPrb=0.0,
+            LivPrb=[1.0] * self.T,
+            Rfree=[1.03] * self.T,
+            pLogInitMean=0.0,
+            pLogInitStd=0.0,
+            AgentCount=5,
+            T_sim=self.T,
+            **extra,
+        )
+        agent.solve()
+        agent.track_vars = ["pLvl", "PermShk"]
+        return agent
+
+    def test_explicit_perm_inc_grows_at_PermGroFac(self):
+        agent = self._agent(IndShockExplicitPermIncConsumerType)
+        agent.initialize_sim()
+        agent.simulate()
+        # history row t is recorded after t + 1 transitions
+        expected = self.G ** np.arange(1, self.T + 1)
+        pLvl = agent.history["pLvl"]
+        self.assertTrue(np.allclose(pLvl, expected[:, None], rtol=1e-12, atol=0.0))
+        self.assertTrue(np.all(agent.history["PermShk"] == 1.0))
+
+    def test_persistent_shock_follows_pLvlNextFunc(self):
+        agent = self._agent(PersistentShockConsumerType, PrstIncCorr=0.98)
+        agent.initialize_sim()
+        agent.simulate()
+        # transition applies pLvlNextFunc[t_cycle - 1]; row t has t_cycle == t
+        expected = np.empty(self.T)
+        pLvl = 1.0
+        for t in range(self.T):
+            pLvl = float(agent.pLvlNextFunc[t - 1](pLvl))
+            expected[t] = pLvl
+        self.assertTrue(
+            np.allclose(agent.history["pLvl"], expected[:, None], rtol=1e-12, atol=0.0)
+        )
+
+    def test_model_file_simulator_applies_growth_once(self):
+        agent = self._agent(IndShockExplicitPermIncConsumerType)
+        agent.initialize_sym()
+        agent.symulate()
+        pLvl = agent.hystory["pLvl"]
+        growth = pLvl[1:] / pLvl[:-1]
+        self.assertTrue(np.allclose(growth, self.G, rtol=1e-12, atol=0.0))
+
+
 class testIndShockExplicitPermIncConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockExplicitPermIncConsumerType(cycles=1, **GenIncDictionary)
