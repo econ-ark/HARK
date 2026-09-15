@@ -42,7 +42,7 @@ HARK folds the expected growth factor into the permanent shock array:
 state). The cross-sectional mean of ``shocks["PermShk"]`` is therefore
 ``PermGroFac``, not 1.0, and ``ShockNormalizationMixin`` targets that. The
 GenIncProcess family is the exception: its ``pLvlNextFunc`` carries growth,
-its ``get_shock_growth_factor`` returns 1.0, and the target follows.
+its ``get_PermShk_growth_factor`` returns 1.0, and the target follows.
 Rescaling ``PermShk`` to 1.0 would delete permanent income growth rather
 than sampling noise, because ``transition()`` applies the array directly as
 ``pLvl = pLvlPrev * PermShk``. Transitory shocks genuinely are mean-one, so
@@ -232,12 +232,12 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
         the period the agent drew from: ``PermGroFac`` for most models (see
         the module docstring), 1.0 for the GenIncProcess family, whose
         ``pLvlNextFunc`` carries growth. It comes from the agent's
-        ``get_shock_growth_factor`` when defined, else from ``PermGroFac``.
+        ``get_PermShk_growth_factor`` when defined, else from ``PermGroFac``.
         Returns None when neither resolves for the period, in which case
         ``PermShk`` is left untouched rather than normalized to a guess.
         ``idx`` is the period index from :meth:`_income_dstn_index`.
         """
-        growth = getattr(self, "get_shock_growth_factor", None)
+        growth = getattr(self, "get_PermShk_growth_factor", None)
         PermGroFac = getattr(self, "PermGroFac", None)
         if growth is None and PermGroFac is None:
             return None

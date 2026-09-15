@@ -807,7 +807,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         t = self.T_retire
         self.pLvlNextFunc[t] = self.pLvlNextFuncRet
 
-    def get_shock_growth_factor(self, t):
+    def get_PermShk_growth_factor(self, t):
         """
         No growth in the simulated permanent shock: pLvlNextFunc already carries
         expected permanent income growth, so PermShk stays the pure draw that the

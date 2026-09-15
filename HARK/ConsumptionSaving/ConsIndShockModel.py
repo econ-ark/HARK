@@ -2280,7 +2280,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 # set current income distribution
                 IncShkDstnNow = self.IncShkDstn[t]
                 # and the expected growth folded into the permanent shock
-                PermGroFacNow = self.get_shock_growth_factor(t)
+                PermGroFacNow = self.get_PermShk_growth_factor(t)
                 # Draw income shocks from the discrete distribution
                 if getattr(self, "income_shuffle", False):
                     ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
@@ -2310,7 +2310,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             idx = newborn
             # set current income distribution
             IncShkDstnNow = self.IncShkDstn[0]
-            PermGroFacNow = self.get_shock_growth_factor(0)
+            PermGroFacNow = self.get_PermShk_growth_factor(0)
 
             # Draw income shocks from the discrete distribution
             if getattr(self, "income_shuffle", False):
@@ -2342,7 +2342,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
 
-    def get_shock_growth_factor(self, t):
+    def get_PermShk_growth_factor(self, t):
         """
         Expected permanent income growth that get_shocks folds into the simulated
         permanent shock for cycle index t. This model's transition multiplies
@@ -2356,8 +2356,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Returns
         -------
-        float
-            The growth factor multiplied into each permanent shock draw.
+        float or np.array
+            The growth factor multiplied into each permanent shock draw; an
+            array over discrete states for MarkovConsumerType.
         """
         return self.PermGroFac[t]
 

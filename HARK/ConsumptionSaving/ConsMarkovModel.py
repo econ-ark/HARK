@@ -1107,9 +1107,8 @@ class MarkovConsumerType(IndShockConsumerType):
                     IncShkDstnNow = self.IncShkDstn[t - 1][
                         j
                     ]  # set current income distribution
-                    PermGroFacNow = self.PermGroFac[t - 1][
-                        j
-                    ]  # and permanent growth factor
+                    # and the expected growth folded into the permanent shock
+                    PermGroFacNow = self.get_PermShk_growth_factor(t - 1)[j]
 
                     # Draw income shocks from the discrete distribution
                     if getattr(self, "income_shuffle", False):
@@ -1146,7 +1145,7 @@ class MarkovConsumerType(IndShockConsumerType):
 
                 # set current income distribution
                 IncShkDstnNow = self.IncShkDstn[0][j]
-                PermGroFacNow = self.PermGroFac[0][j]  # and permanent growth factor
+                PermGroFacNow = self.get_PermShk_growth_factor(0)[j]
 
                 # Draw income shocks from the discrete distribution
                 if getattr(self, "income_shuffle", False):
