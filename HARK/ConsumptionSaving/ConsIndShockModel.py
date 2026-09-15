@@ -59,6 +59,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
+from HARK.stationary import KnotProblem, solve_stationary_problem
 from HARK.utilities import make_assets_grid
 from scipy.optimize import newton
 
@@ -841,6 +842,85 @@ def solve_one_period_ConsIndShock(
         MPCmax=MPCmaxNow,
     )
     return solution_now
+
+
+class ConsIndShockStationaryProblem(KnotProblem):
+    """The stationary ConsIndShock policy as a fixed point of ``solve_one_period_ConsIndShock``.
+
+    See :class:`HARK.stationary.KnotProblem`.  This class binds the model's
+    primitives and builds the continuation solution the way the solver does.
+    """
+
+    def __init__(
+        self,
+        IncShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        CubicBool,
+        seed_solution,
+    ):
+        self.args = (IncShkDstn, LivPrb, DiscFac, CRRA, Rfree, PermGroFac, BoroCnstArt)
+        self.CRRA = CRRA
+        super().__init__(aXtraGrid, CubicBool, seed_solution)
+
+    def solve_one_period(self, solution_next, aXtraGrid, vFuncBool=False, cubic=None):
+        cubic = self.cubic if cubic is None else cubic
+        return solve_one_period_ConsIndShock(
+            solution_next, *self.args, aXtraGrid, vFuncBool, cubic
+        )
+
+    def cFuncs(self, solution):
+        return [solution.cFunc]
+
+    def vFuncs(self, solution):
+        return [solution.vFunc]
+
+    def scalar_value(self, name, values):
+        return float(values[0])
+
+    def make_cFunc(self, m, c, mpc, state):
+        MPCmin = self.scalars["MPCmin"][0]
+        hNrm = self.scalars["hNrm"][0]
+        mNrmMin = self.scalars["mNrmMin"][0]
+        if mpc is None:
+            cFuncUnc = LinearInterp(m, c, MPCmin * hNrm, MPCmin)
+        else:
+            cFuncUnc = CubicInterp(m, c, mpc, MPCmin * hNrm, MPCmin)
+        cFuncCnst = LinearInterp(
+            np.array([mNrmMin, mNrmMin + 1.0]), np.array([0.0, 1.0])
+        )
+        return LowerEnvelope(cFuncUnc, cFuncCnst, nan_bool=False)
+
+    def make_vFunc(self, m, vNvrs, c_on_m, state):
+        # The slope of the inverse value at the knots follows from the envelope
+        # condition v'(m) = u'(c(m)) and the chain rule, as in the solver.
+        uFunc = UtilityFuncCRRA(self.CRRA)
+        vNvrsP = uFunc.der(c_on_m) * uFunc.derinv(uFunc(vNvrs), order=(0, 1))
+        power = -self.CRRA / (1.0 - self.CRRA)
+        MPCminNvrs = self.scalars["MPCmin"][0] ** power
+        MPCmaxNvrs = self.scalars["MPCmax"][0] ** power
+        vNvrsFunc = CubicInterp(
+            np.insert(m, 0, self.scalars["mNrmMin"][0]),
+            np.insert(vNvrs, 0, 0.0),
+            np.insert(vNvrsP, 0, MPCmaxNvrs),
+            MPCminNvrs * self.scalars["hNrm"][0],
+            MPCminNvrs,
+        )
+        return ValueFuncCRRA(vNvrsFunc, self.CRRA)
+
+    def make_continuation(self, cFuncs, vFuncs=None):
+        cFunc = cFuncs[0]
+        return ConsumerSolution(
+            cFunc=cFunc,
+            vFunc=None if vFuncs is None else vFuncs[0],
+            vPfunc=MargValueFuncCRRA(cFunc, self.CRRA),
+            vPPfunc=MargMargValueFuncCRRA(cFunc, self.CRRA) if self.cubic else None,
+        )
 
 
 def solve_one_period_ConsKinkedR(
@@ -2062,6 +2142,8 @@ IndShockConsumerType_solving_default = {
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation
+    "stationary_method": "iterate",  # How to solve when cycles=0: "iterate" (backward induction) or "anderson" (accelerated stationary solve)
+    "stationary_options": {},  # Options of the stationary solve method (see HARK.stationary)
 }
 IndShockConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -2444,6 +2526,94 @@ class IndShockConsumerType(PerfForesightConsumerType):
         EulerErrorNrmGrid = (cNowGrid - cOptGrid) / cOptGrid
         eulerErrorFunc = LinearInterp(mNowGrid, EulerErrorNrmGrid)
         self.eulerErrorFunc = eulerErrorFunc
+
+    def solve_stationary(self, verbose=False):
+        """Solve the infinite-horizon problem for its stationary solution directly.
+
+        ``solve_agent`` calls this in place of iterating cycles when
+        ``stationary_method`` is not ``"iterate"``.  The problem is posed as
+        :class:`ConsIndShockStationaryProblem`, whose map is this model's own
+        per-period solver, and handed to the method named by
+        ``stationary_method`` with the options in ``stationary_options`` (see
+        :mod:`HARK.stationary`); ``tolerance`` is the threshold on the largest
+        change of the iterate between sweeps, as it is for backward induction.
+        With ``vFuncBool`` the value function is then converged on the fixed
+        policy the same way.  The record of the solve is stored in
+        ``stationary_info``; its ``total_sweeps`` counts every evaluation of the
+        per-period solver, warm start and value stage included, and is what
+        ``completed_cycles`` reports.
+
+        Parameters
+        ----------
+        verbose : bool
+            Print the progress of the iteration.
+
+        Returns
+        -------
+        solution : [ConsumerSolution]
+            The stationary solution, as a one-element list.
+        """
+        if self.solve_one_period is not solve_one_period_ConsIndShock:
+            solver = getattr(
+                self.solve_one_period, "__name__", repr(self.solve_one_period)
+            )
+            raise NotImplementedError(
+                "The stationary solve is implemented for the ConsIndShock problem; "
+                f"{type(self).__name__} solves its periods with {solver}."
+            )
+        if self.T_cycle != 1:
+            raise NotImplementedError(
+                "The stationary solve requires a one-period cycle (T_cycle=1)."
+            )
+        problem = ConsIndShockStationaryProblem(
+            self._first("IncShkDstn"),
+            self._first("LivPrb"),
+            self._first("DiscFac"),
+            self.CRRA,
+            self._first("Rfree"),
+            self._first("PermGroFac"),
+            self.BoroCnstArt,
+            self.aXtraGrid,
+            self.CubicBool,
+            self.solution_terminal,
+        )
+        return self._solve_stationary_problem(problem, verbose)
+
+    def _first(self, name):
+        """A parameter's value in the (single) period of the cycle."""
+        value = getattr(self, name)
+        return value[0] if name in self.time_vary else value
+
+    def _solve_stationary_problem(self, problem, verbose):
+        """Run the stationary method on ``problem`` (and on its value problem)."""
+        solution, info = solve_stationary_problem(
+            problem,
+            method=self.stationary_method,
+            tol=self.tolerance,
+            options=self.stationary_options,
+            verbose=verbose,
+        )
+        total = info["sweeps"]
+        if problem.warm_start is not None:
+            info = {**info, "warm_start_sweeps": problem.warm_start["sweeps"]}
+            total += problem.warm_start["sweeps"]
+        if self.vFuncBool:
+            solution, info_value = solve_stationary_problem(
+                problem.value_problem(),
+                method=self.stationary_method,
+                tol=self.tolerance,
+                options=self.stationary_options,
+                verbose=verbose,
+            )
+            info = {**info, "value": info_value}
+            total += info_value["sweeps"]
+        # Every sweep is one backward-induction cycle, so the total is the
+        # number to set against completed_cycles of the stock loop.
+        info["total_sweeps"] = total
+        self.stationary_info = info
+        self.completed_cycles = total
+        self.solution_distance = info["move"]
+        return [solution]
 
     def pre_solve(self):
         self.check_restrictions()
