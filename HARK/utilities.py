@@ -722,7 +722,14 @@ def jump_to_grid_2D(
 
 @njit(parallel=True)
 def gen_tran_matrix_1D(
-    dist_mGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
+    dist_mGrid,
+    bNext,
+    shk_prbs,
+    perm_shks,
+    tran_shks,
+    LivPrb,
+    NewBornDist,
+    PermGroFac=1.0,
 ):  # pragma: nocover
     """
     Computes Transition Matrix across normalized market resources.
@@ -748,10 +755,17 @@ def gen_tran_matrix_1D(
         Array of shocks to transitory
 
     LivPrb : float
-        Probability of not dying
+        Mass carried by survivors; newborns take the complement. This is the
+        probability of not dying, times the survivors' income-weighted growth
+        relative to newborns under the Harmenberg neutral measure with mortality
+        (see NewKeynesianConsumerType._neutral_measure_surv_growth).
 
     NewBornDist : np.array
         array representing distribution of newborns across grid of normalized market resources and grid of permanent income.
+
+    PermGroFac : float
+        Deterministic permanent income growth factor this period; it divides the
+        continuation of normalized bank balances along with the permanent shock.
 
     Returns
     -------
@@ -764,7 +778,7 @@ def gen_tran_matrix_1D(
     TranMatrix = np.zeros((len(dist_mGrid), len(dist_mGrid)))
     for i in prange(len(dist_mGrid)):
         mNext_ij = (
-            bNext[i] / perm_shks + tran_shks
+            bNext[i] / (PermGroFac * perm_shks) + tran_shks
         )  # Compute next period's market resources given todays bank balances bnext[i]
         TranMatrix[:, i] += (
             LivPrb * jump_to_grid_1D(mNext_ij, shk_prbs, dist_mGrid)
@@ -775,7 +789,15 @@ def gen_tran_matrix_1D(
 
 @njit(parallel=True)
 def gen_tran_matrix_2D(
-    dist_mGrid, dist_pGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
+    dist_mGrid,
+    dist_pGrid,
+    bNext,
+    shk_prbs,
+    perm_shks,
+    tran_shks,
+    LivPrb,
+    NewBornDist,
+    PermGroFac=1.0,
 ):  # pragma: nocover
     """
     Computes Transition Matrix over normalized market resources and permanent income.
@@ -807,6 +829,11 @@ def gen_tran_matrix_2D(
     NewBornDist : np.array
          array representing distribution of newborns across grid of normalized market resources and grid of permanent income.
 
+    PermGroFac : float
+        Deterministic permanent income growth factor this period; it multiplies
+        the permanent shock in both the level of permanent income and the
+        continuation of normalized bank balances.
+
     Returns
     -------
     TranMatrix : np.array
@@ -816,13 +843,13 @@ def gen_tran_matrix_2D(
         (len(dist_mGrid) * len(dist_pGrid), len(dist_mGrid) * len(dist_pGrid))
     )
     for i in prange(len(dist_mGrid)):
+        mNext_ij = (
+            bNext[i] / (PermGroFac * perm_shks) + tran_shks
+        )  # Compute next period's market resources given todays bank balances bnext[i]
         for j in prange(len(dist_pGrid)):
-            mNext_ij = (
-                bNext[i] / perm_shks + tran_shks
-            )  # Compute next period's market resources given todays bank balances bnext[i]
             pNext_ij = (
-                dist_pGrid[j] * perm_shks
-            )  # Computes next period's permanent income level by applying permanent income shock
+                dist_pGrid[j] * PermGroFac * perm_shks
+            )  # Computes next period's permanent income level by applying growth and the permanent income shock
             TranMatrix[:, i * len(dist_pGrid) + j] += (
                 LivPrb
                 * jump_to_grid_2D(mNext_ij, pNext_ij, shk_prbs, dist_mGrid, dist_pGrid)
