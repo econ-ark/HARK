@@ -943,11 +943,9 @@ def make_flat_LC_SSJ_matrices(
         agent.initialize_sym()
         X = agent._simulator  # for easier referencing
 
-        # Construct the transition matrices for the long run model. A cohort
-        # model handles death and replacement itself, age by age, so ask for
-        # every period explicitly: that skips the population-level replacement
-        # (and its stationarity check) that the one-period infinite-horizon
-        # model needs in its last period.
+        # Transition matrices for the long run model. Naming every period skips
+        # the population-level replacement and its stationarity check, which a
+        # cohort model does not use: it handles death age by age itself.
         X.make_transition_matrices(
             grids,
             norm,
@@ -1000,7 +998,7 @@ def make_flat_LC_SSJ_matrices(
 
         # Find the steady state for the long run model
         t0 = time()
-        X.simulate_cohort_by_grids(outcomes=["dead"] + outcomes, calc_dstn=True)
+        X.simulate_cohort_by_grids(outcomes=["dead"])
         SS_outcomes = {}
         for j in range(J):
             name = outcomes[j]
@@ -1008,10 +1006,9 @@ def make_flat_LC_SSJ_matrices(
                 np.dot(LR_outcomes[j][t], outcome_grids[j][t]) for t in range(T_age)
             ]
 
-        # The cohort's arrival distribution by age, carrying its mass: the mass
-        # that survives from each arrival state times the survivors' transition.
-        # Under norm this is the income-weighted mass, so older cohorts carry
-        # the growth of the normalizing level accumulated since birth.
+        # The cohort's arrival distribution by age, carrying its mass. Under norm
+        # this is the income-weighted mass, so older cohorts carry the growth of
+        # the normalizing level accumulated since birth.
         SS_dstn = _lc_cohort_dstns(X.newborn_dstn, LR_trans, LR_surv)
 
         # Population size for the per capita normalization counts people: the
@@ -1037,7 +1034,7 @@ def make_flat_LC_SSJ_matrices(
             for t in range(1, T_age):
                 for a in range(T_age - t):
                     E_temp[a].append(
-                        np.dot(LR_surv[a][:, None] * LR_trans[a], E_temp[a + 1][-1])
+                        LR_surv[a] * np.dot(LR_trans[a], E_temp[a + 1][-1])
                     )
             E_vecs[name] = E_temp
         t1 = time()
@@ -1160,12 +1157,9 @@ def make_flat_LC_SSJ_matrices(
         SSJ_by_age *= np.reshape(trend_adj_cum, (1, T_age, 1, 1))
         SSJ_by_age /= pop_sum * eps
         if norm is not None:
-            # The outcome arrays carry the growth of the normalizing level realized
-            # within the period, so the newborn cohort's first-period mass exceeds
-            # its arrival mass by that growth. Divide by it to express the responses
-            # per unit of the cohort's first-period level, the convention of the
-            # trend adjustment above (whose factor starts at one) and of
-            # make_basic_SSJ_matrices (per unit of the post-growth level).
+            # Outcome arrays carry the within-period growth of the normalizing level,
+            # so express responses per unit of the newborn cohort's first-period
+            # level, as trend (factor starting at one) and make_basic_SSJ_matrices do.
             SSJ_by_age /= float(np.sum(np.dot(SS_dstn[0], LR_outcomes[0][0])))
 
         t1 = time()
