@@ -694,11 +694,12 @@ dict_harmenberg = {
 
 
 class test_Harmenbergs_method(unittest.TestCase):
+    # A smoke test with no assertions: it simulates with and without the
+    # neutral measure for dict_harmenberg's T_sim periods.
     def test_Harmenberg_mtd(self):
         example = IndShockConsumerType(**dict_harmenberg, verbose=0)
         example.cycles = 0
         example.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
-        example.T_sim = 20000
 
         example.solve()
 
@@ -708,51 +709,13 @@ class test_Harmenbergs_method(unittest.TestCase):
         example.initialize_sim()
         example.simulate()
 
-        Asset_list = []
-        Consumption_list = []
-        M_list = []
-
-        for i in range(example.T_sim):
-            Assetagg = np.mean(example.history["aNrm"][i])
-            Asset_list.append(Assetagg)
-            ConsAgg = np.mean(example.history["cNrm"][i])
-            Consumption_list.append(ConsAgg)
-            Magg = np.mean(example.history["mNrm"][i])
-            M_list.append(Magg)
-
-        #########################################################
-
         example2 = IndShockConsumerType(**dict_harmenberg, verbose=0)
         example2.cycles = 0
         example2.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
-        example2.T_sim = 20000
 
         example2.solve()
         example2.initialize_sim()
         example2.simulate()
-
-        Asset_list2 = []
-        Consumption_list2 = []
-        M_list2 = []
-
-        for i in range(example2.T_sim):
-            Assetagg = np.mean(example2.history["aLvl"][i])
-            Asset_list2.append(Assetagg)
-            ConsAgg = np.mean(example2.history["cNrm"][i] * example2.history["pLvl"][i])
-            Consumption_list2.append(ConsAgg)
-            Magg = np.mean(example2.history["mNrm"][i] * example2.history["pLvl"][i])
-            M_list2.append(Magg)
-
-        c_std2 = np.std(Consumption_list2)
-        c_std1 = np.std(Consumption_list)
-        c_std_ratio = c_std2 / c_std1
-
-        # simulation tests -- seed/generator specific
-        # But these are based on aggregate population statistics.
-        # WARNING: May fail stochastically, or based on specific RNG types.
-        # self.assertAlmostEqual(c_std2, 0.0376882, places = 2)
-        # self.assertAlmostEqual(c_std1, 0.0044117, places = 2)
-        # self.assertAlmostEqual(c_std_ratio, 8.5426941, places = 2)
 
 
 # %% Shock pre-computing tests
