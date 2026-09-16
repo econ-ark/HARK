@@ -32,6 +32,7 @@ from HARK.distributions import (
 from HARK.utilities import NullFunc, get_arg_names, get_it_from
 from HARK.simulator import make_simulator_from_agent
 from HARK.SSJutils import (
+    has_newborn_cohorts,
     make_basic_SSJ_matrices,
     make_flat_LC_SSJ_matrices,
     calc_shock_response_manually,
@@ -2192,8 +2193,29 @@ class AgentType(Model):
     def symulate(self, T=None):
         """
         Run the new simulation structure, with history results written to the
-        hystory attribute of self.
+        hystory attribute of self. The model-file simulator places newborns at a
+        fixed level (the stationary economy) and does not yet carry the aggregate
+        trend, so a population-style run (the dead replaced by newborns) of an
+        agent whose PermGroFacAgg is not one, which simulate() would run as a
+        growing economy, is refused rather than silently simulated as a different
+        economy (see HARK.SSJutils, Two economies). A cohort-style run
+        (stop_dead=False) places no later cohorts, so the trend plays no role and
+        it proceeds.
         """
+        agg = float(
+            np.asarray(getattr(self, "PermGroFacAgg", 1.0), dtype=float).ravel()[0]
+        )
+        sim = self._simulator
+        places_newborns = sim.stop_dead and sim.replace_dead
+        if agg != 1.0 and places_newborns and has_newborn_cohorts(self):
+            raise ValueError(
+                "The agent's PermGroFacAgg is {:.6g}, a growing economy; ".format(agg)
+                + "the model-file simulator places newborns at a fixed level and "
+                "does not carry that trend. Set PermGroFacAgg = 1.0 for a stationary "
+                "economy, or use simulate() for the growing one. (A cohort-style run, "
+                "initialize_sym(stop_dead=False), places no later cohorts and is not "
+                "affected.)"
+            )
         self._simulator.simulate(T)
         self.hystory = self._simulator.history
 
@@ -2295,7 +2317,10 @@ class AgentType(Model):
         with respect to specified "shock" variable. This "basic" method only works
         for "one period infinite horizon" models (cycles=0, T_cycle=1) and for life-
         cycle models (cycles=1). See documentation for simulator.make_basic_SSJ_matrices
-        and simulator.make_flat_LC_SSJ_matrices for more information.
+        and simulator.make_flat_LC_SSJ_matrices for more information. The Jacobians
+        describe the economy the agent simulates: an agent whose PermGroFacAgg is
+        not one must be told which economy is meant (see HARK.SSJutils, Two
+        economies).
         """
         if (self.cycles == 0) and (self.T_cycle == 1):
             return make_basic_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
