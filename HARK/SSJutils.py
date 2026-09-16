@@ -2,12 +2,146 @@
 Functions for building heterogeneous agent sequence space Jacobian matrices from
 HARK AgentType instances. The top-level functions are accessible as methods on
 AgentType itself.
+
+Two economies: stationary and secular
+-------------------------------------
+
+A model normalized by permanent income can describe two different economies, and
+the agent's ``PermGroFacAgg`` is the switch between them. HARK's simulation places
+each newborn cohort at the aggregate permanent income level, which grows by
+``PermGroFacAgg`` every period (``sim_birth``, through ``PlvlAgg``).
+
+- ``PermGroFacAgg == 1``, the stationary economy: every cohort is born at the same
+  level. The size of the economy is stationary and no level depends on the date at
+  which a simulation starts. This is the economy for timeless questions, such as
+  the proportional effect of a policy or a multiplier.
+- ``PermGroFacAgg == g != 1``, the secular economy: each cohort is born a factor g
+  richer than the last, so aggregate income, consumption and wealth all grow by g
+  per period of calendar time, forever. Every level result then carries a date: a
+  simulation initialized at date 0 and one initialized at date 10 report levels
+  g**10 apart for the same economy and the same policy (about ten percent at g =
+  1.01), and only detrended quantities are stationary. This is the economy for
+  secular or historical questions, where a calendar-dated path is set beside an
+  actual growing economy.
+
+The two are not the same economy up to a scale factor. In the secular economy a
+cohort born a periods ago started g**a below today's newborns, so the old weigh
+less in every aggregate, and the Jacobians differ: about ten percent of the
+cumulative consumption response on a ten-year truncation of HARK's default
+life-cycle calibration, whose income specification carries a yearly trend of 1.6
+percent as ``PermGroFacAgg``. The trend that such a calibration also folds into
+the age profile ``PermGroFac`` is not at issue: it belongs to the individual's own
+income process and enters the decision problem either way. Only the placement of
+successive newborn cohorts differs.
+
+The Jacobian tools therefore follow the agent's choice and refuse to describe an
+economy the agent does not simulate. ``newborn_growth``, the growth of the
+normalizing level that newborn cohorts inherit and by which the income weights
+are divided, must imply the agent's ``PermGroFacAgg``. It may be left as None only
+when ``PermGroFacAgg`` is one, or when the model has no newborn cohorts (an
+infinite-horizon model without mortality). When the agent carries a trend the
+caller must say which economy is meant: pass ``newborn_growth=agent.PermGroFacAgg``
+for the growing economy the agent simulates, or set ``agent.PermGroFacAgg = 1.0``
+so that simulation and Jacobians both describe the stationary one. Weighting by
+the permanent shock alone (``norm='PermShk'``) leaves the deterministic growth out
+of the weights, which treats ``PermGroFac`` itself as a trend that newborns
+inherit; it is accepted only when that is the agent's choice (``PermGroFacAgg ==
+PermGroFac``, with ``newborn_growth`` one), or when the life-cycle helper puts the
+deterministic growth back through ``trend='PermGroFac'``. ``norm='G'``, the full
+growth factor of the normalizing level, is the general weighting.
+
+The model-file simulator (``initialize_sym``, ``symulate``) places newborns at a
+fixed level and does not yet carry the aggregate trend; a population-style
+``symulate`` (the dead replaced by newborns) refuses an agent whose
+``PermGroFacAgg`` is not one rather than silently simulating a different economy
+from ``simulate``. A cohort-style run (``stop_dead=False``) follows one birth
+cohort and places no later ones, so the trend plays no role there.
 """
 
 from time import time
 from copy import deepcopy
 import numpy as np
 from HARK._numba import njit
+
+
+def _flatten_parameter(x):
+    """Flatten a scalar, list, array, or list of arrays into one float array."""
+    if isinstance(x, (list, tuple)):
+        parts = [_flatten_parameter(y) for y in x]
+        return np.concatenate(parts) if parts else np.array([], dtype=float)
+    return np.ravel(np.asarray(x, dtype=float))
+
+
+def has_newborn_cohorts(agent):
+    """
+    Whether the agent's model has newborn cohorts to place: any life-cycle model
+    (cohorts are replaced at the terminal age), or an infinite-horizon model with
+    mortality. Without them the aggregate trend has nothing to act on.
+    """
+    if getattr(agent, "cycles", 0) != 0:
+        return True
+    liv = getattr(agent, "LivPrb", None)
+    return liv is not None and bool(np.any(_flatten_parameter(liv) < 1.0))
+
+
+def _resolve_newborn_growth(agent, newborn_growth, norm, trend=None):
+    """
+    The growth of the normalizing level that newborn cohorts inherit, checked
+    against the economy the agent simulates (module docstring, "Two economies:
+    stationary and secular"). Returns the value to pass to make_transition_matrices.
+
+    None resolves to one when the agent's PermGroFacAgg is one; when the agent
+    carries a trend the caller must choose. An explicit value must imply the
+    agent's PermGroFacAgg: under the shock-only weighting (norm='PermShk' with no
+    trend factor) the deterministic growth PermGroFac is left out of the weights
+    and counts as part of the implied trend. Models without newborn cohorts skip
+    the checks, since there is nothing to place.
+    """
+    if not has_newborn_cohorts(agent):
+        return 1.0 if newborn_growth is None else float(newborn_growth)
+    agg = float(_flatten_parameter(getattr(agent, "PermGroFacAgg", 1.0))[0])
+    if newborn_growth is None:
+        if not np.isclose(agg, 1.0, rtol=0.0, atol=1e-12):
+            raise ValueError(
+                "The agent's PermGroFacAgg is {:.6g}: its simulation places each ".format(
+                    agg
+                )
+                + "newborn cohort at the aggregate permanent income level, which grows "
+                "by that factor every period (a secular economy). Say which economy "
+                "the Jacobians should describe: pass newborn_growth=agent.PermGroFacAgg "
+                "for that growing economy, or set agent.PermGroFacAgg = 1.0 for a "
+                "stationary economy, in which newborns arrive at a fixed level and no "
+                "level depends on the date. See HARK.SSJutils, Two economies."
+            )
+        newborn_growth = 1.0
+    newborn_growth = float(newborn_growth)
+    shock_only = (norm == "PermShk") and (trend is None)
+    if shock_only:
+        gro = _flatten_parameter(getattr(agent, "PermGroFac", 1.0))
+        implied = gro * newborn_growth
+        if not np.allclose(implied, agg, rtol=1e-12, atol=0.0):
+            raise ValueError(
+                "norm='PermShk' weights by the permanent shock alone, leaving the "
+                "deterministic growth PermGroFac out of the weights; that describes an "
+                "economy in which newborns inherit it, with an implied PermGroFacAgg of "
+                + ", ".join("{:.6g}".format(x) for x in np.unique(implied)[:4])
+                + ", but the agent's PermGroFacAgg is {:.6g}. ".format(agg)
+                + "Use norm='G', the full growth factor of the normalizing level, for "
+                "the economy the agent simulates; or set PermGroFacAgg = PermGroFac if "
+                "newborns should inherit the growth; in the life-cycle helper, "
+                "trend='PermGroFac' puts the deterministic growth back. See "
+                "HARK.SSJutils, Two economies."
+            )
+    elif not np.isclose(newborn_growth, agg, rtol=1e-12, atol=0.0):
+        raise ValueError(
+            "newborn_growth={:.6g} does not match the agent's PermGroFacAgg={:.6g}: ".format(
+                newborn_growth, agg
+            )
+            + "the Jacobians would describe an economy the agent does not simulate. "
+            "Set PermGroFacAgg on the agent to choose the economy for the simulation "
+            "and the Jacobians together. See HARK.SSJutils, Two economies."
+        )
+    return newborn_growth
 
 
 def _prepare_ssj_computation(
@@ -34,8 +168,9 @@ def _prepare_ssj_computation(
         Whether to display timing/progress to screen.
     newborn_growth : float or None
         Growth factor of the normalizing level that newborns inherit (see
-        AgentSimulator.make_transition_matrices). None takes the agent's
-        PermGroFacAgg, or 1.0 if it has none.
+        AgentSimulator.make_transition_matrices). Must imply the agent's
+        PermGroFacAgg; None is accepted when that is one, or when the model has
+        no newborn cohorts (module docstring, "Two economies").
 
     Returns
     -------
@@ -62,10 +197,7 @@ def _prepare_ssj_computation(
         no_list = True
     else:
         no_list = False
-    if newborn_growth is None:
-        newborn_growth = float(
-            np.asarray(getattr(agent, "PermGroFacAgg", 1.0)).ravel()[0]
-        )
+    newborn_growth = _resolve_newborn_growth(agent, newborn_growth, norm)
 
     # Store the simulator if it exists
     if hasattr(agent, "_simulator"):
@@ -284,11 +416,12 @@ def make_basic_SSJ_matrices(
         Whether to display timing/progress to screen. The default is False.
     newborn_growth : float or None
         Per-period growth factor of the normalizing level that newborns inherit
-        (a common trend); the weights under norm are divided by it. None (the
-        default) takes the agent's PermGroFacAgg, which is 1.0 for most HARK
-        agents: newborns arrive at a fixed level. Setting it equal to PermGroFac
-        makes all growth a trend that newborns inherit, under which weighting by
-        the shock alone is exact.
+        (a common trend); the weights under norm are divided by it. It must
+        imply the agent's PermGroFacAgg, the switch between the stationary and
+        the secular economy (module docstring, "Two economies"): None is
+        accepted when PermGroFacAgg is one (newborns arrive at a fixed level) or
+        the model has no newborn cohorts; an agent with a trend must be told
+        which economy is meant, and a value implying another economy is refused.
 
     Returns
     -------
@@ -534,22 +667,6 @@ def _build_fake_news(
     return FN
 
 
-def _lc_surviving_mass(matrices, K, norm):
-    """
-    Mass carried by the survivors from each arrival state of one life-cycle
-    period: the survival probability, or under norm the survivors' income-
-    weighted mass (which includes the growth of the normalizing level realized
-    within the period, relative to newborn_growth), as AgentSimulator.
-    make_transition_matrices reads it. Ones when the model has no mortality.
-    """
-    if "dead" not in matrices:
-        return np.ones(K)
-    dead = matrices["dead"]
-    if norm is None:
-        return 1.0 - dead[:, 1]
-    return dead[:, 0]
-
-
 def _lc_cohort_dstns(newborn_dstn, trans_by_age, surv_by_age):
     """
     Arrival distributions of one birth cohort at each age, carrying its mass:
@@ -579,7 +696,7 @@ def make_flat_LC_SSJ_matrices(
     construct=True,
     offset=False,
     verbose=False,
-    newborn_growth=1.0,
+    newborn_growth=None,
 ):
     """
     Constructs one or more sequence space Jacobian (SSJ) matrices for specified
@@ -687,14 +804,17 @@ def make_flat_LC_SSJ_matrices(
         but it represents the value of R that will occur at the start of t+1.
     verbose : bool
         Whether to display timing/progress to screen. The default is False.
-    newborn_growth : float
+    newborn_growth : float or None
         Per-period growth factor of the normalizing level that successive newborn
-        cohorts inherit (a common trend), by which the weights under ``norm`` are
-        divided. With flat demographics and no aggregate productivity growth,
-        which is all this function implements (see ``prod_gro``), newborns arrive
-        at a fixed level and the default of 1.0 is the consistent value; it is not
-        taken from the agent's ``PermGroFacAgg``, because that is exactly the
-        cohort trend this function does not yet model.
+        cohorts inherit (a common trend). Under ``norm`` the weights are divided
+        by it; without ``norm`` it discounts the ``trend`` factor by age, since a
+        cohort born a periods ago started newborn_growth**a below today's
+        newborns. It must imply the agent's ``PermGroFacAgg``, the switch between
+        the stationary and the secular economy (module docstring, "Two
+        economies"): None is accepted when ``PermGroFacAgg`` is one (every cohort
+        born at the same level); an agent with a trend, such as ``init_lifecycle``
+        with its calibrated 1.6 percent per year, must be told which economy is
+        meant, and a value implying another economy is refused.
 
     Returns
     -------
@@ -718,8 +838,14 @@ def make_flat_LC_SSJ_matrices(
         )
     if prod_gro != 1.0:
         raise ValueError(
-            "Productivity growth is not yet implemented for make_flat_LC_SSJ_matrices!"
+            "Productivity growth is not yet implemented for make_flat_LC_SSJ_matrices! "
+            "A common trend that newborn cohorts inherit is the agent's PermGroFacAgg "
+            "(see HARK.SSJutils, Two economies)."
         )
+
+    # The growth of the normalizing level that newborn cohorts inherit, checked
+    # against the economy the agent simulates (module docstring, "Two economies")
+    newborn_growth = _resolve_newborn_growth(agent, newborn_growth, norm, trend)
 
     # Store the simulator if it exists
     simulator_backup = agent._simulator if hasattr(agent, "_simulator") else None
@@ -762,13 +888,12 @@ def make_flat_LC_SSJ_matrices(
         )
         LR_trans = deepcopy(X.trans_arrays)  # the transition matrices in LR model
         T_age = len(LR_trans)
-        K = X.newborn_dstn.size
-        # Mass that survives from each arrival state at each age: the survival
+        # The mass that survives from each arrival state at each age (the survival
         # probability, or under norm the survivors' income-weighted mass, which
-        # carries the growth of the normalizing level realized within the period
-        LR_surv = [
-            _lc_surviving_mass(X.periods[t].matrices, K, norm) for t in range(T_age)
-        ]
+        # carries the growth of the normalizing level realized within the period)
+        # and the mass behind each age's outcomes, as the blocks computed them
+        LR_surv = deepcopy(X.surviving_mass)
+        LR_mass = deepcopy(X.outcome_mass)
         if T_max < T_age:
             raise ValueError(
                 "T_max must be greater than or equal to T_age in order to pad "
@@ -792,6 +917,13 @@ def make_flat_LC_SSJ_matrices(
             )
             trend_adj_fac[0] = 1.0
             trend_adj_cum = np.cumprod(trend_adj_fac)
+            if norm is None:
+                # Without income weighting the cohort levels come from the trend
+                # factor alone, so the newborn trend enters here: a cohort born a
+                # periods ago started newborn_growth**a below today's newborns
+                # (one under the stationary choice). Under norm the weights
+                # already carry it.
+                trend_adj_cum = trend_adj_cum / newborn_growth ** np.arange(T_age)
         else:
             trend_adj_cum = np.ones(T_age)
 
@@ -908,9 +1040,7 @@ def make_flat_LC_SSJ_matrices(
             shocked_trans = deepcopy(X.trans_arrays)
             # Under norm a shock to the income process moves the surviving mass
             # itself (a level response), so the news term uses the shocked masses
-            shocked_surv = [
-                _lc_surviving_mass(X.periods[a].matrices, K, norm) for a in range(k + 1)
-            ]
+            shocked_surv = deepcopy(X.surviving_mass)
             shocked_outcomes = []
             for var in outcomes:
                 temp_outcomes = []
@@ -965,10 +1095,11 @@ def make_flat_LC_SSJ_matrices(
         SSJ_by_age *= np.reshape(trend_adj_cum, (1, T_age, 1, 1))
         SSJ_by_age /= pop_sum * eps
         if norm is not None:
-            # Outcome arrays carry the within-period growth of the normalizing level,
-            # so express responses per unit of the newborn cohort's first-period
-            # level, as trend (factor starting at one) and make_basic_SSJ_matrices do.
-            SSJ_by_age /= float(np.sum(np.dot(SS_dstn[0], LR_outcomes[0][0])))
+            # The outcome masses carry the within-period growth of the normalizing
+            # level, so express responses per unit of the newborn cohort's first-
+            # period level, as trend (factor starting at one) and
+            # make_basic_SSJ_matrices do; without norm the masses are one.
+            SSJ_by_age /= float(np.dot(SS_dstn[0], LR_mass[0]))
 
         t1 = time()
         if verbose:
