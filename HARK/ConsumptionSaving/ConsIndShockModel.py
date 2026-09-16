@@ -1288,6 +1288,9 @@ class PerfForesightConsumerType(AgentType):
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+        The simulation places each newborn cohort at the aggregate level, which grows by this factor every period:
+        one makes a stationary economy, any other value a growing one whose levels depend on the date. The Jacobian
+        tools require the same choice (see HARK.SSJutils, Two economies).
     PerfMITShk: boolean
         Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
 
@@ -2189,6 +2192,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+        The simulation places each newborn cohort at the aggregate level, which grows by this factor every period:
+        one makes a stationary economy, any other value a growing one whose levels depend on the date. The Jacobian
+        tools require the same choice (see HARK.SSJutils, Two economies).
     PerfMITShk: boolean
         Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
     NewbornTransShk: boolean
@@ -2944,6 +2950,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+        The simulation places each newborn cohort at the aggregate level, which grows by this factor every period:
+        one makes a stationary economy, any other value a growing one whose levels depend on the date. The Jacobian
+        tools require the same choice (see HARK.SSJutils, Two economies).
     PerfMITShk: boolean
         Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
     NewbornTransShk: boolean
@@ -3135,6 +3144,11 @@ del init_lifecycle["constructors"]
 init_lifecycle.update(time_params)
 init_lifecycle.update(dist_params)
 # Note the income specification overrides the pLvlInitMean from the SCF.
+# It also carries the calibration's yearly trend as PermGroFacAgg (1.016): the
+# simulation then places each newborn cohort 1.6 percent above the last, a growing
+# economy whose levels depend on the date. For a stationary economy set
+# PermGroFacAgg = 1.0 on the agent; the Jacobian tools require the choice to be
+# made either way (see HARK.SSJutils, Two economies).
 init_lifecycle.update(income_params)
 init_lifecycle.update({"LivPrb": liv_prb})
 init_lifecycle["Rfree"] = init_lifecycle["T_cycle"] * init_lifecycle["Rfree"]
