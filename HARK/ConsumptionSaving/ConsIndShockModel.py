@@ -1020,13 +1020,14 @@ def solve_one_period_ConsKinkedR(
             cFuncLimitIntercept,
             cFuncLimitSlope,
         )
-        # Adjust the coefficients on the kinked portion of the cFunc
-        cFuncNowUnc.coeffs[i_kink + 2] = [
-            c_for_interpolation[i_kink + 1],
-            m_for_interpolation[i_kink + 2] - m_for_interpolation[i_kink + 1],
-            0.0,
-            0.0,
-        ]
+        # Between the two zero-asset points end-of-period assets stay at zero, so
+        # consumption equals cash-on-hand: that segment is the 45-degree line,
+        # with slope one inside and the borrowing- and saving-side MPCs just
+        # outside. Replace its cubic by the chord. (Writing linear coefficients
+        # into ``coeffs`` here, as this code once did, changed nothing once
+        # CubicInterp became the scipy-backed CubicHermiteInterp: the table is
+        # not what the spline evaluates, and the cubic dipped below the line.)
+        cFuncNowUnc.set_linear_segment(i_kink + 1)
     else:
         # Construct the unconstrained consumption function as a linear interpolation
         cFuncNowUnc = LinearInterp(

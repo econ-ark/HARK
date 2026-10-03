@@ -1296,6 +1296,7 @@ class CubicHermiteInterp(HARKinterpolator1D):
             self.x_list, self.y_list, self.dydx_list, extrapolate=None
         )
         self.coeffs = np.flip(self._chs.c.T, 1)
+        self._linear_segments = []  # segments replaced by their chord (set_linear_segment)
 
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
@@ -1347,6 +1348,43 @@ class CubicHermiteInterp(HARKinterpolator1D):
         self._chs = CubicHermiteSpline(
             self.x_list, self.y_list, self.dydx_list, extrapolate=None
         )
+        if not hasattr(self, "_linear_segments"):  # instances pickled before the attribute existed
+            self._linear_segments = []
+        for i in list(self._linear_segments):
+            self.set_linear_segment(i)
+
+    def set_linear_segment(self, i):
+        """
+        Replace the cubic on the segment ``[x_list[i], x_list[i+1]]`` by the
+        straight line through its two knots (the chord), leaving every other
+        segment unchanged, including the slopes the two knots lend to their
+        outer neighbours. The function then has one-sided derivatives at those
+        knots: the chord's slope on the inside, ``dydx_list`` on the outside.
+
+        A Hermite spline carries one slope per knot and cannot represent that on
+        its own. The KinkedR consumption function needs it between its two
+        zero-asset points, where end-of-period assets stay at zero, so
+        consumption equals cash-on-hand with slope one, while the slopes just
+        outside are the borrowing- and saving-side MPCs. The patch is recorded in
+        the instance state, so it survives pickling and deepcopy, which rebuild
+        the scipy spline.
+
+        Parameters
+        ----------
+        i : int
+            Index of the segment, 0 <= i < n - 1.
+        """
+        i = int(i)
+        if not 0 <= i < self.n - 1:
+            raise IndexError(f"segment {i} is outside 0..{self.n - 2}")
+        slope = (self.y_list[i + 1] - self.y_list[i]) / (
+            self.x_list[i + 1] - self.x_list[i]
+        )
+        # scipy's PPoly: coefficient k multiplies (x - x_i) ** (3 - k)
+        self._chs.c[:, i] = [0.0, 0.0, slope, self.y_list[i]]
+        self.coeffs[i + 1] = [self.y_list[i], slope, 0.0, 0.0]
+        if i not in self._linear_segments:
+            self._linear_segments.append(i)
 
     def out_of_bounds(self, x):
         out_bot = x < self.x_list[0]
