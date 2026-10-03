@@ -1348,7 +1348,9 @@ class CubicHermiteInterp(HARKinterpolator1D):
         self._chs = CubicHermiteSpline(
             self.x_list, self.y_list, self.dydx_list, extrapolate=None
         )
-        if not hasattr(self, "_linear_segments"):  # instances pickled before the attribute existed
+        if not hasattr(
+            self, "_linear_segments"
+        ):  # instances pickled before the attribute existed
             self._linear_segments = []
         for i in list(self._linear_segments):
             self.set_linear_segment(i)

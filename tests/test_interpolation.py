@@ -299,11 +299,15 @@ class TestCubicHermiteLinearSegment(unittest.TestCase):
         s = np.array([0.25, 0.75, 2.25, 2.75])
         np.testing.assert_allclose(g(s), f(s), rtol=0, atol=1e-14)
         np.testing.assert_allclose(g.derivative(s), f.derivative(s), rtol=0, atol=1e-12)
-        self.assertAlmostEqual(g.derivative(1.0 - 1e-9), 2.0, places=6)  # outside slopes kept
+        self.assertAlmostEqual(
+            g.derivative(1.0 - 1e-9), 2.0, places=6
+        )  # outside slopes kept
         self.assertAlmostEqual(g.derivative(2.0 + 1e-9), 4.0, places=6)
         for h in (pickle.loads(pickle.dumps(g)), deepcopy(g)):
             np.testing.assert_allclose(h(t), g(t), rtol=0, atol=1e-14)
-            np.testing.assert_allclose(h.derivative(t), g.derivative(t), rtol=0, atol=1e-12)
+            np.testing.assert_allclose(
+                h.derivative(t), g.derivative(t), rtol=0, atol=1e-12
+            )
         with self.assertRaises(IndexError):
             g.set_linear_segment(3)
 

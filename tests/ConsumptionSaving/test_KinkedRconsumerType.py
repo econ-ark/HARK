@@ -67,10 +67,16 @@ class testKinkedRConsumerType(unittest.TestCase):
             m = np.linspace(m_lo, m_hi, 101)
             for f in (cFunc, deepcopy(cFunc), pickle.loads(pickle.dumps(cFunc))):
                 np.testing.assert_allclose(f(m), m, rtol=0, atol=1e-12)
-                np.testing.assert_allclose(f.derivative(m[1:-1]), 1.0, rtol=0, atol=1e-10)
+                np.testing.assert_allclose(
+                    f.derivative(m[1:-1]), 1.0, rtol=0, atol=1e-10
+                )
             eps = 1e-6 * (m_hi - m_lo)
-            self.assertLess(unc.derivative(m_hi + eps), 0.99)  # the saving-side MPC above the kink
-            self.assertLess(unc.derivative(m_lo - eps), 0.99)  # the borrowing-side MPC below it
+            self.assertLess(
+                unc.derivative(m_hi + eps), 0.99
+            )  # the saving-side MPC above the kink
+            self.assertLess(
+                unc.derivative(m_lo - eps), 0.99
+            )  # the borrowing-side MPC below it
 
     def test_calc_bounding_values(self):
         KinkyExample = KinkedRconsumerType(cycles=0)
