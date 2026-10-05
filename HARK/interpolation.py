@@ -1171,6 +1171,8 @@ class CubicInterp(HARKinterpolator1D):
         Returns ``(m, out_bot, out_top, in_bnds, i, coeffs_in, alpha)``."""
         m = len(x)
         pos = np.searchsorted(self.x_list, x, side="right")
+        # Put the top knot on the last segment so it returns y_list[-1] exactly
+        pos[x == self.x_list[-1]] = self.n - 1
         out_bot = pos == 0
         out_top = pos == self.n
         in_bnds = np.logical_not(np.logical_or(out_bot, out_top))

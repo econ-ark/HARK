@@ -274,12 +274,8 @@ class TestCubicInterp(TestInterp1D):
         self.interpolant = self.interpolator_(x_grid, y_grid, dydx_grid)
 
 
-class TestCubicInterp(TestCubicInterp):
-    interpolator_ = CubicHermiteInterp
-
-
 class TestCubicHermiteInterp(TestCubicInterp):
-    _interpolator = CubicHermiteInterp
+    interpolator_ = CubicHermiteInterp
 
 
 class TestLowerEnvelope(TestInterp1D):
@@ -684,6 +680,41 @@ class testsCubicHermiteInterp(unittest.TestCase):
         self.assertEqual(cube(1.5), 2.25)
         cube = CubicHermiteInterp(self.x_array_t, self.z_array_t, self.dydx_array_t)
         self.assertEqual(cube(1.5), 2.25)
+
+
+class testsCubicInterpKnots(unittest.TestCase):
+    """CubicInterp must reproduce y_list and dydx_list at both end knots, also
+    when a limiting linear function leaves a gap at the top knot."""
+
+    def setUp(self):
+        self.x_list = np.array([0.0, 1.0, 2.0])
+        self.y_list = np.array([0.0, 1.0, 2.0])
+        self.dydx_list = np.array([1.0, 1.0, 0.5])
+        # gap = 1.0 * 2.0 + 1.0 - 2.0 = 1 with slope_limit above dydx_list[-1]
+        self.limits = {"intercept_limit": 1.0, "slope_limit": 1.0}
+
+    def check_knots(self, **kwargs):
+        cube = CubicInterp(self.x_list, self.y_list, self.dydx_list, **kwargs)
+        np.testing.assert_allclose(cube(self.x_list), self.y_list)
+        np.testing.assert_allclose(cube.derivative(self.x_list), self.dydx_list)
+        vals, ders = cube.eval_with_derivative(self.x_list)
+        np.testing.assert_allclose(vals, self.y_list)
+        np.testing.assert_allclose(ders, self.dydx_list)
+
+    def test_knots_default_extrapolation(self):
+        self.check_knots()
+
+    def test_knots_with_limiting_function(self):
+        self.check_knots(**self.limits)
+
+    def test_matches_hermite_at_knots(self):
+        args = (self.x_list, self.y_list, self.dydx_list)
+        cube = CubicInterp(*args, **self.limits)
+        herm = CubicHermiteInterp(*args, **self.limits)
+        np.testing.assert_allclose(cube(self.x_list), herm(self.x_list))
+        np.testing.assert_allclose(
+            cube.derivative(self.x_list), herm.derivative(self.x_list)
+        )
 
 
 class testsCubicHermiteInterpSerialization(unittest.TestCase):
