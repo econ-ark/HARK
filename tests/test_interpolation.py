@@ -849,6 +849,17 @@ class testsCubicUpperExtrapolation(unittest.TestCase):
                 np.testing.assert_allclose(f.derivative(x)[2:], 0.5)
                 np.testing.assert_allclose(f.eval_with_derivative(x)[1][2:], 0.5)
 
+    def test_horizontal_limit_at_infinity(self):
+        # slope_limit = 0 with b = 3: decay when dydx_top > 0, shifted line when < 0
+        cases = {"decay": (0.5, 3.0), "shifted line": (-0.5, 2.0)}
+        for interp in (CubicInterp, CubicHermiteInterp):
+            for label, (dydx_top, target) in cases.items():
+                with self.subTest(interp=interp.__name__, case=label):
+                    f = self.make(interp, dydx_top, 3.0, 0.0)
+                    vals, ders = f.eval_with_derivative(np.array([np.inf]))
+                    np.testing.assert_array_equal(vals, [target])
+                    np.testing.assert_array_equal(ders, [0.0])
+
     def test_negative_infinite_argument(self):
         for interp in (CubicInterp, CubicHermiteInterp):
             with self.subTest(interp=interp.__name__):
@@ -857,10 +868,15 @@ class testsCubicUpperExtrapolation(unittest.TestCase):
                 self.assertEqual(f(-np.inf), -np.inf)
                 g = interp(self.x_list, self.y_list, dydx_list)
                 self.assertTrue(np.isnan(g(-np.inf)))
+                flat = interp(
+                    self.x_list, self.y_list, [0.0, 1.0, 1.0], lower_extrap=True
+                )
+                self.assertEqual(flat(-np.inf), self.y_list[0])
 
     def test_cubic_interp_fast_matches_cubic_interp(self):
-        xs = np.array([-1.0, 0.0, 0.5, 1.0, 2.0, 2.5, 10.0, np.inf])
+        xs = np.array([-np.inf, -1.0, 0.0, 0.5, 1.0, 2.0, 2.5, 10.0, np.inf])
         cases = self.decay_cases | self.offset_cases | {"default": (0.5, None, None)}
+        cases |= {"horizontal": (0.5, 3.0, 0.0)}
         for lower_extrap in (False, True):
             for label, (dydx_top, b, m) in cases.items():
                 with self.subTest(case=label, lower_extrap=lower_extrap):

@@ -3,6 +3,7 @@ from HARK._numba import njit
 
 from HARK.interpolation import (
     _cubic_segment_index,
+    _cubic_lower_eval,
     _cubic_upper_eval,
     _cubic_upper_row,
 )
@@ -27,6 +28,7 @@ CRRAutilityP_invP = njit(CRRAutilityP_invP, cache=True)
 # The cubic extrapolation and segment rules of HARK.interpolation.CubicInterp
 cubic_segment_index = njit(_cubic_segment_index, cache=True)
 cubic_upper_row = njit(_cubic_upper_row, cache=True)
+cubic_lower_eval = njit(_cubic_lower_eval, cache=True)
 cubic_upper_eval = njit(_cubic_upper_eval, cache=True)
 
 
@@ -196,8 +198,9 @@ def _spline_decay(
         ) / (x_list[i] - x_list[i - 1])
 
         # Out-of-bounds: bottom
-        y[out_bot] = coeffs[0, 0] + coeffs[0, 1] * (x_init[out_bot] - x_list[0])
-        dydx[out_bot] = coeffs[0, 1]
+        y_bot, dydx_bot = cubic_lower_eval(x_init[out_bot], x_list[0], coeffs[0])
+        y[out_bot] = y_bot
+        dydx[out_bot] = dydx_bot
 
         # Out-of-bounds: top
         y_top, dydx_top = cubic_upper_eval(x_init[out_top], x_list[n - 1], coeffs[n])

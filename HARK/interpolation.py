@@ -92,17 +92,31 @@ def _cubic_upper_row(x_top, y_top, dydx_top, intercept_limit, slope_limit):
     return intercept_limit, slope_limit, gap, decay
 
 
+def _cubic_lower_eval(x, x_bot, lower_row):
+    """
+    Evaluate the linear lower extrapolation with coefficients ``lower_row`` and
+    its derivative at ``x``. A zero slope skips ``m*(x - x_bot)``, whose
+    ``0*inf`` would turn ``x = -inf`` into NaN.
+    """
+    b, m = lower_row[0], lower_row[1]
+    if m == 0.0:
+        return np.full(x.shape, b), np.full(x.shape, m)
+    return b + m * (x - x_bot), np.full(x.shape, m)
+
+
 def _cubic_upper_eval(x, x_top, upper_row):
     """
     Evaluate the upper extrapolation with coefficients ``upper_row`` (see
-    :func:`_cubic_upper_row`) and its derivative at ``x``. With ``k = 0`` the
-    exponential is skipped, so ``x = inf`` gives the line's limit and no NaN.
+    :func:`_cubic_upper_row`) and its derivative at ``x``. A zero ``m`` skips
+    ``m*x`` and a zero ``k`` skips the exponential, so ``x = inf`` gives the
+    line's limit and no NaN.
     """
     b, m, gap, decay = upper_row[0], upper_row[1], upper_row[2], upper_row[3]
+    line = b + m * x if m != 0.0 else np.full(x.shape, b)
     if decay == 0.0:
-        return b + m * x - gap, np.full(x.shape, m)
+        return line - gap, np.full(x.shape, m)
     expo = np.exp(decay * (x - x_top))
-    return b + m * x - gap * expo, m - gap * decay * expo
+    return line - gap * expo, m - gap * decay * expo
 
 
 def _broadcast_eval(inner, *args):
@@ -354,9 +368,7 @@ class HARKinterpolator1D(MetricObject):
 
     def _eval_y_outbounds(self, y, out_bot, out_top, x):
         """Apply the cubic lower/upper extrapolation values to ``y``."""
-        y[out_bot] = self.coeffs[0, 0] + self.coeffs[0, 1] * (
-            x[out_bot] - self.x_list[0]
-        )
+        y[out_bot] = _cubic_lower_eval(x[out_bot], self.x_list[0], self.coeffs[0])[0]
         y[out_top] = _cubic_upper_eval(
             x[out_top], self.x_list[-1], self.coeffs[self.n]
         )[0]
