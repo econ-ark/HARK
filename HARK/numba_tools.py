@@ -1,6 +1,11 @@
 import numpy as np
 from HARK._numba import njit
 
+from HARK.interpolation import (
+    _cubic_segment_index,
+    _cubic_upper_eval,
+    _cubic_upper_row,
+)
 from HARK.rewards import (
     CRRAutility_X,
     CRRAutility_inv,
@@ -18,6 +23,11 @@ CRRAutilityP_inv = njit(CRRAutilityP_inv, cache=True)
 CRRAutility_invP = njit(CRRAutility_invP, cache=True)
 CRRAutility_inv = njit(CRRAutility_inv, cache=True)
 CRRAutilityP_invP = njit(CRRAutilityP_invP, cache=True)
+
+# The cubic extrapolation and segment rules of HARK.interpolation.CubicInterp
+cubic_segment_index = njit(_cubic_segment_index, cache=True)
+cubic_upper_row = njit(_cubic_upper_row, cache=True)
+cubic_upper_eval = njit(_cubic_upper_eval, cache=True)
 
 
 @njit(cache=True, error_model="numpy")
@@ -154,19 +164,17 @@ def _spline_decay(
     coeffs[1:-1, 2] = 3 * ydiff - 2 * dydx0 - dydx1
     coeffs[1:-1, 3] = -2 * ydiff + dydx0 + dydx1
 
-    # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
-    gap = slope_limit * x_list[n - 1] + intercept_limit - y_list[n - 1]
-    slope = slope_limit - dydx_list[n - 1]
-    if (gap != 0) and (slope <= 0):
-        coeffs[-1] = np.array([intercept_limit, slope_limit, gap, slope / gap])
-    elif slope > 0:
-        # fixing a problem when slope is positive
-        coeffs[-1] = np.array([intercept_limit, slope_limit, 0, 0])
-    else:
-        coeffs[-1] = np.array([intercept_limit, slope_limit, gap, 0])
+    # Element by element: a tuple of mixed numeric types cannot fill a float64 row
+    b_lim, m_lim, gap, decay = cubic_upper_row(
+        x_list[n - 1], y_list[n - 1], dydx_list[n - 1], intercept_limit, slope_limit
+    )
+    coeffs[-1, 0] = b_lim
+    coeffs[-1, 1] = m_lim
+    coeffs[-1, 2] = gap
+    coeffs[-1, 3] = decay
 
     m = len(x_init)
-    pos = np.searchsorted(x_list, x_init)
+    pos = cubic_segment_index(x_list, x_init)
     y = np.zeros(m)
     dydx = np.zeros(m)
 
@@ -192,15 +200,9 @@ def _spline_decay(
         dydx[out_bot] = coeffs[0, 1]
 
         # Out-of-bounds: top
-        alpha_top = x_init[out_top] - x_list[n - 1]
-        y[out_top] = (
-            coeffs[n, 0]
-            + x_init[out_top] * coeffs[n, 1]
-            - coeffs[n, 2] * np.exp(alpha_top * coeffs[n, 3])
-        )
-        dydx[out_top] = coeffs[n, 1] - coeffs[n, 2] * coeffs[n, 3] * np.exp(
-            alpha_top * coeffs[n, 3]
-        )
+        y_top, dydx_top = cubic_upper_eval(x_init[out_top], x_list[n - 1], coeffs[n])
+        y[out_top] = y_top
+        dydx[out_top] = dydx_top
 
     return y, dydx
 
