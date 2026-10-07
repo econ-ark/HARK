@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from HARK.models import PrefShockConsumerType
 
 from HARK.utilities import (
+    anderson_accelerate,
     make_assets_grid,
     get_lorenz_shares,
     make_grid_exp_mult,
@@ -285,3 +286,40 @@ class testPlotSlices(unittest.TestCase):
             xlabel=r"Normalized market resources $m_t$",
             ylabel=r"Normalized consumption $c_t$",
         )
+
+
+class testAndersonAccelerate(unittest.TestCase):
+    def setUp(self):
+        self.rates = np.array([0.99, 0.9, 0.5])
+        self.shift = np.array([1.0, 2.0, 3.0])
+        self.fixed_point = self.shift / (1.0 - self.rates)
+
+    def sweep(self, x):
+        return self.rates * x + self.shift
+
+    def test_converges_a_slow_contraction_in_few_sweeps(self):
+        x, info = anderson_accelerate(self.sweep, np.zeros(3), tol=1e-11)
+        self.assertTrue(info["converged"])
+        self.assertLess(info["sweeps"], 20)
+        np.testing.assert_allclose(x, self.fixed_point, rtol=1e-8)
+
+    def test_plain_iteration_is_much_slower(self):
+        """With no memory the driver is plain iteration, which needs about
+        2,500 sweeps at rate 0.99; the mixing must beat that by far."""
+        _, plain = anderson_accelerate(self.sweep, np.zeros(3), depth=0, tol=1e-11)
+        _, mixed = anderson_accelerate(self.sweep, np.zeros(3), tol=1e-11)
+        self.assertTrue(plain["converged"])
+        self.assertGreater(plain["sweeps"], 50 * mixed["sweeps"])
+
+    def test_respects_bounds(self):
+        lo = np.zeros(3)
+        hi = self.fixed_point + 0.5
+        x, info = anderson_accelerate(self.sweep, np.zeros(3), tol=1e-11, lo=lo, hi=hi)
+        self.assertTrue(info["converged"])
+        self.assertTrue(np.all(x >= lo) and np.all(x <= hi))
+
+    def test_reports_failure_when_the_map_is_not_finite(self):
+        x, info = anderson_accelerate(lambda v: v * np.nan, np.ones(2), tol=1e-11)
+        self.assertFalse(info["converged"])
+        self.assertEqual(info["sweeps"], 1)
+        self.assertTrue(np.all(np.isfinite(x)))
