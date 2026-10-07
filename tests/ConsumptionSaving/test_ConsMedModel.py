@@ -122,3 +122,43 @@ class testMedExtMargConsumerType(unittest.TestCase):
 
     def test_describe_constructors(self):
         self.agent.describe_constructors()
+
+
+class testLogUtilityValue(unittest.TestCase):
+    def test_MedShock_refuses_value_function(self):
+        """
+        With log utility MedShockConsumerType can't build its value function, since
+        exp(v) underflows where medical need dominates value, so vFuncBool = True
+        raises. The policy functions still solve without it.
+        """
+        LogType = MedShockConsumerType(CRRA=1.0, vFuncBool=True)
+        self.assertRaises(ValueError, LogType.solve)
+        LogType = MedShockConsumerType(CRRA=1.0, vFuncBool=False)
+        LogType.solve()
+
+    def test_MedExtMarg_value_long_horizon(self):
+        """
+        With log utility, consumption-stage value 20 periods before the end satisfies
+        the Bellman equation between gridpoints.
+
+        Value is log(c) plus DiscFac * LivPrb times next period's arrival value at
+        a = b - c (Rfree = 1 makes next period's capital equal a), plus the warm glow
+        (1 - LivPrb) * BeqFac * log(a + BeqShift). Its pseudo-inverse is interpolated
+        linearly in b, which is accurate only when value is divided by its scale
+        (issue #75).
+        """
+        agent = MedExtMargConsumerType(CRRA=1.0, cycles=20, Rfree=[1.0])
+        agent.solve()
+        solution, solution_next = agent.solution[0], agent.solution[1]
+        j = solution.pLvl.size // 2
+        bLvl = np.array([0.7, 3.3, 7.7, 15.5, 33.3, 66.6])
+        pLvls = np.full_like(bLvl, solution.pLvl[j])
+        c = solution.cFunc(bLvl, pLvls)
+        a = bLvl - c
+        LivPrb = agent.LivPrb[0]
+        v = (
+            np.log(c)
+            + agent.DiscFac * LivPrb * solution_next.vFunc_by_pLvl[j](a)
+            + (1.0 - LivPrb) * agent.BeqFac * np.log(a + agent.BeqShift)
+        )
+        np.testing.assert_allclose(solution.vFuncMid(bLvl, pLvls), v, rtol=0, atol=5e-3)

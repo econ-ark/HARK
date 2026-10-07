@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import numpy as np
 
@@ -6,7 +7,15 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
 )
-from HARK.ConsumptionSaving.ConsIndShockModelFast import IndShockConsumerTypeFast
+from HARK.ConsumptionSaving.ConsIndShockModelFast import (
+    TERMINAL_GRID_MAX,
+    TERMINAL_GRID_MIN,
+    TERMINAL_GRID_SIZE,
+    IndShockConsumerTypeFast,
+    IndShockSolution,
+    PerfForesightConsumerTypeFast,
+    make_solution_terminal_fast,
+)
 from tests.ConsumptionSaving.test_IndShockConsumerType import (
     CyclicalDict,
     IdiosyncDict,
@@ -109,13 +118,20 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
         TestType = IndShockConsumerTypeFast(DiscFac=-0.1, cycles=0)
         self.assertRaises(ValueError, TestType.solve)
 
-    def test_crra_one_not_supported(self):
-        """Test that CRRA=1 (log utility) raises a clear error message."""
-        TestType = IndShockConsumerTypeFast(CRRA=1.0, cycles=0)
-        with self.assertRaises(ValueError) as context:
-            TestType.solve()
-        self.assertIn("CRRA=1", str(context.exception))
-        self.assertIn("log utility", str(context.exception))
+    def test_log_utility_matches_standard_solver(self):
+        """With CRRA=1 the fast solver matches the standard one, value included."""
+        params = {"CRRA": 1.0, "cycles": 0, "vFuncBool": True}
+        fast = IndShockConsumerTypeFast(**params)
+        fast.solve()
+        std = IndShockConsumerType(**params)
+        std.solve()
+        m = np.array([0.5, 1.0, 2.0, 5.0, 10.0, 30.0])
+        np.testing.assert_allclose(
+            fast.solution[0].cFunc(m), std.solution[0].cFunc(m), rtol=1e-10
+        )
+        np.testing.assert_allclose(
+            fast.solution[0].vFunc(m), std.solution[0].vFunc(m), rtol=1e-10
+        )
 
     def test_replicate_sim(self):
         """Test that simulation results are reproducible with same seed."""
@@ -482,9 +498,8 @@ class testTerminalSolutionBoundaries(unittest.TestCase):
             self.assertTrue(np.isfinite(v), f"vFunc({m}) = {v} is not finite")
 
     def test_crra_near_one_rejected(self):
-        """Test that CRRA values very close to 1 are also rejected."""
-        # Values very close to 1.0 should also be rejected due to np.isclose
-        near_one_values = [1.0, 0.9999999999, 1.0000000001]
+        """Test that CRRA values within tolerance of 1, but not 1, are rejected."""
+        near_one_values = [0.9999999999, 1.0000000001]
         for crra in near_one_values:
             agent = IndShockConsumerTypeFast(CRRA=crra, cycles=0)
             with self.assertRaises(ValueError) as context:
@@ -497,14 +512,6 @@ class testTerminalSolutionDirect(unittest.TestCase):
 
     def test_terminal_solution_values(self):
         """Test that terminal solution has correct mathematical properties."""
-        from HARK.ConsumptionSaving.ConsIndShockModelFast import (
-            make_solution_terminal_fast,
-            IndShockSolution,
-            TERMINAL_GRID_MIN,
-            TERMINAL_GRID_MAX,
-            TERMINAL_GRID_SIZE,
-        )
-
         CRRA = 2.0
         terminal = make_solution_terminal_fast(IndShockSolution, CRRA)
 
@@ -532,11 +539,6 @@ class testTerminalSolutionDirect(unittest.TestCase):
 
     def test_terminal_solution_with_different_crra(self):
         """Test terminal solution with various CRRA values."""
-        from HARK.ConsumptionSaving.ConsIndShockModelFast import (
-            make_solution_terminal_fast,
-            IndShockSolution,
-        )
-
         # Test with various valid CRRA values
         for crra in [0.5, 1.5, 2.0, 3.0, 5.0]:
             with self.subTest(crra=crra):
@@ -611,24 +613,23 @@ class testVPfuncConsistency(unittest.TestCase):
 class testPerfForesightFast(unittest.TestCase):
     """Tests for PerfForesightConsumerTypeFast."""
 
-    def test_perf_foresight_crra_one_not_supported(self):
-        """Test that CRRA=1 raises error for PerfForesightConsumerTypeFast."""
-        from HARK.ConsumptionSaving.ConsIndShockModelFast import (
-            PerfForesightConsumerTypeFast,
-        )
+    def test_perf_foresight_log_utility_value_matches_closed_form(self):
+        """With CRRA=1 the value function matches the closed form.
 
-        agent = PerfForesightConsumerTypeFast(CRRA=1.0, cycles=0)
-        with self.assertRaises(ValueError) as context:
-            agent.solve()
-        self.assertIn("CRRA=1", str(context.exception))
-        self.assertIn("log utility", str(context.exception))
+        Unconstrained, c = (1 - beta) * (m + h) and
+        v = log(c) / (1 - beta) + beta * log(beta * R) / (1 - beta)**2.
+        """
+        agent = PerfForesightConsumerTypeFast(CRRA=1.0, cycles=0, BoroCnstArt=None)
+        agent.solve()
+        sol = agent.solution[0]
+        beta, rfree = agent.DiscFac * agent.LivPrb[0], agent.Rfree[0]
+        m = np.array([0.0, 1.0, 5.0, 50.0])
+        c = (1.0 - beta) * (m + sol.hNrm)
+        v = np.log(c) / (1.0 - beta) + beta * np.log(beta * rfree) / (1.0 - beta) ** 2
+        np.testing.assert_allclose(sol.vFunc(m), v, rtol=1e-10)
 
     def test_perf_foresight_basic_solve(self):
         """Test that PerfForesightConsumerTypeFast solves correctly."""
-        from HARK.ConsumptionSaving.ConsIndShockModelFast import (
-            PerfForesightConsumerTypeFast,
-        )
-
         agent = PerfForesightConsumerTypeFast(CRRA=2.0, cycles=0)
         agent.solve()
 
@@ -643,8 +644,6 @@ class testCRRANearOneWarning(unittest.TestCase):
 
     def test_crra_near_one_warning(self):
         """Test that CRRA values in (0.99, 1.01) but not exactly 1 issue a warning."""
-        import warnings
-
         # These values are in (0.99, 1.01) but not caught by np.isclose
         near_one_values = [0.995, 1.005, 0.999, 1.001]
         for crra in near_one_values:
@@ -660,8 +659,6 @@ class testCRRANearOneWarning(unittest.TestCase):
 
     def test_crra_outside_warning_range_no_warning(self):
         """Test that CRRA values outside (0.99, 1.01) do not issue warnings."""
-        import warnings
-
         safe_values = [0.5, 0.98, 1.02, 2.0, 5.0]
         for crra in safe_values:
             with self.subTest(crra=crra):

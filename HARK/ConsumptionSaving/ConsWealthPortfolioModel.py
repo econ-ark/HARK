@@ -33,21 +33,17 @@ from HARK.ConsumptionSaving.ConsWealthUtilityModel import (
     make_ChiFromOmega_function,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    calc_v_scales,
+    decurve_value,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
-from HARK.rewards import UtilityFuncCRRA
+from HARK.rewards import (
+    UtilityFuncCRRA,
+    CRRAWealthUtility,
+    CRRAWealthUtilityP,
+)
 from HARK.utilities import NullFunc, make_assets_grid
-
-
-def utility(c, a, CRRA, share=0.0, intercept=0.0):
-    w = a + intercept
-    return (c ** (1 - share) * w**share) ** (1 - CRRA) / (1 - CRRA)
-
-
-def dudc(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    return u * (1 - CRRA) * (1 - share) / c
 
 
 def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
@@ -87,7 +83,7 @@ def calc_med_v(shocks, b_nrm, perm_gro_fac, crra, v_func):
     """
     m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
     v_next = v_func(m_nrm)
-    return (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
+    return v_func.renormalize(v_next, shocks["PermShk"] * perm_gro_fac)
 
 
 def calc_end_v(shocks, a_nrm, share, rfree, v_func):
@@ -310,7 +306,9 @@ def solve_one_period_WealthPortfolio(
     cNrm_now = np.insert(cNrm_now, 0, 0.0)
     cFuncNow = LinearInterp(mNrm_now, cNrm_now)
 
-    dudc_now = dudc(cNrm_now, mNrm_now - cNrm_now, CRRA, WealthShare, WealthShift)
+    dudc_now = CRRAWealthUtilityP(
+        cNrm_now, mNrm_now - cNrm_now, CRRA, WealthShare, WealthShift
+    )
     dudc_nvrs_now = uFunc.derinv(dudc_now, order=(1, 0))
     dudc_nvrs_func_now = LinearInterp(mNrm_now, dudc_nvrs_now)
 
@@ -327,15 +325,20 @@ def solve_one_period_WealthPortfolio(
 
     # Add the value function if requested
     if vFuncBool:
+        # Scales of value next period, at the end of the period, and now (see
+        # ValueFuncCRRA.vScale)
+        vScaleNext = v_func_next.vScale
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vScaleNext)
+
         # Calculate intermediate value by taking expectations over income shocks
         med_v = expected(
             calc_med_v, IncShkDstn, args=(bNrmNext, PermGroFac, CRRA, v_func_next)
         )
 
         # Construct the "intermediate value function" for this period
-        med_v_nvrs = uFunc.inv(med_v)
+        med_v_nvrs = decurve_value(uFunc, med_v, vScaleNext)
         med_v_nvrs_func = LinearInterp(bNrmGrid, med_v_nvrs)
-        med_v_func = ValueFuncCRRA(med_v_nvrs_func, CRRA)
+        med_v_func = ValueFuncCRRA(med_v_nvrs_func, CRRA, vScale=vScaleNext)
 
         # Calculate end-of-period value by taking expectations
         end_v = DiscFacEff * expected(
@@ -343,11 +346,11 @@ def solve_one_period_WealthPortfolio(
             RiskyDstn,
             args=(aNrmNow, ShareNext, Rfree, med_v_func),
         )
-        end_v_nvrs = uFunc.inv(end_v)
+        end_v_nvrs = decurve_value(uFunc, end_v, EndOfPrdvScale)
 
         # Now make an end-of-period value function over aNrm and Share
         end_v_nvrs_func = BilinearInterp(end_v_nvrs, aNrmGrid, ShareGrid)
-        end_v_func = ValueFuncCRRA(end_v_nvrs_func, CRRA)
+        end_v_func = ValueFuncCRRA(end_v_nvrs_func, CRRA, vScale=EndOfPrdvScale)
         # This will be used later to make the value function for this period
 
         # Create the value functions for this period, defined over market resources
@@ -359,16 +362,20 @@ def solve_one_period_WealthPortfolio(
         cNrm_temp = cFuncNow(mNrm_temp)
         aNrm_temp = np.maximum(mNrm_temp - cNrm_temp, 0.0)  # Fix tiny violations
         Share_temp = ShareFuncNow(mNrm_temp)
-        v_temp = uFunc(cNrm_temp) + end_v_func(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        # Utility is over consumption and end-of-period wealth
+        u_temp = CRRAWealthUtility(cNrm_temp, aNrm_temp, CRRA, WealthShare, WealthShift)
+        v_temp = u_temp + end_v_func(aNrm_temp, Share_temp)
+        vP_temp = CRRAWealthUtilityP(
+            cNrm_temp, aNrm_temp, CRRA, WealthShare, WealthShift
+        )
+        vNvrs_temp, vNvrsP_temp = decurve_value(uFunc, v_temp, vScaleNow, vP=vP_temp)
         vNvrsFunc = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),  # dfdx_list
         )
         # Re-curve the pseudo-inverse value function
-        vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA, vScale=vScaleNow)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFuncNow = NullFunc()

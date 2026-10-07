@@ -14,9 +14,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     KinkedRconsumerType,
+    calc_v_next,
+    calc_v_scales,
     make_assets_grid,
+    make_EndOfPrd_vFunc,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
+    make_vFunc_from_values,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
@@ -271,11 +275,6 @@ def solve_one_period_ConsPrefShock(
     def calc_mNrmNext(S, a, R):
         return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
 
-    def calc_vNext(S, a, R):
-        return (S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)) * vFuncNext(
-            calc_mNrmNext(S, a, R)
-        )
-
     def calc_vPnext(S, a, R):
         return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
 
@@ -344,20 +343,22 @@ def solve_one_period_ConsPrefShock(
 
     # Construct this period's value function if requested
     if vFuncBool:
-        # Calculate end-of-period value, its derivative, and their pseudo-inverse
-        EndOfPrdv = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNow, Rfree))
-        EndOfPrdvNvrs = uFunc.inv(
-            EndOfPrdv
-        )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
-        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
-        EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
-        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
-
-        # Construct the end-of-period value function
-        aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
-        EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+        # Calculate end-of-period value and make the end-of-period value function
+        EndOfPrdv = DiscFacEff * expected(
+            calc_v_next,
+            IncShkDstn,
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
+        )
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)
+        EndOfPrd_vFunc = make_EndOfPrd_vFunc(
+            uFunc,
+            aNrmNow,
+            EndOfPrdv,
+            EndOfPrdvP,
+            BoroCnstNat,
+            EndOfPrdvScale,
+            interpolator=CubicInterp,
+        )
 
         # Compute expected value and marginal value on a grid of market resources,
         # accounting for all of the discrete preference shocks
@@ -376,17 +377,18 @@ def solve_one_period_ConsPrefShock(
             vP_temp += this_prob * uFunc.der(cNrm_temp) * this_shock ** (CRRA - 1.0)
 
         # Construct the beginning-of-period value function
-        # value transformed through inverse utility
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
-        mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
-        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
-        vNvrsFuncNow = CubicInterp(
-            mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
+        vFuncNow = make_vFunc_from_values(
+            uFunc,
+            mNrm_temp,
+            v_temp,
+            vP_temp,
+            mNrmMinNow,
+            MPCmaxEff,
+            MPCminNow,
+            hNrmNow,
+            vScaleNow,
+            interpolator=CubicInterp,
         )
-        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
 
     else:
         vFuncNow = NullFunc()  # Dummy object
@@ -581,11 +583,6 @@ def solve_one_period_ConsKinkyPref(
     def calc_mNrmNext(S, a, R):
         return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
 
-    def calc_vNext(S, a, R):
-        return (S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)) * vFuncNext(
-            calc_mNrmNext(S, a, R)
-        )
-
     def calc_vPnext(S, a, R):
         return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
 
@@ -654,20 +651,22 @@ def solve_one_period_ConsKinkyPref(
 
     # Construct this period's value function if requested
     if vFuncBool:
-        # Calculate end-of-period value, its derivative, and their pseudo-inverse
-        EndOfPrdv = DiscFacEff * expected(calc_vNext, IncShkDstn, args=(aNrmNow, Rfree))
-        EndOfPrdvNvrs = uFunc.inv(
-            EndOfPrdv
-        )  # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP * uFunc.derinv(EndOfPrdv, order=(0, 1))
-        EndOfPrdvNvrs = np.insert(EndOfPrdvNvrs, 0, 0.0)
-        EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
-        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
-
-        # Construct the end-of-period value function
-        aNrm_temp = np.insert(aNrmNow, 0, BoroCnstNat)
-        EndOfPrd_vNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+        # Calculate end-of-period value and make the end-of-period value function
+        EndOfPrdv = DiscFacEff * expected(
+            calc_v_next,
+            IncShkDstn,
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
+        )
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)
+        EndOfPrd_vFunc = make_EndOfPrd_vFunc(
+            uFunc,
+            aNrmNow,
+            EndOfPrdv,
+            EndOfPrdvP,
+            BoroCnstNat,
+            EndOfPrdvScale,
+            interpolator=CubicInterp,
+        )
 
         # Compute expected value and marginal value on a grid of market resources,
         # accounting for all of the discrete preference shocks
@@ -686,17 +685,18 @@ def solve_one_period_ConsKinkyPref(
             vP_temp += this_prob * uFunc.der(cNrm_temp) * this_shock ** (CRRA - 1.0)
 
         # Construct the beginning-of-period value function
-        # value transformed through inverse utility
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
-        mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
-        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
-        vNvrsFuncNow = CubicInterp(
-            mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
+        vFuncNow = make_vFunc_from_values(
+            uFunc,
+            mNrm_temp,
+            v_temp,
+            vP_temp,
+            mNrmMinNow,
+            MPCmaxEff,
+            MPCminNow,
+            hNrmNow,
+            vScaleNow,
+            interpolator=CubicInterp,
         )
-        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
 
     else:
         vFuncNow = NullFunc()  # Dummy object

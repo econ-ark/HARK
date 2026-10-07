@@ -278,6 +278,32 @@ class testMarkovValueFunc(unittest.TestCase):
             )
             np.testing.assert_allclose(solution.vFunc[i](m), v, rtol=0, atol=1e-2)
 
+    def test_log_utility_value_one_period_before_terminal(self):
+        """
+        With log utility, value one period before the end matches the Bellman equation.
+
+        Terminal value is log(m). In current state i, value is log(c) plus
+        DiscFac * LivPrb_i times the MrkvArray-weighted expectation, over next states
+        j, of log(m') + log(PermGroFac_j * psi), where permanent income growth enters
+        additively (issue #75).
+        """
+        agent = MarkovConsumerType(cycles=1, CRRA=1.0, vFuncBool=True)
+        agent.solve()
+        solution, MrkvArray = agent.solution[0], agent.MrkvArray[0]
+        for i in range(MrkvArray.shape[0]):
+            m = solution.mNrmMin[i] + np.array([2.0, 10.0, 19.0])
+            c = solution.cFunc[i](m)
+            vNext = np.zeros_like(m)
+            for j in range(MrkvArray.shape[1]):
+                IncShkDstn = agent.IncShkDstn[0][j]
+                PermShk, TranShk = IncShkDstn.atoms
+                growth = agent.PermGroFac[0][j] * PermShk
+                mNext = agent.Rfree[0][j] * (m - c)[:, None] / growth + TranShk
+                vCond = (np.log(mNext) + np.log(growth)) @ IncShkDstn.pmv
+                vNext += MrkvArray[i, j] * vCond
+            v = np.log(c) + agent.DiscFac * agent.LivPrb[0][i] * vNext
+            np.testing.assert_allclose(solution.vFunc[i](m), v, rtol=0, atol=2e-4)
+
     def test_vFunc(self):
         agent = MarkovConsumerType(cycles=0, vFuncBool=True)
         agent.solve()

@@ -138,3 +138,68 @@ class testPersistentShockConsumerType(unittest.TestCase):
     def test_IH_constructors(self):
         self.agent.cycles = 0
         self.agent.construct()
+
+
+class testLogUtilityValue(unittest.TestCase):
+    def test_value_one_period_before_terminal(self):
+        """
+        With log utility, value one period before the end matches the Bellman equation.
+
+        The model is solved in levels, where terminal value is log(mLvl), so value is
+        log(c) + DiscFac * LivPrb * E[log(Rfree * a + pLvlNext * theta)].
+        """
+        for AgentType in (
+            IndShockExplicitPermIncConsumerType,
+            PersistentShockConsumerType,
+        ):
+            agent = AgentType(cycles=1, CRRA=1.0, vFuncBool=True)
+            agent.solve()
+            solution = agent.solution[0]
+            PermShk, TranShk = agent.IncShkDstn[0].atoms
+            beta = agent.DiscFac * agent.LivPrb[0]
+            for pLvl in agent.pLvlGrid[0][[6, 13, 20]]:
+                mLvl = solution.mLvlMin(pLvl) + pLvl * np.array([0.5, 2.0, 10.0])
+                pLvls = np.full_like(mLvl, pLvl)
+                c = solution.cFunc(mLvl, pLvls)
+                pLvlNext = agent.pLvlNextFunc[0](pLvl) * PermShk
+                mLvlNext = agent.Rfree[0] * (mLvl - c)[:, None] + pLvlNext * TranShk
+                v = np.log(c) + beta * np.log(mLvlNext) @ agent.IncShkDstn[0].pmv
+                np.testing.assert_allclose(
+                    solution.vFunc(mLvl, pLvls), v, rtol=0, atol=1e-5
+                )
+
+    def test_value_without_income(self):
+        """
+        With no income (pLvl = 0) and log utility, value matches the exact solution.
+
+        The consumer spends a share MPC_t of mLvl, where 1 / MPC_t = 1 + beta / MPC_t+1
+        and MPC_T = 1, and carries the rest at Rfree. Three periods check that the
+        solver extends this row from a value function other than the terminal one.
+        """
+        periods = 3
+        LivPrb, Rfree = 0.98, 1.03
+        agent = IndShockExplicitPermIncConsumerType(
+            cycles=1,
+            T_cycle=periods,
+            CRRA=1.0,
+            vFuncBool=True,
+            PermShkStd=[0.1] * periods,
+            TranShkStd=[0.1] * periods,
+            PermGroFac=[1.0] * periods,
+            Rfree=[Rfree] * periods,
+            LivPrb=[LivPrb] * periods,
+        )
+        agent.solve()
+        beta = agent.DiscFac * LivPrb
+        MPC = [1.0]
+        for _ in range(periods):
+            MPC.insert(0, 1.0 / (1.0 + beta / MPC[0]))
+        mLvlStart = np.array([0.5, 2.0, 10.0])
+        for t in range(periods):
+            mLvl, v, discount = mLvlStart.copy(), np.zeros(3), 1.0
+            for s in range(t, periods + 1):
+                c = MPC[s] * mLvl
+                v += discount * np.log(c)
+                mLvl, discount = Rfree * (mLvl - c), discount * beta
+            vSolved = agent.solution[t].vFunc(mLvlStart, np.zeros(3))
+            np.testing.assert_allclose(vSolved, v, rtol=1e-10)
