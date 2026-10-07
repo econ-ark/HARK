@@ -2,7 +2,14 @@ import unittest
 
 import numpy as np
 
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    PerfForesightConsumerType,
+    calc_human_wealth,
+    calc_human_wealth_closed_form,
+    calc_mpc_min,
+    calc_mpc_min_closed_form,
+    calc_patience_factor,
+)
 from tests import HARK_PRECISION
 
 
@@ -148,3 +155,91 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.assertEqual(
             constrained_agent.solution[0].mNrmStE, constrained_agent.solution[0].mNrmTrg
         )
+
+
+class testClosedFormPerfForesight(unittest.TestCase):
+    # (CRRA, DiscFac, Rfree, PermGroFac, LivPrb)
+    param_sets = [
+        (2.5, 0.96, 1.03, 1.01, 1.0),
+        (2.0, 0.96, 1.03, 1.01, 0.98),
+        (4.0, 1.02, 1.05, 1.03, 1.0),
+    ]
+
+    def make_agent(self, params, **kwds):
+        CRRA, DiscFac, Rfree, PermGroFac, LivPrb = params
+        return PerfForesightConsumerType(
+            CRRA=CRRA,
+            DiscFac=DiscFac,
+            Rfree=[Rfree],
+            PermGroFac=[PermGroFac],
+            LivPrb=[LivPrb],
+            T_cycle=1,
+            **kwds,
+        )
+
+    def test_matches_iterated_one_step_helpers(self):
+        for CRRA, DiscFac, Rfree, PermGroFac, LivPrb in self.param_sets:
+            pat_fac = calc_patience_factor(Rfree, DiscFac * LivPrb, CRRA)
+            mpc_min, h_nrm = 1.0, 0.0
+            for n in range(1, 301):
+                mpc_min = calc_mpc_min(mpc_min, pat_fac)
+                h_nrm = calc_human_wealth(h_nrm, PermGroFac, Rfree, 1.0)
+                np.testing.assert_allclose(
+                    calc_mpc_min_closed_form(pat_fac, n), mpc_min, rtol=1e-12
+                )
+                np.testing.assert_allclose(
+                    calc_human_wealth_closed_form(PermGroFac, Rfree, n),
+                    h_nrm,
+                    rtol=1e-12,
+                )
+
+    def test_matches_finite_horizon_solution(self):
+        for params in self.param_sets:
+            CRRA, DiscFac, Rfree, PermGroFac, LivPrb = params
+            pat_fac = calc_patience_factor(Rfree, DiscFac * LivPrb, CRRA)
+            for T in [1, 7, 60]:
+                agent = self.make_agent(params, cycles=T)
+                agent.solve()
+                for t, solution in enumerate(agent.solution):
+                    periods_left = len(agent.solution) - 1 - t
+                    np.testing.assert_allclose(
+                        calc_mpc_min_closed_form(pat_fac, periods_left),
+                        solution.MPCmin,
+                        rtol=1e-12,
+                    )
+                    np.testing.assert_allclose(
+                        calc_human_wealth_closed_form(PermGroFac, Rfree, periods_left),
+                        solution.hNrm,
+                        rtol=1e-12,
+                        atol=1e-12,
+                    )
+
+    def test_matches_infinite_horizon_solution(self):
+        for params in self.param_sets:
+            CRRA, DiscFac, Rfree, PermGroFac, LivPrb = params
+            pat_fac = calc_patience_factor(Rfree, DiscFac * LivPrb, CRRA)
+            agent = self.make_agent(params, cycles=0, tolerance=1e-12)
+            agent.solve()
+            agent.check_conditions(verbose=0)
+            mpc_min = calc_mpc_min_closed_form(pat_fac)
+            h_nrm = calc_human_wealth_closed_form(PermGroFac, Rfree)
+            np.testing.assert_allclose(mpc_min, agent.solution[0].MPCmin, rtol=1e-10)
+            np.testing.assert_allclose(h_nrm, agent.solution[0].hNrm, rtol=1e-9)
+            # bilt holds the same limits, but its hNrm includes this period's income
+            np.testing.assert_allclose(mpc_min, agent.bilt["MPCmin"], rtol=1e-12)
+            np.testing.assert_allclose(h_nrm + 1.0, agent.bilt["hNrm"], rtol=1e-12)
+
+    def test_edge_cases(self):
+        # Terminal period
+        self.assertEqual(calc_mpc_min_closed_form(0.98, 0), 1.0)
+        self.assertEqual(calc_human_wealth_closed_form(1.01, 1.03, 0), 0.0)
+        # Return patience factor of one: each remaining period gets an equal share
+        self.assertAlmostEqual(calc_mpc_min_closed_form(1.0, 9), 0.1)
+        # RIC fails: the limiting MPC is zero
+        self.assertEqual(calc_mpc_min_closed_form(1.0), 0.0)
+        self.assertEqual(calc_mpc_min_closed_form(1.01), 0.0)
+        # G = R: human wealth is the number of remaining periods
+        self.assertEqual(calc_human_wealth_closed_form(1.03, 1.03, 5), 5.0)
+        # FHWC fails: infinite human wealth
+        self.assertEqual(calc_human_wealth_closed_form(1.03, 1.03), np.inf)
+        self.assertEqual(calc_human_wealth_closed_form(1.05, 1.03), np.inf)
