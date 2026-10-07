@@ -319,13 +319,25 @@ class HARKinterpolator1D(MetricObject):
         dydx = self._der(x)
         return y, dydx
 
+
+class _CubicExtrapMixin:
+    """
+    Grid setup and extrapolation shared by :class:`CubicInterp` and
+    :class:`CubicHermiteInterp`.
+
+    Compose ahead of :class:`HARKinterpolator1D`. The host calls
+    :meth:`_init_cubic_grids` and stores the rows from
+    :meth:`_cubic_extrap_rows` as ``coeffs[0]`` and ``coeffs[n]``.
+    """
+
+    coeffs: np.ndarray
+
     def _init_cubic_grids(self, x_list, y_list, dydx_list):
         """
         Coerce ``x_list``, ``y_list``, ``dydx_list`` to validated 1D arrays.
 
         Stores them as ``self.x_list``, ``self.y_list``, ``self.dydx_list``,
         sets ``self.n``, and runs ``_check_grid_dimensions`` against ``x_list``.
-        Shared between :class:`CubicInterp` and :class:`CubicHermiteInterp`.
         """
         self.x_list = _coerce_1d_grid(x_list)
         self.y_list = _coerce_1d_grid(y_list)
@@ -337,14 +349,13 @@ class HARKinterpolator1D(MetricObject):
     def _cubic_extrap_rows(self, lower_extrap, intercept_limit, slope_limit):
         """
         Return the lower and upper extrapolation coefficient rows of a cubic
-        interpolator. Shared between :class:`CubicInterp` and
-        :class:`CubicHermiteInterp`.
+        interpolator.
 
         Below the grid the function is linear with the bottom slope, or NaN
         if ``lower_extrap`` is False. Above it the function follows
         :func:`_cubic_upper_row`. Without limits, ``b + m*x`` is the tangent
-        line at the top gridpoint, where ``gap = 0``. The two limits are given
-        together or not at all.
+        line at the top gridpoint, where ``gap = 0``. Give both limits or
+        neither.
         """
         if (intercept_limit is None) != (slope_limit is None):
             raise ValueError(
@@ -1189,7 +1200,7 @@ class LinearInterp(HARKinterpolator1D):
         return y, dydx
 
 
-class CubicInterp(HARKinterpolator1D):
+class CubicInterp(_CubicExtrapMixin, HARKinterpolator1D):
     """
     An interpolating function using piecewise cubic splines.  Matches level and
     slope of 1D function at gridpoints, smoothly interpolating in between.
@@ -1316,7 +1327,7 @@ class CubicInterp(HARKinterpolator1D):
         return y, dydx
 
 
-class CubicHermiteInterp(HARKinterpolator1D):
+class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
     """
     An interpolating function using piecewise cubic splines.  Matches level and
     slope of 1D function at gridpoints, smoothly interpolating in between.
