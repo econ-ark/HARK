@@ -282,6 +282,36 @@ class TestCubicHermiteInterp(TestCubicInterp):
     _interpolator = CubicHermiteInterp
 
 
+class TestCubicHermiteLinearSegment(unittest.TestCase):
+    def test_set_linear_segment(self):
+        """The patched segment is the chord between its knots, with one-sided
+        slopes at them; other segments are untouched; the patch survives pickling
+        and deepcopy, which rebuild the scipy spline."""
+        x = np.array([0.0, 1.0, 2.0, 3.0])
+        y = x**2
+        dydx = 2.0 * x
+        f = CubicHermiteInterp(x, y, dydx)  # reproduces x ** 2 exactly
+        g = CubicHermiteInterp(x, y, dydx)
+        g.set_linear_segment(1)
+        t = np.linspace(1.0, 2.0, 11)
+        np.testing.assert_allclose(g(t), 1.0 + 3.0 * (t - 1.0), rtol=0, atol=1e-14)
+        np.testing.assert_allclose(g.derivative(t[1:-1]), 3.0, rtol=0, atol=1e-12)
+        s = np.array([0.25, 0.75, 2.25, 2.75])
+        np.testing.assert_allclose(g(s), f(s), rtol=0, atol=1e-14)
+        np.testing.assert_allclose(g.derivative(s), f.derivative(s), rtol=0, atol=1e-12)
+        self.assertAlmostEqual(
+            g.derivative(1.0 - 1e-9), 2.0, places=6
+        )  # outside slopes kept
+        self.assertAlmostEqual(g.derivative(2.0 + 1e-9), 4.0, places=6)
+        for h in (pickle.loads(pickle.dumps(g)), deepcopy(g)):
+            np.testing.assert_allclose(h(t), g(t), rtol=0, atol=1e-14)
+            np.testing.assert_allclose(
+                h.derivative(t), g.derivative(t), rtol=0, atol=1e-12
+            )
+        with self.assertRaises(IndexError):
+            g.set_linear_segment(3)
+
+
 class TestLowerEnvelope(TestInterp1D):
     interpolator_ = LowerEnvelope
     tol = 1e-5
