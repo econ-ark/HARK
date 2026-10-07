@@ -1648,3 +1648,47 @@ class test_get_states_arity(unittest.TestCase):
         # equality assert here would break it.
         agent = self._agent((np.zeros(10),))
         agent.get_states()
+
+
+class test_stopping_rule_and_report(unittest.TestCase):
+    """The infinite-horizon stopping rule option and the convergence report (issue #1837)."""
+
+    def test_default_path_is_unchanged_and_silent(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+
+        a = IndShockConsumerType(cycles=0)
+        a.solve()
+        b = IndShockConsumerType(cycles=0, stopping_rule="step")
+        b.solve()
+        self.assertEqual(a.completed_cycles, b.completed_cycles)
+        self.assertEqual(a.solution[0].distance(b.solution[0]), 0.0)
+        self.assertFalse(hasattr(a, "convergence_report"))
+        self.assertFalse(hasattr(a.solution[0], "convergence_report"))
+
+    def test_unknown_stopping_rule_is_refused(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+
+        a = IndShockConsumerType(cycles=0, stopping_rule="nonsense")
+        with self.assertRaises(ValueError):
+            a.solve()
+
+    def test_report_is_attached_to_agent_and_solution(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+
+        a = IndShockConsumerType(cycles=0, report_convergence=True)
+        a.solve()
+        rep = a.convergence_report
+        self.assertIs(a.solution[0].convergence_report, rep)
+        for key in (
+            "cycles",
+            "stopping_rule",
+            "tolerance",
+            "last_step",
+            "contraction_rate",
+            "implied_distance",
+        ):
+            self.assertIn(key, rep)
+        self.assertEqual(rep["cycles"], a.completed_cycles)
+        self.assertEqual(rep["last_step"], a.solution_distance)
+        # the last step understates the implied distance whenever r is close to one
+        self.assertGreater(rep["implied_distance"], rep["last_step"])
