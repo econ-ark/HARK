@@ -24,6 +24,8 @@ __all__ = [
 
 from .core import *
 
+# Before changing the version, work through the "Before release" list in the
+# dev section of docs/CHANGELOG.md, if there is one.
 __version__ = "0.17.2"
 import logging
 from HARK.helpers import install_examples

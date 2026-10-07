@@ -4,6 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "econ-ark"
+# Before changing the version, work through the "Before release" list in the
+# dev section of docs/CHANGELOG.md, if there is one.
 version = "0.17.2"
 authors = [{name = "Econ-ARK team", email = "econ-ark@jhuecon.org"}]
 classifiers = [
