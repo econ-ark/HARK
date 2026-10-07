@@ -1242,6 +1242,24 @@ class SimBlock:
         self.grids = grids
         self.matrices = matrices_out
         self.mesh = mesh_tuples
+
+        # The mass behind each arrival state, taken here, where the matrices are
+        # built, so the survivors' column of the "dead" matrix is interpreted in
+        # one place: what its outcomes carry (the row sum of every outcome matrix;
+        # one without norm, and under norm the expected growth of the normalizing
+        # level realized within the block, relative to newborn_growth) and what
+        # its survivors carry into the next period (the survival probability, or
+        # under norm the survivors' weighted mass). AgentSimulator reads them for
+        # the replacement of decedents, the life-cycle Jacobians for the cohort
+        # masses and their normalization.
+        self.outcome_mass = np.bincount(
+            self.origin_array, weights=self.data["pmv_"], minlength=N_orig
+        )
+        if "dead" in self.data.keys():
+            dead = matrices_out["dead"]
+            self.surviving_mass = 1.0 - dead[:, 1] if norm is None else dead[:, 0]
+        else:
+            self.surviving_mass = np.ones(N_orig)
         if twist is not None:
             self.trans_array = master_trans_array
         if arrival_N == 0:
@@ -1627,6 +1645,13 @@ class AgentSimulator:
         - newborn_shares : Dictionary by period of the newborns' share of the normalized
                          (income-weighted) mass from each arrival state, filled only when
                          norm is given and the model has mortality; empty otherwise.
+        - surviving_mass : List by period of the mass that survives from each arrival
+                         state: the survival probability, or under norm the survivors'
+                         income-weighted mass (which carries the growth of the normalizing
+                         level realized within the period, relative to newborn_growth).
+        - outcome_mass : List by period of the mass behind each arrival state's outcomes,
+                         the row sum of every outcome matrix: one without norm, under norm
+                         the expected growth of the normalizing level within the period.
         - state_grids : Nested list of tuples representing the arrival state space for
                         each period. Each element corresponds to the discretized arrival
                         state space point with the same index in trans_arrays (and
@@ -1742,6 +1767,10 @@ class AgentSimulator:
         self.grid_specs = grid_specs_other
         self.norm = norm
 
+        # The mass behind each period's arrival states, as the blocks computed it
+        self.surviving_mass = [self.periods[t].surviving_mass for t in these_t]
+        self.outcome_mass = [self.periods[t].outcome_mass for t in these_t]
+
         # Extract the master transition matrices into a single list
         p2p_trans_arrays = [self.periods[t].trans_array for t in these_t]
 
@@ -1764,9 +1793,9 @@ class AgentSimulator:
             if "dead" not in self.periods[t].matrices.keys():
                 continue
             dead = self.periods[t].matrices["dead"]
+            surv_mass = self.periods[t].surviving_mass
             if norm is None:
                 deficit = dead[:, 1]
-                surv_mass = 1.0 - deficit
             else:
                 # Under an income-weighted measure, the mass that survives from an
                 # arrival state is the expected growth of the normalizing level
@@ -1774,7 +1803,6 @@ class AgentSimulator:
                 # survival probability; newborns take the complement. This makes
                 # the stationary distribution the income-weighted one. It reduces
                 # to the unweighted case whenever the weights average to one.
-                surv_mass = dead[:, 0]
                 if np.max(dead[:, 1]) <= 1e-12:
                     # No mortality, so no newborns: the level of the normalizing
                     # variable trends upward forever and only the cross-section
@@ -1869,6 +1897,12 @@ class AgentSimulator:
         growth factor rather than one. Dividing by its total expresses the outcome
         per unit of the period's (post-growth) normalized level, which is the
         Harmenberg aggregate. Without norm this is the identity.
+
+        The arrival distribution is in different units: steady_state_dstn weights
+        each arrival state by the normalizing level at arrival, so a mean of an
+        arrival variable taken from it (kNrm, per pLvlPrev in HARK's model files)
+        is per unit of the arrival level, while the outcome averages and the SSJs
+        (aNrm, cNrm) are per unit of the level after the period's growth.
         """
         if getattr(self, "norm", None) is None:
             return var_dstn

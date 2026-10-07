@@ -22,7 +22,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import PersistentShockConsumerType
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.SSJutils import _lc_cohort_dstns, _lc_surviving_mass
+from HARK.SSJutils import _lc_cohort_dstns
 
 
 class testsForIndShk(unittest.TestCase):
@@ -150,7 +150,7 @@ class testSimulatorClass(unittest.TestCase):
             "Rfree",
             ["cNrm", "aNrm"],
             self.grid_specs,
-            norm="PermShk",
+            norm="G",
             offset=True,
             verbose=True,
         )
@@ -168,11 +168,14 @@ class testSimulatorClass(unittest.TestCase):
             ["cNrm", "aNrm"],
             self.grid_specs,
             s=50,
-            norm="PermShk",
+            norm="G",
             offset=True,
             verbose=True,
         )
-        self.assertTrue(np.all(np.isclose(resp_C, dC_dR[:, 50], atol=1e-5)))
+        # The two methods agree to about 1.2e-5 on consumption and 1e-4 on assets,
+        # the same under every weighting (norm None, 'G', and 'PermShk' as the
+        # trend convention); the old atol of 1e-5 sat at that edge.
+        self.assertTrue(np.all(np.isclose(resp_C, dC_dR[:, 50], atol=2e-5)))
         self.assertTrue(np.all(np.isclose(resp_A, dA_dR[:, 50], atol=5e-4)))
 
     def test_make_LC_SSJ(self):
@@ -191,6 +194,7 @@ class testSimulatorClass(unittest.TestCase):
             offset=True,
             norm="PermShk",
             trend="PermGroFac",
+            newborn_growth=agent.PermGroFacAgg,  # the growing economy it simulates
             verbose=True,
         )
 
@@ -203,7 +207,7 @@ class testSimulatorClass(unittest.TestCase):
             "Rfree",
             "cNrm",
             self.grid_specs,
-            norm="PermShk",
+            norm="G",
             offset=True,
         )
 
@@ -211,7 +215,7 @@ class testSimulatorClass(unittest.TestCase):
             "Rfree",
             "cNrm",
             self.grid_specs_alt,
-            norm="PermShk",
+            norm="G",
             offset=True,
         )
 
@@ -219,7 +223,7 @@ class testSimulatorClass(unittest.TestCase):
             "Rfree",
             "cNrm",
             self.grid_specs_ult,
-            norm="PermShk",
+            norm="G",
             offset=True,
         )
 
@@ -231,7 +235,7 @@ class testSimulatorClass(unittest.TestCase):
             "BoroCnstArt",
             "cNrm",
             self.grid_specs,
-            norm="PermShk",
+            norm="G",
             offset=True,
             eps=-0.001,
         )
@@ -240,7 +244,7 @@ class testSimulatorClass(unittest.TestCase):
             "PermShkStd",
             "cNrm",
             self.grid_specs,
-            norm="PermShk",
+            norm="G",
             offset=True,
             eps=-0.001,
             construct=["IncShkDstn", "PermShkDstn", "TranShkDstn"],
@@ -510,6 +514,10 @@ class testGridSimulation(unittest.TestCase):
         lifecycle_dict["LivPrb"] = LivPrb
         lifecycle_dict.update(time_params)
         lifecycle_dict["Rfree"] = lifecycle_dict["T_cycle"] * [1.02]
+        # The income specification carries its yearly trend as PermGroFacAgg; the
+        # model-file simulator places newborns at a fixed level, so choose the
+        # stationary economy explicitly (see HARK.SSJutils, Two economies)
+        lifecycle_dict["PermGroFacAgg"] = 1.0
 
         kNrm_grid = {
             "min": 0.0,
@@ -589,7 +597,7 @@ class testMarkovEvents(unittest.TestCase):
             "Mrkv_p11",
             ["cNrm", "aNrm"],
             self.grid_specs,
-            norm="PermShk",
+            norm="G",
             offset=True,
             T_max=100,
         )
@@ -764,8 +772,17 @@ class testsForLifeCycleWeightedMeasure(unittest.TestCase):
             params[key] = list(params[key][: cls.T])
         params["T_cycle"] = cls.T
         params["T_age"] = cls.T
+        # The calibration carries a yearly trend as PermGroFacAgg (1.016): the
+        # stationary economy (every cohort born at the same level) is the base
+        # case here, the secular one (each cohort born 1.6 percent richer) is the
+        # same solved agent with the switch set back; the solution does not
+        # depend on it.
+        cls.trend = float(params["PermGroFacAgg"])
+        params["PermGroFacAgg"] = 1.0
         cls.solved_agent = IndShockConsumerType(**params)
         cls.solved_agent.solve()
+        cls.secular_agent = deepcopy(cls.solved_agent)
+        cls.secular_agent.PermGroFacAgg = cls.trend
         cls.grid_specs = {
             "kNrm": {"min": 0.0, "max": 30.0, "N": 100, "order": 2.0},
             "cNrm": {"min": 0.0, "max": 10.0, "N": 101},
@@ -776,12 +793,186 @@ class testsForLifeCycleWeightedMeasure(unittest.TestCase):
         agent.initialize_sym()
         X = agent._simulator
         X.make_transition_matrices(self.grid_specs, norm, for_t=range(self.T))
-        K = X.newborn_dstn.size
-        surv = [
-            _lc_surviving_mass(X.periods[t].matrices, K, norm) for t in range(self.T)
-        ]
-        dstns = _lc_cohort_dstns(X.newborn_dstn, X.trans_arrays, surv)
+        dstns = _lc_cohort_dstns(X.newborn_dstn, X.trans_arrays, X.surviving_mass)
         return X, np.array([np.sum(d) for d in dstns])
+
+    def test_blocks_expose_the_masses(self):
+        # Each block reports the mass behind its arrival states: what its outcomes
+        # carry (the row sum of every outcome matrix; one without norm) and what
+        # its survivors carry, read from the "dead" matrix in that one place.
+        for norm in [None, "PermShk", "G"]:
+            agent = deepcopy(self.solved_agent)
+            agent.initialize_sym()
+            X = agent._simulator
+            X.make_transition_matrices(self.grid_specs, norm, for_t=range(self.T))
+            self.assertEqual(len(X.surviving_mass), self.T)
+            self.assertEqual(len(X.outcome_mass), self.T)
+            for t in range(self.T):
+                dead = X.periods[t].matrices["dead"]
+                expected = 1.0 - dead[:, 1] if norm is None else dead[:, 0]
+                self.assertTrue(np.array_equal(X.surviving_mass[t], expected))
+                for var in ["cNrm", "aNrm", "dead"]:
+                    row_sums = np.sum(X.periods[t].matrices[var], axis=1)
+                    self.assertTrue(
+                        np.allclose(X.outcome_mass[t], row_sums, rtol=1e-12, atol=0.0)
+                    )
+                if norm is None:
+                    self.assertTrue(
+                        np.allclose(X.outcome_mass[t], 1.0, rtol=1e-12, atol=0.0)
+                    )
+                else:
+                    self.assertTrue(np.all(X.surviving_mass[t] < X.outcome_mass[t]))
+
+    def test_outcome_mass_is_the_age_zero_normalizer(self):
+        # Under norm the life-cycle Jacobians are expressed per unit of the newborn
+        # cohort's first-period level: the cohort's mass after the first period's
+        # growth, which is the same number whichever outcome's matrix is summed
+        # and is read from the block's outcome mass.
+        agent = deepcopy(self.solved_agent)
+        agent.initialize_sym()
+        X = agent._simulator
+        X.make_transition_matrices(self.grid_specs, "G", for_t=range(self.T))
+        d0 = X.newborn_dstn
+        from_mass = float(np.dot(d0, X.outcome_mass[0]))
+        self.assertGreater(from_mass, 1.0)
+        for var in ["cNrm", "aNrm", "dead"]:
+            from_matrix = float(np.sum(np.dot(d0, X.periods[0].matrices[var])))
+            self.assertAlmostEqual(from_mass, from_matrix, delta=1e-12 * from_mass)
+
+    def test_the_choice_of_economy_is_explicit(self):
+        # PermGroFacAgg is the switch between the stationary economy (every cohort
+        # born at the same level) and the secular one (each cohort born a factor
+        # richer, init_lifecycle's calibrated 1.6 percent per year). The Jacobians
+        # follow the agent's choice and refuse to describe another economy.
+        self.assertNotEqual(self.trend, 1.0)
+        grids = self.grid_specs
+        kwargs = dict(T_max=20, norm="G", offset=True, solved=True)
+        # stationary agent: None means one, and one is accepted explicitly
+        J_none = deepcopy(self.solved_agent).make_basic_SSJ(
+            "Rfree", "cNrm", grids, **kwargs
+        )
+        J_one = deepcopy(self.solved_agent).make_basic_SSJ(
+            "Rfree", "cNrm", grids, newborn_growth=1.0, **kwargs
+        )
+        self.assertTrue(np.array_equal(J_none, J_one))
+        # the secular agent must be told which economy is meant
+        with self.assertRaisesRegex(ValueError, "PermGroFacAgg is 1.01613"):
+            deepcopy(self.secular_agent).make_basic_SSJ(
+                "Rfree", "cNrm", grids, **kwargs
+            )
+        # and neither agent accepts the other economy's placement
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            deepcopy(self.secular_agent).make_basic_SSJ(
+                "Rfree", "cNrm", grids, newborn_growth=1.0, **kwargs
+            )
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            deepcopy(self.solved_agent).make_basic_SSJ(
+                "Rfree", "cNrm", grids, newborn_growth=self.trend, **kwargs
+            )
+        # the secular economy, chosen: a different Jacobian, smaller in the
+        # helper's units because older cohorts are relatively poorer
+        J_sec = deepcopy(self.secular_agent).make_basic_SSJ(
+            "Rfree", "cNrm", grids, newborn_growth=self.trend, **kwargs
+        )
+        self.assertTrue(np.all(np.isfinite(J_sec)))
+        self.assertFalse(np.allclose(J_sec, J_one, rtol=1e-3, atol=0.0))
+        self.assertLess(np.sum(J_sec[:, 0]), np.sum(J_one[:, 0]))
+
+    def test_secular_economy_is_the_same_under_both_weightings(self):
+        # Under the secular choice, weighting by the growth of the level agrees
+        # with the shock weighting plus the trend factor, as under the stationary
+        # choice (test below): the newborn trend enters both the same way.
+        kw = dict(T_max=20, offset=True, solved=True, newborn_growth=self.trend)
+        J_G = deepcopy(self.secular_agent).make_basic_SSJ(
+            "Rfree", ["aNrm", "cNrm"], self.grid_specs, norm="G", **kw
+        )
+        J_P = deepcopy(self.secular_agent).make_basic_SSJ(
+            "Rfree",
+            ["aNrm", "cNrm"],
+            self.grid_specs,
+            norm="PermShk",
+            trend="PermGroFac",
+            **kw,
+        )
+        for a, b in zip(J_G, J_P):
+            self.assertTrue(np.all(np.isfinite(a)))
+            self.assertTrue(np.allclose(a, b, rtol=1e-8, atol=1e-10))
+
+    def test_unweighted_trend_path_discounts_older_cohorts(self):
+        # Without income weighting the cohort levels come from the trend factor
+        # alone, so the newborn trend enters as a discount by age: a cohort born
+        # a periods ago started trend**a below today's newborns. By age, the
+        # secular Jacobian is the stationary one times that factor, exactly.
+        kw = dict(
+            T_max=20,
+            offset=True,
+            solved=True,
+            norm=None,
+            trend="PermGroFac",
+            age_agg=False,
+        )
+        J_flat = deepcopy(self.solved_agent).make_basic_SSJ(
+            "Rfree", "cNrm", self.grid_specs, **kw
+        )
+        J_sec = deepcopy(self.secular_agent).make_basic_SSJ(
+            "Rfree", "cNrm", self.grid_specs, newborn_growth=self.trend, **kw
+        )
+        for a in range(self.T):
+            self.assertTrue(
+                np.allclose(J_sec[a], J_flat[a] / self.trend**a, rtol=1e-12, atol=0.0)
+            )
+
+    def test_symulate_refuses_only_population_style_runs(self):
+        # The model-file simulator places newborns at a fixed level. A cohort-style
+        # run of the secular agent follows one birth cohort and places no later
+        # ones, so it proceeds; a population-style run would silently simulate
+        # the stationary economy, so it is refused.
+        agent = deepcopy(self.secular_agent)
+        agent.AgentCount = 50
+        agent.T_sim = 4
+        agent.track_vars = ["cNrm"]
+        agent.initialize_sym(stop_dead=False)
+        agent.symulate()
+        self.assertEqual(agent.hystory["cNrm"].shape, (4, 50))
+        agent.initialize_sym()
+        with self.assertRaisesRegex(ValueError, "growing economy"):
+            agent.symulate()
+        flat = deepcopy(self.solved_agent)
+        flat.AgentCount = 50
+        flat.T_sim = 4
+        flat.track_vars = ["cNrm"]
+        flat.initialize_sym()
+        flat.symulate()
+        self.assertEqual(flat.hystory["cNrm"].shape, (4, 50))
+
+    def test_shock_only_weighting_needs_the_matching_trend(self):
+        # norm='PermShk' without the trend factor treats the deterministic growth
+        # as a trend that newborns inherit; the default infinite-horizon agent
+        # (PermGroFac 1.01, PermGroFacAgg 1) does not simulate that economy, so
+        # it is refused. Setting the switch to the deterministic growth makes it
+        # that economy, in which the shock-only weighting is exact.
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-8)
+        agent.solve()
+        grids = {
+            "kNrm": {"min": 0.0, "max": 30.0, "N": 60, "order": 2.0},
+            "cNrm": {"min": 0.0, "max": 8.0, "N": 61},
+        }
+        kw = dict(T_max=10, offset=True, solved=True)
+        with self.assertRaisesRegex(ValueError, "implied PermGroFacAgg of 1.01"):
+            deepcopy(agent).make_basic_SSJ("Rfree", "cNrm", grids, norm="PermShk", **kw)
+        agent.PermGroFacAgg = float(agent.PermGroFac[0])
+        J_P = deepcopy(agent).make_basic_SSJ(
+            "Rfree", "cNrm", grids, norm="PermShk", newborn_growth=1.0, **kw
+        )
+        J_G = deepcopy(agent).make_basic_SSJ(
+            "Rfree",
+            "cNrm",
+            grids,
+            norm="G",
+            newborn_growth=agent.PermGroFacAgg,
+            **kw,
+        )
+        self.assertTrue(np.allclose(J_P, J_G, rtol=1e-8, atol=1e-10))
 
     def test_cohort_masses_match_closed_form(self):
         # Under norm='G' the mass alive at age a, per unit of newborn arrival

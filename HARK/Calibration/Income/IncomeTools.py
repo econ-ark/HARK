@@ -553,7 +553,12 @@ def parse_income_spec(
             - TranShkStd: list of standard deviations of transitory shocks
                 to income.
             - PermGroFacAgg: if a yearly trend in income is provided, this will
-                be the aggregate level of growth in permanent incomes.
+                be the aggregate level of growth in permanent incomes. The trend
+                is also folded into PermGroFac; carried as PermGroFacAgg it makes
+                HARK's simulation place each newborn cohort at a higher level (a
+                growing economy). Set PermGroFacAgg to 1.0 on the agent for a
+                stationary economy; the Jacobian tools require the choice to be
+                made (see HARK.SSJutils, Two economies).
             - T_retire : period of the agent's problem after which they retire.
 
         This dictionary has the names and formats that various models in HARK
