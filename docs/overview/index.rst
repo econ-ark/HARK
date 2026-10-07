@@ -66,6 +66,7 @@ Overview
 
    ../../examples/LifecycleModel/LifecycleModel.ipynb
    ../../examples/SequenceSpaceJacobians/Transition_Matrix_Example.ipynb
+   ../../examples/SequenceSpaceJacobians/TM_or_MC_which_to_use_when.ipynb
    ../../examples/SequenceSpaceJacobians/Jacobian_Example.ipynb
    ../../examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb
    ../../examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb
