@@ -2,10 +2,14 @@ import numpy as np
 from HARK._numba import njit
 
 from HARK.interpolation import (
-    _cubic_segment_index,
+    _cubic_end_rows,
+    _cubic_locate,
     _cubic_lower_eval,
+    _cubic_poly_slope,
+    _cubic_poly_value,
+    _cubic_segment_coeffs,
+    _cubic_top_tangent,
     _cubic_upper_eval,
-    _cubic_upper_row,
 )
 from HARK.rewards import (
     CRRAutility_X,
@@ -25,10 +29,14 @@ CRRAutility_invP = njit(CRRAutility_invP, cache=True)
 CRRAutility_inv = njit(CRRAutility_inv, cache=True)
 CRRAutilityP_invP = njit(CRRAutilityP_invP, cache=True)
 
-# The cubic extrapolation and segment rules of HARK.interpolation.CubicInterp
-cubic_segment_index = njit(_cubic_segment_index, cache=True)
-cubic_upper_row = njit(_cubic_upper_row, cache=True)
+# The cubic interpolation rules of HARK.interpolation.CubicInterp
+cubic_end_rows = njit(_cubic_end_rows, cache=True)
+cubic_locate = njit(_cubic_locate, cache=True)
 cubic_lower_eval = njit(_cubic_lower_eval, cache=True)
+cubic_poly_slope = njit(_cubic_poly_slope, cache=True)
+cubic_poly_value = njit(_cubic_poly_value, cache=True)
+cubic_segment_coeffs = njit(_cubic_segment_coeffs, cache=True)
+cubic_top_tangent = njit(_cubic_top_tangent, cache=True)
 cubic_upper_eval = njit(_cubic_upper_eval, cache=True)
 
 
@@ -146,67 +154,27 @@ def linear_interp_deriv_fast(
 def _spline_decay(
     x_init, x_list, y_list, dydx_list, intercept_limit, slope_limit, lower_extrap
 ):  # pragma: no cover
-    n = x_list.size
-
-    coeffs = np.empty((n + 1, 4))
-
-    # Define lower extrapolation as linear function (or just NaN)
-    if lower_extrap:
-        coeffs[0] = np.array([y_list[0], dydx_list[0], 0, 0])
-    else:
-        coeffs[0] = np.array([np.nan, np.nan, np.nan, np.nan])
-
-    # Calculate interpolation coefficients on segments mapped to [0,1]
-    xdiff = np.diff(x_list)
-    ydiff = np.diff(y_list)
-    dydx0 = dydx_list[:-1] * xdiff
-    dydx1 = dydx_list[1:] * xdiff
-    coeffs[1:-1, 0] = y_list[:-1]
-    coeffs[1:-1, 1] = dydx0
-    coeffs[1:-1, 2] = 3 * ydiff - 2 * dydx0 - dydx1
-    coeffs[1:-1, 3] = -2 * ydiff + dydx0 + dydx1
-
-    # Element by element: a tuple of mixed numeric types cannot fill a float64 row
-    b_lim, m_lim, gap, decay = cubic_upper_row(
-        x_list[n - 1], y_list[n - 1], dydx_list[n - 1], intercept_limit, slope_limit
+    lower_row, upper_row = cubic_end_rows(
+        x_list, y_list, dydx_list, intercept_limit, slope_limit, lower_extrap
     )
-    coeffs[-1, 0] = b_lim
-    coeffs[-1, 1] = m_lim
-    coeffs[-1, 2] = gap
-    coeffs[-1, 3] = decay
+    coeffs = np.empty((x_list.size + 1, 4))
+    coeffs[0] = lower_row
+    coeffs[1:-1] = cubic_segment_coeffs(x_list, y_list, dydx_list)
+    coeffs[-1] = upper_row
 
-    m = len(x_init)
-    pos = cubic_segment_index(x_list, x_init)
-    y = np.zeros(m)
-    dydx = np.zeros(m)
+    out_bot, out_top, in_bnds, i, alpha, span = cubic_locate(x_list, x_init)
+    coeffs_in = coeffs[i]
+    y = np.zeros(x_init.size)
+    dydx = np.zeros(x_init.size)
+    y[in_bnds] = cubic_poly_value(coeffs_in, alpha)
+    dydx[in_bnds] = cubic_poly_slope(coeffs_in, alpha, span)
 
-    if m > 0:
-        out_bot = pos == 0
-        out_top = pos == n
-        in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
-
-        # In-bounds evaluation
-        i = pos[in_bnds]
-        coeffs_in = coeffs[i, :]
-        alpha_in = (x_init[in_bnds] - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-        y[in_bnds] = coeffs_in[:, 0] + alpha_in * (
-            coeffs_in[:, 1] + alpha_in * (coeffs_in[:, 2] + alpha_in * coeffs_in[:, 3])
-        )
-        dydx[in_bnds] = (
-            coeffs_in[:, 1]
-            + alpha_in * (2 * coeffs_in[:, 2] + alpha_in * 3 * coeffs_in[:, 3])
-        ) / (x_list[i] - x_list[i - 1])
-
-        # Out-of-bounds: bottom
-        y_bot, dydx_bot = cubic_lower_eval(x_init[out_bot], x_list[0], coeffs[0])
-        y[out_bot] = y_bot
-        dydx[out_bot] = dydx_bot
-
-        # Out-of-bounds: top
-        y_top, dydx_top = cubic_upper_eval(x_init[out_top], x_list[n - 1], coeffs[n])
-        y[out_top] = y_top
-        dydx[out_top] = dydx_top
-
+    y_bot, dydx_bot = cubic_lower_eval(x_init[out_bot], x_list[0], coeffs[0])
+    y[out_bot] = y_bot
+    dydx[out_bot] = dydx_bot
+    y_top, dydx_top = cubic_upper_eval(x_init[out_top], x_list[-1], coeffs[-1])
+    y[out_top] = y_top
+    dydx[out_top] = dydx_top
     return y, dydx
 
 
@@ -221,9 +189,7 @@ def cubic_interp_fast(
     lower_extrap=False,
 ):  # pragma: no cover
     if intercept_limit is None and slope_limit is None:
-        slope = dydx_list[-1]
-        intercept = y_list[-1] - slope * x_list[-1]
-
+        intercept, slope = cubic_top_tangent(x_list, y_list, dydx_list)
         return _spline_decay(
             x0, x_list, y_list, dydx_list, intercept, slope, lower_extrap
         )

@@ -282,8 +282,8 @@ class TestCubicHermiteInterp(TestCubicInterp):
 class TestCubicHermiteLinearSegment(unittest.TestCase):
     def test_set_linear_segment(self):
         """The patched segment is the chord between its knots, with one-sided
-        slopes at them; other segments are untouched; the patch survives pickling
-        and deepcopy, which rebuild the scipy spline."""
+        slopes at them. Other segments are untouched. Pickling and deepcopy of a
+        patched instance are tested in testsCubicHermiteInterpSerialization."""
         x = np.array([0.0, 1.0, 2.0, 3.0])
         y = x**2
         dydx = 2.0 * x
@@ -300,11 +300,6 @@ class TestCubicHermiteLinearSegment(unittest.TestCase):
             g.derivative(1.0 - 1e-9), 2.0, places=6
         )  # outside slopes kept
         self.assertAlmostEqual(g.derivative(2.0 + 1e-9), 4.0, places=6)
-        for h in (pickle.loads(pickle.dumps(g)), deepcopy(g)):
-            np.testing.assert_allclose(h(t), g(t), rtol=0, atol=1e-14)
-            np.testing.assert_allclose(
-                h.derivative(t), g.derivative(t), rtol=0, atol=1e-12
-            )
         with self.assertRaises(IndexError):
             g.set_linear_segment(3)
 
@@ -765,10 +760,12 @@ class testsCubicInterpKnots(unittest.TestCase):
 
 
 class testsCubicUpperExtrapolation(unittest.TestCase):
-    """Above the grid, both cubic interpolators pass through the top gridpoint
-    and decay toward the limiting line y = b + m * x whenever a decay can also
-    match the top slope; otherwise they follow that line shifted by the gap."""
+    """Above the grid, CubicInterp passes through the top gridpoint and decays
+    toward the limiting line y = b + m * x whenever a decay can also match the
+    top slope; otherwise it follows that line shifted by the gap. The subclass
+    below runs the same tests on CubicHermiteInterp."""
 
+    interp = CubicInterp
     x_list = np.array([0.0, 1.0, 2.0])
     y_list = np.array([0.0, 1.0, 2.0])
     x_top = 2.0
@@ -782,46 +779,47 @@ class testsCubicUpperExtrapolation(unittest.TestCase):
         "gap > 0, slope > 0": (0.5, 1.0, 1.0),
         "gap < 0, slope < 0": (1.0, -1.0, 0.5),
     }
+    all_cases = decay_cases | offset_cases
 
-    def make(self, interp, dydx_top, b, m):
+    def make(self, dydx_top, b, m, **kwargs):
         dydx_list = np.array([1.0, 1.0, dydx_top])
-        return interp(
-            self.x_list, self.y_list, dydx_list, intercept_limit=b, slope_limit=m
+        return self.interp(
+            self.x_list,
+            self.y_list,
+            dydx_list,
+            intercept_limit=b,
+            slope_limit=m,
+            **kwargs,
         )
 
     def test_continuous_at_top(self):
-        for interp in (CubicInterp, CubicHermiteInterp):
-            for label, args in (self.decay_cases | self.offset_cases).items():
-                with self.subTest(interp=interp.__name__, case=label):
-                    f = self.make(interp, *args)
-                    self.assertAlmostEqual(f(self.x_top), self.y_top, 12)
-                    self.assertAlmostEqual(f(self.x_top + 1e-9), self.y_top, 6)
+        for label, args in self.all_cases.items():
+            with self.subTest(case=label):
+                f = self.make(*args)
+                self.assertAlmostEqual(f(self.x_top), self.y_top, 12)
+                self.assertAlmostEqual(f(self.x_top + 1e-9), self.y_top, 6)
 
     def test_decay_matches_slope_and_reaches_limit(self):
-        for interp in (CubicInterp, CubicHermiteInterp):
-            for label, (dydx_top, b, m) in self.decay_cases.items():
-                with self.subTest(interp=interp.__name__, case=label):
-                    f = self.make(interp, dydx_top, b, m)
-                    self.assertAlmostEqual(f.derivative(self.x_top + 1e-9), dydx_top, 6)
-                    self.assertAlmostEqual(f(200.0), b + m * 200.0, 9)
+        for label, (dydx_top, b, m) in self.decay_cases.items():
+            with self.subTest(case=label):
+                f = self.make(dydx_top, b, m)
+                self.assertAlmostEqual(f.derivative(self.x_top + 1e-9), dydx_top, 6)
+                self.assertAlmostEqual(f(200.0), b + m * 200.0, 9)
 
     def test_offset_line_when_no_decay_matches(self):
         x = np.array([2.5, 10.0, 200.0])
-        for interp in (CubicInterp, CubicHermiteInterp):
-            for label, (dydx_top, b, m) in self.offset_cases.items():
-                with self.subTest(interp=interp.__name__, case=label):
-                    f = self.make(interp, dydx_top, b, m)
-                    gap = m * self.x_top + b - self.y_top
-                    np.testing.assert_allclose(f(x), b + m * x - gap)
-                    np.testing.assert_allclose(f.derivative(x), m)
+        for label, (dydx_top, b, m) in self.offset_cases.items():
+            with self.subTest(case=label):
+                f = self.make(dydx_top, b, m)
+                gap = m * self.x_top + b - self.y_top
+                np.testing.assert_allclose(f(x), b + m * x - gap)
+                np.testing.assert_allclose(f.derivative(x), m)
 
     def test_default_limits_continue_linearly(self):
         x = np.array([2.5, 10.0, 200.0])
-        for interp in (CubicInterp, CubicHermiteInterp):
-            with self.subTest(interp=interp.__name__):
-                f = interp(self.x_list, self.y_list, np.array([1.0, 1.0, 0.5]))
-                np.testing.assert_allclose(f(x), 2.0 + 0.5 * (x - 2.0))
-                np.testing.assert_allclose(f.derivative(x), 0.5)
+        f = self.make(0.5, None, None)
+        np.testing.assert_allclose(f(x), 2.0 + 0.5 * (x - 2.0))
+        np.testing.assert_allclose(f.derivative(x), 0.5)
 
     def test_zero_gap_or_zero_slope_gives_line(self):
         x = np.array([3.0, 50.0])
@@ -829,84 +827,84 @@ class testsCubicUpperExtrapolation(unittest.TestCase):
             "gap = 0": ((0.5, 0.0, 1.0), x),
             "slope = 0": ((0.5, 0.5, 0.5), 1.0 + 0.5 * x),
         }
-        for interp in (CubicInterp, CubicHermiteInterp):
-            for label, (args, target) in cases.items():
-                with self.subTest(interp=interp.__name__, case=label):
-                    f = self.make(interp, *args)
-                    np.testing.assert_allclose(f(x), target)
-                    np.testing.assert_allclose(f.derivative(x), args[2])
+        for label, (args, target) in cases.items():
+            with self.subTest(case=label):
+                f = self.make(*args)
+                np.testing.assert_allclose(f(x), target)
+                np.testing.assert_allclose(f.derivative(x), args[2])
 
     def test_infinite_argument(self):
-        cases = {"default": {}, "decay": dict(intercept_limit=1.0, slope_limit=1.0)}
-        for interp in (CubicInterp, CubicHermiteInterp):
-            for label, kwargs in cases.items():
-                with self.subTest(interp=interp.__name__, case=label):
-                    dydx_list = np.array([1.0, 1.0, 1.5 if kwargs else 0.5])
-                    f = interp(self.x_list, self.y_list, dydx_list, **kwargs)
-                    self.assertEqual(f(np.inf), np.inf)
-                    self.assertTrue(np.isfinite(f.derivative(np.inf)))
+        cases = {"default": (0.5, None, None), "decay": (1.5, 1.0, 1.0)}
+        for label, args in cases.items():
+            with self.subTest(case=label):
+                f = self.make(*args)
+                self.assertEqual(f(np.inf), np.inf)
+                self.assertTrue(np.isfinite(f.derivative(np.inf)))
 
     def test_eval_with_derivative_out_of_bounds(self):
         xs = np.array([-1.0, 0.0, 1.5, 2.0, 3.0, 50.0])
-        for interp in (CubicInterp, CubicHermiteInterp):
-            for label, args in (self.decay_cases | self.offset_cases).items():
-                with self.subTest(interp=interp.__name__, case=label):
-                    dydx_top, b, m = args
-                    f = interp(
-                        self.x_list,
-                        self.y_list,
-                        np.array([1.0, 1.0, dydx_top]),
-                        intercept_limit=b,
-                        slope_limit=m,
-                        lower_extrap=True,
-                    )
-                    vals, ders = f.eval_with_derivative(xs)
-                    np.testing.assert_allclose(vals, f(xs))
-                    np.testing.assert_allclose(ders, f.derivative(xs))
+        for label, args in self.all_cases.items():
+            with self.subTest(case=label):
+                f = self.make(*args, lower_extrap=True)
+                vals, ders = f.eval_with_derivative(xs)
+                np.testing.assert_allclose(vals, f(xs))
+                np.testing.assert_allclose(ders, f.derivative(xs))
 
     def test_one_limit_raises(self):
-        for interp in (CubicInterp, CubicHermiteInterp):
-            for kwargs in ({"intercept_limit": 1.0}, {"slope_limit": 1.0}):
-                with self.subTest(interp=interp.__name__, **kwargs):
-                    with self.assertRaises(ValueError):
-                        interp(self.x_list, self.y_list, np.ones(3), **kwargs)
+        for b, m in ((1.0, None), (None, 1.0)):
+            with self.subTest(intercept_limit=b, slope_limit=m):
+                with self.assertRaises(ValueError):
+                    self.make(1.0, b, m)
 
     def test_integer_argument_keeps_fractional_slope(self):
         x = np.array([1, 2, 3, 4])
-        for interp in (CubicInterp, CubicHermiteInterp):
-            with self.subTest(interp=interp.__name__):
-                f = interp(self.x_list, self.y_list, np.array([1.0, 1.0, 0.5]))
-                np.testing.assert_allclose(f.derivative(x)[2:], 0.5)
-                np.testing.assert_allclose(f.eval_with_derivative(x)[1][2:], 0.5)
+        f = self.make(0.5, None, None)
+        np.testing.assert_allclose(f.derivative(x)[2:], 0.5)
+        np.testing.assert_allclose(f.eval_with_derivative(x)[1][2:], 0.5)
 
     def test_horizontal_limit_at_infinity(self):
         # slope_limit = 0 with b = 3: decay when dydx_top > 0, shifted line when < 0
         cases = {"decay": (0.5, 3.0), "shifted line": (-0.5, 2.0)}
-        for interp in (CubicInterp, CubicHermiteInterp):
-            for label, (dydx_top, target) in cases.items():
-                with self.subTest(interp=interp.__name__, case=label):
-                    f = self.make(interp, dydx_top, 3.0, 0.0)
-                    vals, ders = f.eval_with_derivative(np.array([np.inf]))
-                    np.testing.assert_array_equal(vals, [target])
-                    np.testing.assert_array_equal(ders, [0.0])
+        for label, (dydx_top, target) in cases.items():
+            with self.subTest(case=label):
+                f = self.make(dydx_top, 3.0, 0.0)
+                vals, ders = f.eval_with_derivative(np.array([np.inf]))
+                np.testing.assert_array_equal(vals, [target])
+                np.testing.assert_array_equal(ders, [0.0])
 
     def test_negative_infinite_argument(self):
-        for interp in (CubicInterp, CubicHermiteInterp):
-            with self.subTest(interp=interp.__name__):
-                dydx_list = np.ones(3)
-                f = interp(self.x_list, self.y_list, dydx_list, lower_extrap=True)
-                self.assertEqual(f(-np.inf), -np.inf)
-                g = interp(self.x_list, self.y_list, dydx_list)
-                self.assertTrue(np.isnan(g(-np.inf)))
-                flat = interp(
-                    self.x_list, self.y_list, [0.0, 1.0, 1.0], lower_extrap=True
-                )
-                self.assertEqual(flat(-np.inf), self.y_list[0])
+        dydx_list = np.ones(3)
+        f = self.interp(self.x_list, self.y_list, dydx_list, lower_extrap=True)
+        self.assertEqual(f(-np.inf), -np.inf)
+        g = self.interp(self.x_list, self.y_list, dydx_list)
+        self.assertTrue(np.isnan(g(-np.inf)))
+        flat = self.interp(self.x_list, self.y_list, [0.0, 1.0, 1.0], lower_extrap=True)
+        self.assertEqual(flat(-np.inf), self.y_list[0])
+
+    def test_column_input(self):
+        x = np.array([[1.0], [2.0], [3.0]])
+        y = np.array([[1.0], [4.0], [9.0]])
+        dydx = np.array([[2.0], [4.0], [6.0]])
+        cube = self.interp(x, y, dydx, lower_extrap=True)
+        np.testing.assert_allclose(cube(np.array([0.5, 1.5, 4.0])), [0.0, 2.25, 15.0])
+
+
+class testsCubicHermiteUpperExtrapolation(testsCubicUpperExtrapolation):
+    interp = CubicHermiteInterp
+
+
+class testsCubicInterpFast(unittest.TestCase):
+    """numba_tools.cubic_interp_fast matches CubicInterp, extrapolation included."""
+
+    x_list = testsCubicUpperExtrapolation.x_list
+    y_list = testsCubicUpperExtrapolation.y_list
 
     def test_cubic_interp_fast_matches_cubic_interp(self):
         xs = np.array([-np.inf, -1.0, 0.0, 0.5, 1.0, 2.0, 2.5, 10.0, np.inf])
-        cases = self.decay_cases | self.offset_cases | {"default": (0.5, None, None)}
-        cases |= {"horizontal": (0.5, 3.0, 0.0)}
+        cases = testsCubicUpperExtrapolation.all_cases | {
+            "default": (0.5, None, None),
+            "horizontal": (0.5, 3.0, 0.0),
+        }
         for lower_extrap in (False, True):
             for label, (dydx_top, b, m) in cases.items():
                 with self.subTest(case=label, lower_extrap=lower_extrap):
@@ -934,27 +932,12 @@ class testsCubicUpperExtrapolation(unittest.TestCase):
                 np.testing.assert_allclose(ders, target.derivative(xs), rtol=1e-12)
 
 
-class testsCubicColumnInput(unittest.TestCase):
-    """Both cubic interpolators accept column-vector grids."""
-
-    def test_column_input(self):
-        x = np.array([[1.0], [2.0], [3.0]])
-        y = np.array([[1.0], [4.0], [9.0]])
-        dydx = np.array([[2.0], [4.0], [6.0]])
-        for interp in (CubicInterp, CubicHermiteInterp):
-            with self.subTest(interp=interp.__name__):
-                cube = interp(x, y, dydx, lower_extrap=True)
-                np.testing.assert_allclose(
-                    cube(np.array([0.5, 1.5, 4.0])), [0.0, 2.25, 15.0]
-                )
-
-
 class testsCubicHermiteInterpSerialization(unittest.TestCase):
     """tests that CubicHermiteInterp deepcopies and pickles without relying
     on scipy's spline internals being serializable: scipy 1.18.0 caches
     array-namespace module objects on spline instances (scipy issue #25489),
-    and module objects cannot be pickled or deepcopied, so the class rebuilds
-    its scipy spline from the defining data on deserialization.
+    and module objects cannot be pickled or deepcopied. The class rebuilds its
+    scipy spline from the defining data on deserialization.
     """
 
     def setUp(self):
@@ -967,6 +950,9 @@ class testsCubicHermiteInterpSerialization(unittest.TestCase):
         self.probe = np.linspace(0.25, 15.0, 301)
 
     def make_interpolants(self):
+        # the last one has a segment replaced by its chord (set_linear_segment)
+        patched = CubicHermiteInterp(self.x, self.y, self.dydx, lower_extrap=True)
+        patched.set_linear_segment(3)
         return [
             CubicHermiteInterp(self.x, self.y, self.dydx),
             CubicHermiteInterp(self.x, self.y, self.dydx, lower_extrap=True),
@@ -978,6 +964,7 @@ class testsCubicHermiteInterpSerialization(unittest.TestCase):
                 slope_limit=0.0,
                 lower_extrap=True,
             ),
+            patched,
         ]
 
     def compare(self, original, clone):

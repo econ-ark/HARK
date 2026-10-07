@@ -60,36 +60,97 @@ def _coerce_1d_grid(arr):
     return a
 
 
-def _cubic_segment_index(x_list, x):
+# The _cubic_* functions below are the cubic interpolation rules shared by
+# CubicInterp, CubicHermiteInterp and numba_tools.cubic_interp_fast. They use
+# plain numpy and do not call other Python functions, so numba_tools can njit them.
+
+
+def _cubic_locate(x_list, x):
     """
-    Return, for each ``x``, the cubic segment index into ``coeffs``: 0 below the
-    grid, ``x_list.size`` above it, and ``i`` on ``[x_list[i-1], x_list[i]]``.
-    Both end knots lie on the grid (#1060). Plain numpy so that
-    :mod:`HARK.numba_tools` can compile it with ``njit``.
+    Locate each ``x`` on a cubic interpolator's grid.
+
+    Returns the masks ``out_bot`` and ``out_top`` of points below and above the
+    grid and ``in_bnds`` of the rest, and for the rest their row ``i`` in
+    ``coeffs`` (the segment ``[x_list[i-1], x_list[i]]``), their position
+    ``alpha`` in it and its width ``span``. Both end knots lie on the grid
+    (#1060).
     """
     pos = np.searchsorted(x_list, x, side="right")
-    i_top = np.searchsorted(x_list, x_list[-1])
+    i_top = np.searchsorted(x_list, x_list[-1])  # first copy of a repeated top knot
     if i_top > 0:
         pos[x == x_list[-1]] = i_top
-    return pos
+    out_bot = pos == 0
+    out_top = pos == x_list.size
+    in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
+    i = pos[in_bnds]
+    span = x_list[i] - x_list[i - 1]
+    alpha = (x[in_bnds] - x_list[i - 1]) / span
+    return out_bot, out_top, in_bnds, i, alpha, span
 
 
-def _cubic_upper_row(x_top, y_top, dydx_top, intercept_limit, slope_limit):
+def _cubic_segment_coeffs(x_list, y_list, dydx_list):
     """
-    Return the coefficients ``(b, m, gap, k)`` of the upper extrapolation
-    ``b + m*x - gap*exp(k*(x - x_top))`` toward the limiting line ``b + m*x``.
-
-    Because ``gap = b + m*x_top - y_top``, the function passes through the top
-    gridpoint for any ``k``. With ``k = (m - dydx_top) / gap`` it also matches
-    the top slope, and it decays toward the line when that ``k`` is negative.
-    Otherwise ``k = 0``: the line shifted by ``gap``, whose slope ``m`` differs
-    from ``dydx_top``. Plain arithmetic so that :mod:`HARK.numba_tools` can
-    compile it with ``njit``.
+    Return the Hermite cubic of each grid segment mapped to ``[0, 1]``: row
+    ``i`` holds ``c`` with ``y = c0 + c1*a + c2*a**2 + c3*a**3`` on
+    ``[x_list[i], x_list[i+1]]``.
     """
-    gap = slope_limit * x_top + intercept_limit - y_top
-    slope = slope_limit - dydx_top
-    decay = slope / gap if gap * slope < 0 else 0.0
-    return intercept_limit, slope_limit, gap, decay
+    span = np.diff(x_list)
+    dydx_lo = dydx_list[:-1] * span
+    dydx_hi = dydx_list[1:] * span
+    seg = np.empty((span.size, 4))
+    seg[:, 0] = y_list[:-1]
+    seg[:, 1] = dydx_lo
+    seg[:, 2] = 3 * (y_list[1:] - y_list[:-1]) - 2 * dydx_lo - dydx_hi
+    seg[:, 3] = 2 * (y_list[:-1] - y_list[1:]) + dydx_lo + dydx_hi
+    return seg
+
+
+def _cubic_poly_value(c, alpha):
+    """Evaluate the unit-segment cubics with coefficient rows ``c`` at ``alpha``."""
+    return c[:, 0] + alpha * (c[:, 1] + alpha * (c[:, 2] + alpha * c[:, 3]))
+
+
+def _cubic_poly_slope(c, alpha, span):
+    """Return the x-derivative of :func:`_cubic_poly_value` on width-``span`` segments."""
+    return (c[:, 1] + alpha * (2 * c[:, 2] + alpha * 3 * c[:, 3])) / span
+
+
+def _cubic_top_tangent(x_list, y_list, dydx_list):
+    """Return ``(intercept, slope)`` of the top knot's tangent, the default limit."""
+    slope = dydx_list[-1]
+    return y_list[-1] - slope * x_list[-1], slope
+
+
+def _cubic_end_rows(
+    x_list, y_list, dydx_list, intercept_limit, slope_limit, lower_extrap
+):
+    """
+    Return the lower and upper extrapolation rows of a cubic interpolator.
+
+    The lower row ``(y_bot, dydx_bot, 0, 0)`` continues the bottom knot
+    linearly, or is NaN without ``lower_extrap``. The upper row
+    ``(b, m, gap, k)`` gives ``b + m*x - gap*exp(k*(x - x_top))`` toward the
+    limiting line ``b + m*x``. Because ``gap = b + m*x_top - y_top``, it passes
+    through the top gridpoint for any ``k``. With ``k = (m - dydx_top) / gap``
+    it also matches the top slope, and it decays toward the line when that
+    ``k`` is negative. Otherwise ``k = 0``: the line shifted by ``gap``, whose
+    slope ``m`` differs from ``dydx_top``.
+    """
+    lower = np.full(4, np.nan)
+    if lower_extrap:
+        lower[0] = y_list[0]
+        lower[1] = dydx_list[0]
+        lower[2] = 0.0
+        lower[3] = 0.0
+    gap = slope_limit * x_list[-1] + intercept_limit - y_list[-1]
+    slope = slope_limit - dydx_list[-1]
+    # Element by element, so that njit accepts integer limits
+    upper = np.empty(4)
+    upper[0] = intercept_limit
+    upper[1] = slope_limit
+    upper[2] = gap
+    upper[3] = slope / gap if gap * slope < 0 else 0.0
+    return lower, upper
 
 
 def _cubic_lower_eval(x, x_bot, lower_row):
@@ -107,7 +168,7 @@ def _cubic_lower_eval(x, x_bot, lower_row):
 def _cubic_upper_eval(x, x_top, upper_row):
     """
     Evaluate the upper extrapolation with coefficients ``upper_row`` (see
-    :func:`_cubic_upper_row`) and its derivative at ``x``. A zero ``m`` skips
+    :func:`_cubic_end_rows`) and its derivative at ``x``. A zero ``m`` skips
     ``m*x`` and a zero ``k`` skips the exponential, so ``x = inf`` gives the
     line's limit and no NaN.
     """
@@ -320,76 +381,75 @@ class HARKinterpolator1D(MetricObject):
         return y, dydx
 
 
-class _CubicExtrapMixin:
+class _CubicInterpMixin:
     """
-    Grid setup and extrapolation shared by :class:`CubicInterp` and
+    Constructor and extrapolation shared by :class:`CubicInterp` and
     :class:`CubicHermiteInterp`.
 
-    Compose ahead of :class:`HARKinterpolator1D`. The host calls
-    :meth:`_init_cubic_grids` and stores the rows from
-    :meth:`_cubic_extrap_rows` as ``coeffs[0]`` and ``coeffs[n]``.
+    Compose ahead of :class:`HARKinterpolator1D`. The host implements
+    :meth:`_build_coeffs`, which stacks the lower extrapolation row, one row per
+    segment and the upper extrapolation row into ``coeffs``. Without limits the
+    function extrapolates along the tangent at the top gridpoint, where
+    ``gap = 0``. Give both limits or neither.
     """
 
+    distance_criteria = ["x_list", "y_list", "dydx_list"]
     coeffs: np.ndarray
 
-    def _init_cubic_grids(self, x_list, y_list, dydx_list):
-        """
-        Coerce ``x_list``, ``y_list``, ``dydx_list`` to validated 1D arrays.
-
-        Stores them as ``self.x_list``, ``self.y_list``, ``self.dydx_list``,
-        sets ``self.n``, and runs ``_check_grid_dimensions`` against ``x_list``.
-        """
+    def __init__(
+        self,
+        x_list,
+        y_list,
+        dydx_list,
+        intercept_limit=None,
+        slope_limit=None,
+        lower_extrap=False,
+    ):
         self.x_list = _coerce_1d_grid(x_list)
         self.y_list = _coerce_1d_grid(y_list)
         self.dydx_list = _coerce_1d_grid(dydx_list)
         _check_grid_dimensions(1, self.y_list, self.x_list)
         _check_grid_dimensions(1, self.dydx_list, self.x_list)
         self.n = self.x_list.size
-
-    def _cubic_extrap_rows(self, lower_extrap, intercept_limit, slope_limit):
-        """
-        Return the lower and upper extrapolation coefficient rows of a cubic
-        interpolator.
-
-        Below the grid the function is linear with the bottom slope, or NaN
-        if ``lower_extrap`` is False. Above it the function follows
-        :func:`_cubic_upper_row`. Without limits, ``b + m*x`` is the tangent
-        line at the top gridpoint, where ``gap = 0``. Give both limits or
-        neither.
-        """
         if (intercept_limit is None) != (slope_limit is None):
             raise ValueError(
                 "intercept_limit and slope_limit must be given together or not at all"
             )
-        if lower_extrap:
-            lower_row = [self.y_list[0], self.dydx_list[0], 0.0, 0.0]
-        else:
-            lower_row = [np.nan, np.nan, np.nan, np.nan]
-
-        x_top = self.x_list[-1]
-        y_top = self.y_list[-1]
-        dydx_top = self.dydx_list[-1]
         if slope_limit is None:
-            slope_limit = dydx_top
-            intercept_limit = y_top - slope_limit * x_top
-        upper_row = _cubic_upper_row(
-            x_top, y_top, dydx_top, intercept_limit, slope_limit
+            intercept_limit, slope_limit = _cubic_top_tangent(
+                self.x_list, self.y_list, self.dydx_list
+            )
+        lower_row, upper_row = _cubic_end_rows(
+            self.x_list,
+            self.y_list,
+            self.dydx_list,
+            intercept_limit,
+            slope_limit,
+            lower_extrap,
         )
-        return lower_row, list(upper_row)
+        self.coeffs = self._build_coeffs(lower_row, upper_row)
 
-    def _eval_y_outbounds(self, y, out_bot, out_top, x):
-        """Apply the cubic lower/upper extrapolation values to ``y``."""
-        y[out_bot] = _cubic_lower_eval(x[out_bot], self.x_list[0], self.coeffs[0])[0]
-        y[out_top] = _cubic_upper_eval(
-            x[out_top], self.x_list[-1], self.coeffs[self.n]
-        )[0]
+    def _build_coeffs(self, lower_row, upper_row):
+        """Return ``coeffs``: ``lower_row``, the segment rows, ``upper_row``."""
+        raise NotImplementedError()
 
-    def _eval_dydx_outbounds(self, dydx, out_bot, out_top, x):
-        """Apply the cubic lower/upper extrapolation derivatives to ``dydx``."""
-        dydx[out_bot] = self.coeffs[0, 1]
-        dydx[out_top] = _cubic_upper_eval(
-            x[out_top], self.x_list[-1], self.coeffs[self.n]
-        )[1]
+    def _fill_outbounds(self, x, out_bot, out_top, y=None, dydx=None):
+        """
+        Write the extrapolation below and above the grid into ``y`` and
+        ``dydx``, each optional, at the points ``out_bot`` and ``out_top``.
+        """
+        ends = (
+            (out_bot, _cubic_lower_eval, self.x_list[0], self.coeffs[0]),
+            (out_top, _cubic_upper_eval, self.x_list[-1], self.coeffs[-1]),
+        )
+        for out, extrap_eval, x_end, row in ends:
+            if not out.any():
+                continue
+            y_out, dydx_out = extrap_eval(x[out], x_end, row)
+            if y is not None:
+                y[out] = y_out
+            if dydx is not None:
+                dydx[out] = dydx_out
 
 
 class HARKinterpolator2D(MetricObject):
@@ -1200,7 +1260,7 @@ class LinearInterp(HARKinterpolator1D):
         return y, dydx
 
 
-class CubicInterp(_CubicExtrapMixin, HARKinterpolator1D):
+class CubicInterp(_CubicInterpMixin, HARKinterpolator1D):
     """
     An interpolating function using piecewise cubic splines.  Matches level and
     slope of 1D function at gridpoints, smoothly interpolating in between.
@@ -1224,71 +1284,23 @@ class CubicInterp(_CubicExtrapMixin, HARKinterpolator1D):
         Slope of limiting linear function. Give both limits or neither.
     lower_extrap : boolean
         Indicator for whether lower extrapolation is allowed.  False means
-        f(x) = NaN for x < min(x_list); True means linear extrapolation.
+        f(x) = NaN for x < min(x_list). True means linear extrapolation.
     """
 
-    distance_criteria = ["x_list", "y_list", "dydx_list"]
-
-    def __init__(
-        self,
-        x_list,
-        y_list,
-        dydx_list,
-        intercept_limit=None,
-        slope_limit=None,
-        lower_extrap=False,
-    ):
-        self._init_cubic_grids(x_list, y_list, dydx_list)
-        lower_row, upper_row = self._cubic_extrap_rows(
-            lower_extrap, intercept_limit, slope_limit
-        )
-
-        # Per-segment cubic coefficients on segments mapped to [0,1] (vectorized)
-        xL = self.x_list[:-1]
-        xR = self.x_list[1:]
-        yL = self.y_list[:-1]
-        yR = self.y_list[1:]
-        Span = xR - xL
-        dydxL = self.dydx_list[:-1] * Span
-        dydxR = self.dydx_list[1:] * Span
-        seg = np.column_stack(
-            [
-                yL,
-                dydxL,
-                3 * (yR - yL) - 2 * dydxL - dydxR,
-                2 * (yL - yR) + dydxL + dydxR,
-            ]
-        )
-        self.coeffs = np.vstack([lower_row, seg, upper_row])
-
-    def _classify_segments(self, x):
-        """Bucket ``x`` into below-grid, above-grid, and in-bounds positions and
-        precompute in-bounds coefficient slices and the local segment ``alpha``.
-        Returns ``(m, out_bot, out_top, in_bnds, i, coeffs_in, alpha)``."""
-        m = len(x)
-        pos = _cubic_segment_index(self.x_list, x)
-        out_bot = pos == 0
-        out_top = pos == self.n
-        in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
-        i = pos[in_bnds]
-        coeffs_in = self.coeffs[i, :]
-        alpha = (x[in_bnds] - self.x_list[i - 1]) / (
-            self.x_list[i] - self.x_list[i - 1]
-        )
-        return m, out_bot, out_top, in_bnds, i, coeffs_in, alpha
+    def _build_coeffs(self, lower_row, upper_row):
+        """Stack the extrapolation rows around the segment cubics on ``[0, 1]``."""
+        segments = _cubic_segment_coeffs(self.x_list, self.y_list, self.dydx_list)
+        return np.vstack([lower_row, segments, upper_row])
 
     def _evaluate(self, x):
         """
         Returns the level of the interpolated function at each value in x.  Only
         called internally by HARKinterpolator1D.__call__ (etc).
         """
-        m, out_bot, out_top, in_bnds, _i, coeffs_in, alpha = self._classify_segments(x)
-        y = np.zeros(m)
-        if y.size > 0:
-            y[in_bnds] = coeffs_in[:, 0] + alpha * (
-                coeffs_in[:, 1] + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
-            )
-            self._eval_y_outbounds(y, out_bot, out_top, x)
+        out_bot, out_top, in_bnds, i, alpha, _span = _cubic_locate(self.x_list, x)
+        y = np.zeros(x.size)
+        y[in_bnds] = _cubic_poly_value(self.coeffs[i], alpha)
+        self._fill_outbounds(x, out_bot, out_top, y=y)
         return y
 
     def _der(self, x):
@@ -1296,14 +1308,10 @@ class CubicInterp(_CubicExtrapMixin, HARKinterpolator1D):
         Returns the first derivative of the interpolated function at each value
         in x. Only called internally by HARKinterpolator1D.derivative (etc).
         """
-        m, out_bot, out_top, in_bnds, i, coeffs_in, alpha = self._classify_segments(x)
-        dydx = np.zeros(m)
-        if dydx.size > 0:
-            dydx[in_bnds] = (
-                coeffs_in[:, 1]
-                + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
-            ) / (self.x_list[i] - self.x_list[i - 1])
-            self._eval_dydx_outbounds(dydx, out_bot, out_top, x)
+        out_bot, out_top, in_bnds, i, alpha, span = _cubic_locate(self.x_list, x)
+        dydx = np.zeros(x.size)
+        dydx[in_bnds] = _cubic_poly_slope(self.coeffs[i], alpha, span)
+        self._fill_outbounds(x, out_bot, out_top, dydx=dydx)
         return dydx
 
     def _evalAndDer(self, x):
@@ -1311,23 +1319,17 @@ class CubicInterp(_CubicExtrapMixin, HARKinterpolator1D):
         Returns the level and first derivative of the function at each value in
         x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
         """
-        m, out_bot, out_top, in_bnds, i, coeffs_in, alpha = self._classify_segments(x)
-        y = np.zeros(m)
-        dydx = np.zeros(m)
-        if y.size > 0:
-            y[in_bnds] = coeffs_in[:, 0] + alpha * (
-                coeffs_in[:, 1] + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
-            )
-            dydx[in_bnds] = (
-                coeffs_in[:, 1]
-                + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
-            ) / (self.x_list[i] - self.x_list[i - 1])
-            self._eval_y_outbounds(y, out_bot, out_top, x)
-            self._eval_dydx_outbounds(dydx, out_bot, out_top, x)
+        out_bot, out_top, in_bnds, i, alpha, span = _cubic_locate(self.x_list, x)
+        coeffs_in = self.coeffs[i]
+        y = np.zeros(x.size)
+        dydx = np.zeros(x.size)
+        y[in_bnds] = _cubic_poly_value(coeffs_in, alpha)
+        dydx[in_bnds] = _cubic_poly_slope(coeffs_in, alpha, span)
+        self._fill_outbounds(x, out_bot, out_top, y=y, dydx=dydx)
         return y, dydx
 
 
-class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
+class CubicHermiteInterp(_CubicInterpMixin, HARKinterpolator1D):
     """
     An interpolating function using piecewise cubic splines.  Matches level and
     slope of 1D function at gridpoints, smoothly interpolating in between.
@@ -1351,30 +1353,18 @@ class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
         Slope of limiting linear function. Give both limits or neither.
     lower_extrap : boolean
         Indicator for whether lower extrapolation is allowed.  False means
-        f(x) = NaN for x < min(x_list); True means linear extrapolation.
+        f(x) = NaN for x < min(x_list). True means linear extrapolation.
     """
 
-    distance_criteria = ["x_list", "y_list", "dydx_list"]
-
-    def __init__(
-        self,
-        x_list,
-        y_list,
-        dydx_list,
-        intercept_limit=None,
-        slope_limit=None,
-        lower_extrap=False,
-    ):
-        self._init_cubic_grids(x_list, y_list, dydx_list)
-
+    def _build_coeffs(self, lower_row, upper_row):
+        """
+        Build the scipy spline ``_chs`` and stack the extrapolation rows around
+        its segment coefficients, in powers of ``x - x_i``.
+        """
         self._chs = CubicHermiteSpline(
             self.x_list, self.y_list, self.dydx_list, extrapolate=None
         )
-        lower_row, upper_row = self._cubic_extrap_rows(
-            lower_extrap, intercept_limit, slope_limit
-        )
-        self.coeffs = np.vstack([lower_row, np.flip(self._chs.c.T, 1), upper_row])
-        self._linear_segments = []  # segments replaced by their chord (set_linear_segment)
+        return np.vstack([lower_row, np.flip(self._chs.c.T, 1), upper_row])
 
     def __getstate__(self):
         """
@@ -1393,19 +1383,15 @@ class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
     def __setstate__(self, state):
         """
         Restore instance state, rebuilding the scipy spline that
-        ``__getstate__`` excluded from its defining data. The reconstruction
-        is deterministic, so the rebuilt spline is identical to the original.
+        ``__getstate__`` excluded from its defining data and copying back its
+        segment coefficients from ``coeffs``, which keep any segment
+        :meth:`set_linear_segment` replaced.
         """
         self.__dict__.update(state)
         self._chs = CubicHermiteSpline(
             self.x_list, self.y_list, self.dydx_list, extrapolate=None
         )
-        if not hasattr(
-            self, "_linear_segments"
-        ):  # instances pickled before the attribute existed
-            self._linear_segments = []
-        for i in list(self._linear_segments):
-            self.set_linear_segment(i)
+        self._chs.c[:] = np.flip(self.coeffs[1:-1], 1).T
 
     def set_linear_segment(self, i):
         """
@@ -1419,9 +1405,9 @@ class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
         its own. The KinkedR consumption function needs it between its two
         zero-asset points, where end-of-period assets stay at zero, so
         consumption equals cash-on-hand with slope one, while the slopes just
-        outside are the borrowing- and saving-side MPCs. The patch is recorded in
-        the instance state, so it survives pickling and deepcopy, which rebuild
-        the scipy spline.
+        outside are the borrowing- and saving-side MPCs. The patch is written to
+        ``coeffs`` too, from which ``__setstate__`` restores it after pickling
+        or deepcopy rebuild the scipy spline.
 
         Parameters
         ----------
@@ -1437,8 +1423,6 @@ class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
         # scipy's PPoly: coefficient k multiplies (x - x_i) ** (3 - k)
         self._chs.c[:, i] = [0.0, 0.0, slope, self.y_list[i]]
         self.coeffs[i + 1] = [self.y_list[i], slope, 0.0, 0.0]
-        if i not in self._linear_segments:
-            self._linear_segments.append(i)
 
     def out_of_bounds(self, x):
         out_bot = x < self.x_list[0]
@@ -1451,12 +1435,8 @@ class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
         called internally by HARKinterpolator1D.__call__ (etc).
         """
         out_bot, out_top = self.out_of_bounds(x)
-
-        return self._eval_helper(x, out_bot, out_top)
-
-    def _eval_helper(self, x, out_bot, out_top):
         y = self._chs(x)
-        self._eval_y_outbounds(y, out_bot, out_top, x)
+        self._fill_outbounds(x, out_bot, out_top, y=y)
         return y
 
     def _der(self, x):
@@ -1465,12 +1445,8 @@ class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
         in x. Only called internally by HARKinterpolator1D.derivative (etc).
         """
         out_bot, out_top = self.out_of_bounds(x)
-
-        return self._der_helper(x, out_bot, out_top)
-
-    def _der_helper(self, x, out_bot, out_top):
         dydx = self._chs(x, nu=1)
-        self._eval_dydx_outbounds(dydx, out_bot, out_top, x)
+        self._fill_outbounds(x, out_bot, out_top, dydx=dydx)
         return dydx
 
     def _evalAndDer(self, x):
@@ -1479,8 +1455,9 @@ class CubicHermiteInterp(_CubicExtrapMixin, HARKinterpolator1D):
         x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
         """
         out_bot, out_top = self.out_of_bounds(x)
-        y = self._eval_helper(x, out_bot, out_top)
-        dydx = self._der_helper(x, out_bot, out_top)
+        y = self._chs(x)
+        dydx = self._chs(x, nu=1)
+        self._fill_outbounds(x, out_bot, out_top, y=y, dydx=dydx)
         return y, dydx
 
     def der_interp(self, nu=1):
