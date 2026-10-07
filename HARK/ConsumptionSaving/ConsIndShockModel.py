@@ -328,6 +328,112 @@ def calc_mpc_min(mpc_min_next, pat_fac):
     return 1.0 / (1.0 + pat_fac / mpc_min_next)
 
 
+def calc_mpc_min_closed_form(pat_fac, periods_left=np.inf):
+    r"""Calculate the lower bound of the MPC of a perfect foresight consumer in
+    closed form.
+
+    This is the closed-form counterpart of :func:`calc_mpc_min`: iterating that
+    one-step recursion backward from the terminal period, where the MPC is one,
+    reaches this value after ``periods_left`` steps.
+
+    Parameters
+    ----------
+    pat_fac : float
+        Return patience factor :math:`\textbf{Þ}_R = (R \beta \mathcal{L})^{1/\rho} / R`,
+        as computed by :func:`calc_patience_factor` from the effective discount
+        factor and passed to :func:`calc_mpc_min` by the perfect foresight solver.
+    periods_left : int or float, optional
+        Number of periods remaining after this one: 0 is the terminal period,
+        and ``np.inf`` (the default) gives the infinite horizon limit.
+
+    Returns
+    -------
+    mpc_min : float
+        Lower bound of the marginal propensity to consume, which is the MPC as
+        market resources go to infinity (``MPCmin`` in the solution).
+
+    Notes
+    -----
+    The recursion is :math:`\kappa_n^{-1} = 1 + \textbf{Þ}_R \kappa_{n-1}^{-1}`
+    with :math:`\kappa_0 = 1`, so with :math:`n` periods left
+
+    .. math::
+
+        \kappa_n = \frac{1 - \textbf{Þ}_R}{1 - \textbf{Þ}_R^{n+1}},
+
+    which is :math:`1/(n+1)` when :math:`\textbf{Þ}_R = 1`. As
+    :math:`n \to \infty` it converges to :math:`1 - \textbf{Þ}_R` when the Return
+    Impatience Condition (RIC, :math:`\textbf{Þ}_R < 1`) holds, and to zero when
+    it fails.
+
+    The parameters must be constant over time. For a life-cycle profile, iterate
+    :func:`calc_mpc_min` instead.
+
+    References
+    ----------
+    https://intertemporal-choice.github.io/content/consumption/perfforesightcrra/
+    """
+    if periods_left == np.inf:
+        return max(1.0 - pat_fac, 0.0)
+    if pat_fac == 1.0:
+        return 1.0 / (periods_left + 1)
+    return (1.0 - pat_fac) / (1.0 - pat_fac ** (periods_left + 1))
+
+
+def calc_human_wealth_closed_form(perm_gro_fac, rfree, periods_left=np.inf):
+    r"""Calculate the normalized human wealth of a perfect foresight consumer in
+    closed form.
+
+    This is the closed-form counterpart of :func:`calc_human_wealth` when income
+    is one (normalized by permanent income) every period: iterating that one-step
+    recursion backward from the terminal period, where human wealth is zero,
+    reaches this value after ``periods_left`` steps.
+
+    Parameters
+    ----------
+    perm_gro_fac : float
+        Permanent income growth factor :math:`G`.
+    rfree : float
+        Risk free interest factor :math:`R`.
+    periods_left : int or float, optional
+        Number of periods remaining after this one: 0 is the terminal period,
+        and ``np.inf`` (the default) gives the infinite horizon limit.
+
+    Returns
+    -------
+    h_nrm : float
+        Human wealth divided by permanent income, excluding this period's income,
+        as in the solution's ``hNrm``. (The ``hNrm`` that ``calc_limiting_values``
+        stores in ``bilt`` includes this period's income, so it is one larger
+        than the infinite horizon value here.)
+
+    Notes
+    -----
+    With the finite human wealth factor :math:`G/R` and :math:`n` periods left,
+
+    .. math::
+
+        h_n = \sum_{i=1}^{n} (G/R)^i = \frac{(G/R) \left(1 - (G/R)^n\right)}{1 - G/R},
+
+    which is :math:`n` when :math:`G = R`. As :math:`n \to \infty` it converges
+    to :math:`(G/R)/(1 - G/R)` when the Finite Human Wealth Condition (FHWC,
+    :math:`G/R < 1`) holds, and is infinite when it fails.
+
+    The parameters must be constant over time. For a life-cycle profile, iterate
+    :func:`calc_human_wealth` instead.
+
+    References
+    ----------
+    https://intertemporal-choice.github.io/content/consumption/perfforesightcrra/
+    """
+    fhw_fac = perm_gro_fac / rfree
+    if periods_left == np.inf:
+        return fhw_fac / (1.0 - fhw_fac) if fhw_fac < 1.0 else np.inf
+    if fhw_fac == 1.0:
+        return float(periods_left)
+    return fhw_fac * (1.0 - fhw_fac**periods_left) / (1.0 - fhw_fac)
+
+
 def solve_one_period_ConsPF(
     solution_next,
     DiscFac,
