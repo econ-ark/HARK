@@ -12,6 +12,16 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Date: TBD
 
+#### Before release
+
+Work through this list when preparing the release, then delete it. The version lines in `pyproject.toml` and `HARK/__init__.py` point here.
+
+- [ ] **sympy ([#1850](https://github.com/econ-ark/HARK/issues/1850)).** The released `requirements/base.txt` must list `sympy`: `main` has since 01d0fce, but a release cut from the 0.17.2 tag needs it added. After publishing, check that `pip install econ-ark` and then `import HARK` work in a clean environment on Python 3.12 or later.
+- [ ] **Version number ([#1850](https://github.com/econ-ark/HARK/issues/1850)).** `main` raises the minimum Python to 3.12 and has breaking changes. #1850 proposes calling its release 0.18.0 and using 0.17.3 for the sympy patch.
+- [ ] **conda-forge.** Add `sympy` to the run requirements in the recipe of [conda-forge/econ-ark-feedstock](https://github.com/conda-forge/econ-ark-feedstock), and make its `python_min` match `requires-python`.
+- [ ] **Installation guide.** Once the fix is on PyPI, remove the sympy notes from `docs/guides/installation.md`, and make its "Python versions 3.10 and up" match `requires-python`.
+- [ ] **Close [#1850](https://github.com/econ-ark/HARK/issues/1850).**
+
 #### Release Notes
 
 (None yet)
