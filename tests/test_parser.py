@@ -16,8 +16,6 @@ class test_consumption_parsing(unittest.TestCase):
         self.consumer_yaml_file = open(consumer_yaml_path, "r")
 
     def test_parse(self):
-        self.consumer_yaml_file
-
         config = yaml.load(self.consumer_yaml_file, Loader=parser.harklang_loader())
 
         self.assertEqual(config["calibration"]["DiscFac"], 0.96)

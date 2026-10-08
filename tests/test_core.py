@@ -1114,7 +1114,7 @@ class TestSolveFrom(unittest.TestCase):
 
 # Define a constructor that will definitely throw an error
 def broken_constructor(IncShkDstn):
-    X = np.linspace(0.0, 1.0, 21)
+    np.linspace(0.0, 1.0, 21)
     raise ValueError("This is an intentional error from a broken constructor")
 
 
