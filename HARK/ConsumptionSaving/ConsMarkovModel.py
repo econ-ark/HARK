@@ -611,12 +611,17 @@ def solve_one_period_ConsMarkov(
     MPCmaxEff = MPCmaxNow
     MPCmaxEff[BoroCnstNat_list < mNrmMin_list] = 1.0
 
-    # Calculate the current Markov-state-conditional PDV of human wealth, correctly
-    # accounting for risky returns and risk aversion
+    # Calculate the current Markov-state-conditional PDV of human wealth, accounting
+    # for risky returns and risk aversion. Each future state is weighted by
+    # MPCmin**(-CRRA), as in the MPCmin recursion below.
     hNrmPlusIncNext = Ex_IncNextAll + solution_next.hNrm
-    R_adj = np.dot(MrkvArray, Rfree_list ** (1.0 - CRRA))
+    MPCminWeight = solution_next.MPCmin ** (-CRRA)
+    R_adj = np.dot(MrkvArray, MPCminWeight * Rfree_list ** (1.0 - CRRA))
     hNrmNow = (
-        np.dot(MrkvArray, (PermGroFac_list / Rfree_list**CRRA) * hNrmPlusIncNext)
+        np.dot(
+            MrkvArray,
+            MPCminWeight * (PermGroFac_list / Rfree_list**CRRA) * hNrmPlusIncNext,
+        )
         / R_adj
     )
 
