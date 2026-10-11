@@ -486,3 +486,133 @@ class testMakeShockHistoryShuffleFlag(unittest.TestCase):
         self.assertFalse(agent.markov_shuffle)
         self.assertFalse(agent.income_shuffle)
         self.assertTrue(agent.read_shocks)
+
+
+class testStateCountsFollowTheInstalledArrays(unittest.TestCase):
+    """``num_micro_states`` and ``num_macro_states`` are read from the arrays the
+    agent holds; a count given to the constructor is only checked against them.
+    """
+
+    COND_A = np.array([[0.8, 0.2, 0.0], [0.4, 0.5, 0.1], [0.1, 0.2, 0.7]])
+    COND_B = np.array([[0.5, 0.5, 0.0], [0.25, 0.5, 0.25], [0.0, 0.3, 0.7]])
+
+    def _bare(self):
+        return AggIndMrkvConsumerType.__new__(AggIndMrkvConsumerType)
+
+    def test_nothing_installed_and_nothing_given_is_a_plain_markov_type(self):
+        a = self._bare()
+        self.assertIsNone(a.num_micro_states)
+        self.assertIsNone(a.num_macro_states)
+        self.assertFalse(a._hierarchical)
+
+    def test_counts_are_read_from_cond_mrkv_arrays_in_both_formats(self):
+        a = self._bare()
+        a.CondMrkvArrays = [self.COND_A, self.COND_B]  # simple: one per macro state
+        self.assertEqual(a.num_micro_states, 3)
+        self.assertEqual(a.num_macro_states, 2)
+        self.assertTrue(a._hierarchical)
+        a.CondMrkvArrays = [
+            [self.COND_A, self.COND_B],
+            [self.COND_B, self.COND_A],
+        ]  # general: source x destination
+        self.assertEqual(a.num_micro_states, 3)
+        self.assertEqual(a.num_macro_states, 2)
+
+    def test_switching_the_chain_switches_the_counts(self):
+        a = self._bare()
+        a.CondMrkvArrays = [self.COND_A]
+        self.assertEqual(a.num_macro_states, 1)
+        a.CondMrkvArrays = [self.COND_A, self.COND_B, self.COND_A]
+        self.assertEqual(a.num_macro_states, 3)
+        self.assertEqual(a.num_micro_states, 3)
+
+    def test_macro_count_from_the_combined_array_when_there_are_no_cond_arrays(self):
+        a = self._bare()
+        a.num_micro_states = 2
+        a.MrkvArray = [np.eye(6)]  # time-varying list: three blocks of two
+        self.assertEqual(a.num_macro_states, 3)
+        a.MrkvArray = np.eye(2)  # a single array: one block
+        self.assertEqual(a.num_macro_states, 1)
+        a.MrkvArray = [np.eye(5)]
+        with self.assertRaises(ValueError) as cm:
+            _ = a.num_macro_states
+        self.assertIn("whole number of blocks", str(cm.exception))
+
+    def test_a_given_count_is_checked_against_the_installed_arrays(self):
+        a = self._bare()
+        a.CondMrkvArrays = [self.COND_A, self.COND_B]
+        a.num_macro_states = 2  # restating the installed count is accepted
+        a.num_micro_states = 3
+        self.assertEqual((a.num_macro_states, a.num_micro_states), (2, 3))
+        with self.assertRaises(ValueError) as cm:
+            a.num_macro_states = 5
+        self.assertIn("num_macro_states=5", str(cm.exception))
+        with self.assertRaises(ValueError):
+            a.num_micro_states = 4
+        # given before the arrays, contradicted by what is installed later
+        b = self._bare()
+        b.num_macro_states = 1
+        self.assertEqual(b.num_macro_states, 1)  # nothing installed yet
+        b.CondMrkvArrays = [self.COND_A, self.COND_B]
+        with self.assertRaises(ValueError) as cm:
+            _ = b.num_macro_states
+        self.assertIn("installed chain has 2", str(cm.exception))
+
+    def test_a_full_agent_needs_no_counts_and_decodes_with_the_derived_ones(self):
+        TM_micro = np.array([[0.95, 0.05], [0.5, 0.5]])
+        init = deepcopy(init_indshk_markov)
+        init["cycles"] = 0
+        init["MrkvArray"] = [
+            make_hierarchical_mrkv_array(np.array([[1.0]]), [TM_micro])
+        ]
+        init["constructors"]["MrkvArray"] = None
+        init["Rfree"] = [np.array([1.03, 1.03])]
+        init["LivPrb"] = [np.array([0.98, 0.98])]
+        init["PermGroFac"] = [np.array([1.01, 1.01])]
+        init["CondMrkvArrays"] = [TM_micro]
+        init["AgentCount"] = 1_000
+        init["T_sim"] = 3
+        init["MrkvPrbsInit"] = np.array([0.95, 0.05])
+
+        agent = AggIndMrkvConsumerType(
+            **init
+        )  # no num_macro_states, no num_micro_states
+        self.assertEqual((agent.num_macro_states, agent.num_micro_states), (1, 2))
+        self.assertTrue(agent._hierarchical)
+        det_inc = DiscreteDistributionLabeled(
+            pmv=np.ones(1),
+            atoms=np.array([[1.0], [1.0]]),
+            var_names=["PermShk", "TranShk"],
+        )
+        agent.IncShkDstn = [[det_inc, det_inc]]
+        agent.solve()
+        agent.initialize_sim()
+        agent.t_age[:] = 1
+        agent.t_sim = 1
+        agent.get_markov_states()
+        N = agent.num_micro_states
+        np.testing.assert_array_equal(
+            agent.shocks["Mrkv"], N * agent.MacroMrkvNow + agent.MicroMrkvNow
+        )
+        self.assertTrue(np.all(agent.MacroMrkvNow == 0))
+
+    def test_passing_both_counts_as_before_is_unchanged_when_they_match(self):
+        TM_micro = np.array([[0.95, 0.05], [0.5, 0.5]])
+        init = deepcopy(init_indshk_markov)
+        init["cycles"] = 0
+        init["MrkvArray"] = [
+            make_hierarchical_mrkv_array(np.array([[1.0]]), [TM_micro])
+        ]
+        init["constructors"]["MrkvArray"] = None
+        init["Rfree"] = [np.array([1.03, 1.03])]
+        init["LivPrb"] = [np.array([0.98, 0.98])]
+        init["PermGroFac"] = [np.array([1.01, 1.01])]
+        init["num_macro_states"] = 1
+        init["num_micro_states"] = 2
+        init["CondMrkvArrays"] = [TM_micro]
+        agent = AggIndMrkvConsumerType(**init)
+        self.assertEqual((agent.num_macro_states, agent.num_micro_states), (1, 2))
+        self.assertEqual(agent.parameters["num_macro_states"], 1)
+        init["num_macro_states"] = 2  # disagrees with the one-block chain
+        with self.assertRaises(ValueError):
+            AggIndMrkvConsumerType(**init)
