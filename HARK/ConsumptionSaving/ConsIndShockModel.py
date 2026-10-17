@@ -1714,8 +1714,8 @@ class PerfForesightConsumerType(AgentType):
         result = PFVAFac < 1.0
 
         messages = {
-            True: f"PFVAFac={PFVAFac:.5f} : The Finite Value of Autarky Factor satisfies the Finite Value of Autarky Condition βG^(1-ρ) < 1.",
-            False: f"PFVAFac={PFVAFac:.5f} : The Finite Value of Autarky Factor violates the Finite Value of Autarky Condition βG^(1-ρ) < 1.",
+            True: f"PFVAFac={PFVAFac:.5f} : The Finite Value of Autarky Factor satisfies the Finite Value of Autarky Condition ℒβG^(1-ρ) < 1.",
+            False: f"PFVAFac={PFVAFac:.5f} : The Finite Value of Autarky Factor violates the Finite Value of Autarky Condition ℒβG^(1-ρ) < 1.",
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -2550,9 +2550,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             UtilCompPermShk = expected(CRRAfunc, PermShkDstn)[0] ** (
                 1 / (1.0 - self.CRRA)
             )
-        aux_dict["VAFac"] = self.DiscFac * (self.PermGroFac[0] * UtilCompPermShk) ** (
-            1.0 - self.CRRA
-        )
+        aux_dict["VAFac"] = (self.DiscFac * self.LivPrb[0]) * (
+            self.PermGroFac[0] * UtilCompPermShk
+        ) ** (1.0 - self.CRRA)
 
         # Calculate the expected log permanent income shock, which will be used
         # for the Szeidl variation of the Growth Impatience condition
@@ -2680,8 +2680,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         result = VAFac < 1.0
 
         messages = {
-            True: f"VAFac={VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor satisfies the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
-            False: f"VAFac={VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor violates the Risk-Modified Finite Value of Autarky Condition β(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
+            True: f"VAFac={VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor satisfies the Risk-Modified Finite Value of Autarky Condition ℒβ(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
+            False: f"VAFac={VAFac:.5f} : The Risk-Modified Finite Value of Autarky Factor violates the Risk-Modified Finite Value of Autarky Condition ℒβ(G‖Ψ‖_(1-ρ))^(1-ρ) < 1.",
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
