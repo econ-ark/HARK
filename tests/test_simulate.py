@@ -1411,6 +1411,8 @@ class testsForFlowBudgetAndAggregation(unittest.TestCase):
         # Rfree * LivPrb / PermGroFac per unit of a trend they do inherit
         agent = _fb_agent(PermGroFac=[1.01])
         for newborn_growth, wrong in ((1.0, 1.01), (1.01, 1.0)):
+            # the economy is chosen on the agent (HARK.SSJutils, Two economies)
+            agent.PermGroFacAgg = newborn_growth
             C, A, Y = _fb_ssjs(agent, "wage", newborn_growth=newborn_growth)
             self.assertLess(
                 check_flow_budget(
