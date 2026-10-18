@@ -99,3 +99,22 @@ jobs:
                          --ignore=tests/test_econforgeinterp.py \
                          --ignore=tests/ConsumptionSaving/test_IndShockConsumerTypeFast.py \
                          --ignore=tests/ConsumptionSaving/test_PerfForesightFastConsumerType.py
+
+  # The JAX backend of the interpolators is optional, so the matrix above never
+  # installs JAX and its tests skip there. This job installs the extra and runs
+  # them, at both precisions, against the numpy backend.
+  jax:
+    name: Test the JAX backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install with the jax extra
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev,jax]"
+      - name: Test with pytest
+        run: |
+          pytest tests/test_interpolation_jax_backend.py tests/test_interp_kernels.py
