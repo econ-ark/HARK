@@ -6,19 +6,25 @@ Exception, and each one catches a specific tuple of exception types. Without
 a test on the raise path, narrowing or widening that tuple is invisible: an
 input whose attribute access raises outside the tuple propagates a raw
 AttributeError instead of the intended message, and nothing notices.
+
+Also tested here: the bounds MixtureTranIncShk_HANK records when it rescales
+its atoms.
 """
 
 import unittest
+from unittest import mock
 
 import numpy as np
 
 from HARK.Calibration.Income.IncomeProcesses import (
+    MixtureTranIncShk_HANK,
     _expand_expense_shock_schedule,
     _markov_unemployment_lists,
     _validate_markov_retirement,
     _validate_markov_state_dims,
     _validate_markov_unemployment_ndim,
 )
+from HARK.distributions import Uniform
 
 
 class testValidateMarkovStateDims(unittest.TestCase):
@@ -184,3 +190,32 @@ class testExpandExpenseShockSchedule(unittest.TestCase):
     def test_final_band_spans_31_positions(self):
         for pos in range(90, 121):
             np.testing.assert_array_equal(self.out[pos], np.array([8.0]))
+
+
+class testMixtureTranIncShkHANKBounds(unittest.TestCase):
+    """The rescaled atoms of MixtureTranIncShk_HANK must keep their bounds."""
+
+    def test_bounds_rescaled_with_atoms(self):
+        # The lognormal's bounds are 0 and infinity, which rescaling leaves
+        # alone, so a uniform base with finite bounds stands in for it
+        class FiniteBase(Uniform):
+            def __init__(self, sigma):
+                super().__init__(bot=1.0 - sigma, top=1.0 + sigma, seed=0)
+
+            def _approx_equiprobable(self, N, endpoints=False, **kwds):
+                return super()._approx_equiprobable(N, endpoints)
+
+        sigma, UnempPrb, IncUnemp = 0.2, 0.05, 0.3
+        wage, labor, tax_rate = 1.2, 0.9, 0.25
+        with mock.patch(
+            "HARK.Calibration.Income.IncomeProcesses.MeanOneLogNormal", FiniteBase
+        ):
+            dstn = MixtureTranIncShk_HANK(
+                sigma, UnempPrb, IncUnemp, 7, wage=wage, labor=labor, tax_rate=tax_rate
+            )
+        scale = (1.0 - tax_rate) * labor * wage
+        top = (1.0 + sigma) * (1 - UnempPrb * IncUnemp) / (1 - UnempPrb)
+        self.assertAlmostEqual(dstn.limit["infimum"][0], IncUnemp * scale)
+        self.assertAlmostEqual(dstn.limit["supremum"][0], top * scale)
+        self.assertLessEqual(dstn.limit["infimum"][0], np.min(dstn.atoms))
+        self.assertGreaterEqual(dstn.limit["supremum"][0], np.max(dstn.atoms))
