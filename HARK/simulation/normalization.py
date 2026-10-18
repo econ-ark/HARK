@@ -294,11 +294,14 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
                 "Override _perm_shk_mean_target() for this model.",
             )
 
-        # Models that pin newborn TranShk to exactly 1.0 (NewbornTransShk
-        # False) are making a deliberate choice; rescaling would undo it.
+        # Models that pin a newborn's TranShk or PermShk to exactly 1.0
+        # (NewbornTransShk or NewbornPermShk False) are making a deliberate
+        # choice; rescaling would undo it.
         held_out = {}
         if not getattr(self, "NewbornTransShk", True):
             held_out["TranShk"] = np.asarray(self.t_age, dtype=int) == 0
+        if not getattr(self, "NewbornPermShk", True):
+            held_out["PermShk"] = np.asarray(self.t_age, dtype=int) == 0
 
         skipped = 0
         for name, target in targets.items():

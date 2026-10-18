@@ -456,6 +456,8 @@ class DualMeasureMixin:
             )
             if not getattr(self, "NewbornTransShk", False):
                 TranShkQ[newborn] = 1.0
+            if not getattr(self, "NewbornPermShk", True):
+                PermShkQ[newborn] = 1.0
 
         self.shocks_Q["PermShk"] = PermShkQ
         self.shocks_Q["TranShk"] = TranShkQ
@@ -470,7 +472,8 @@ class DualMeasureMixin:
         Newborns mirror ``MarkovConsumerType.get_shocks``: their permanent
         shock is redrawn from ``IncShkDstn[0][j]`` rather than being the
         deterministic ``PermGroFac[0][j]``, and ``TranShk`` is pinned to 1
-        only when ``NewbornTransShk`` is off.  Under
+        only when ``NewbornTransShk`` is off (``PermShk`` likewise, when
+        ``NewbornPermShk`` is off).  Under
         ``_cache_base_shock_draws`` the newborn redraw records its uniforms
         under ``("newborn", j)``, so newborn P and Q permanent shocks share
         them like every other cell.  The independent draw below is the
@@ -512,6 +515,8 @@ class DualMeasureMixin:
                     )
             if not getattr(self, "NewbornTransShk", False):
                 TranShkQ[newborn] = 1.0
+            if not getattr(self, "NewbornPermShk", True):
+                PermShkQ[newborn] = 1.0
 
         self.shocks_Q["PermShk"] = PermShkQ
         self.shocks_Q["TranShk"] = TranShkQ
