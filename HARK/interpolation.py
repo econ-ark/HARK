@@ -127,6 +127,52 @@ def _dispatch_backend(cls, base, jax_class_name, args, kwargs, backend, dtype):
     )
 
 
+def _is_jax_backed(func):
+    return getattr(func, "_hark_jax_backed", False)
+
+
+def _dispatch_composite(
+    cls, base, jax_class_name, components, restoring, backend, dtype=None
+):
+    """
+    The class ``base.__new__`` should construct, for an interpolator built from
+    other functions: its backend follows its components. JAX-backed components
+    give ``base``'s JAX implementation, numpy components the numpy class, and a
+    mixture is refused, as is an explicit backend that disagrees with them.
+    ``restoring`` is True for a call without arguments (copy and pickle).
+    """
+    if restoring:
+        return cls
+    if backend is not None:
+        _check_backend(backend, None)
+    jax_backed = [_is_jax_backed(f) for f in components]
+    if not any(jax_backed):
+        if backend == "jax":
+            raise NotImplementedError(
+                f"{base.__name__}(backend='jax') needs JAX-backed components: "
+                "construct them with backend='jax'."
+            )
+        _check_backend("numpy", dtype)
+        return cls
+    if not all(jax_backed):
+        raise NotImplementedError(
+            f"{base.__name__} cannot combine JAX-backed and numpy components."
+        )
+    if backend == "numpy":
+        raise ValueError(
+            f"{base.__name__}(backend='numpy') was given JAX-backed components."
+        )
+    from HARK import _interp_jax
+
+    jax_class = getattr(_interp_jax, jax_class_name)
+    if cls is base or issubclass(cls, jax_class):
+        return jax_class
+    raise NotImplementedError(
+        f"backend='jax' is not available for {cls.__name__}, a subclass of "
+        f"{base.__name__}."
+    )
+
+
 def _isscalar(x):
     """
     Check whether x is if a scalar type, or 0-dim.
@@ -2278,11 +2324,30 @@ class LowerEnvelope2D(HARKinterpolator2D):
     nan_bool : boolean
         An indicator for whether the solver should exclude NA's when forming
         the lower envelope.
+    backend : str or None
+        Follows the functions: if they are all JAX-backed (constructed with
+        ``backend="jax"``), so is the envelope. A mixture of JAX-backed and
+        numpy functions, or a backend that disagrees with them, is refused.
+    dtype : str or None
+        Must match the functions' precision if given.
     """
 
     distance_criteria = ["functions"]
 
-    def __init__(self, *functions, nan_bool=True):
+    def __new__(cls, *functions, nan_bool=True, backend=None, dtype=None):
+        cls = _dispatch_composite(
+            cls,
+            LowerEnvelope2D,
+            "JaxLowerEnvelope2D",
+            functions,
+            not functions,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    def __init__(self, *functions, nan_bool=True, backend=None, dtype=None):
+        # backend was acted on by __new__
         _init_envelope_state(self, functions, nan_bool, lower=True)
 
     def _evaluate(self, x, y):
@@ -2374,11 +2439,33 @@ class VariableLowerBoundFunc2D(HARKinterpolator2D):
     lowerBound : function
         The lower bound in the first input of the function of interest, as
         a function of the second input.
+    backend : str or None
+        Follows ``func`` and ``lowerBound``: if both are JAX-backed (constructed
+        with ``backend="jax"``), so is this function. A mixture, or a backend that
+        disagrees with them, is refused.
+    dtype : str or None
+        Must match the components' precision if given.
     """
 
     distance_criteria = ["func", "lowerBound"]
 
-    def __init__(self, func, lowerBound):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        components = list(args) + [
+            kwargs[k] for k in ("func", "lowerBound") if k in kwargs
+        ]
+        cls = _dispatch_composite(
+            cls,
+            VariableLowerBoundFunc2D,
+            "JaxVariableLowerBoundFunc2D",
+            components,
+            not args and not kwargs,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    def __init__(self, func, lowerBound, *, backend=None, dtype=None):
+        # backend was acted on by __new__
         self.func = func
         self.lowerBound = lowerBound
 
@@ -2579,11 +2666,81 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         xInterpolators represents f(x,y_values[n]).
     y_values: numpy.array
         An array of y values equal in length to xInterpolators.
+    backend : str or None
+        Follows ``xInterpolators``: if they are all JAX-backed ``LinearInterp``
+        objects (constructed with ``backend="jax"``), so is this interpolator. Their
+        grids may differ in length. A mixture, or a backend that disagrees with
+        them, is refused.
+    dtype : str or None
+        Must match the inner interpolators' precision if given.
     """
 
     distance_criteria = ["xInterpolators", "y_list"]
 
-    def __init__(self, xInterpolators, y_values):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        if args:
+            components = args[0]
+        else:
+            components = kwargs.get("xInterpolators", [])
+        cls = _dispatch_composite(
+            cls,
+            LinearInterpOnInterp1D,
+            "JaxLinearInterpOnInterp1D",
+            components,
+            not args and not kwargs,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    @classmethod
+    def from_arrays(
+        cls,
+        x_values,
+        f_values,
+        y_values,
+        lower_extrap=False,
+        *,
+        backend=None,
+        dtype=None,
+    ):
+        """
+        Make a LinearInterpOnInterp1D from arrays of grids and values: row ``k``
+        of ``x_values`` and ``f_values`` is a ``LinearInterp`` of
+        ``f(x, y_values[k])``.
+
+        Parameters
+        ----------
+        x_values, f_values : np.array or [np.array]
+            Arrays of shape ``(y_n, x_n)``, or sequences of ``y_n`` one-dimensional
+            arrays, whose lengths may then differ from row to row.
+        y_values : np.array
+            The ``y_n`` values of y, in increasing order.
+        lower_extrap : bool
+            Whether each row extrapolates below its first knot (True) or gives
+            NaN there (False, ``LinearInterp``'s default).
+        backend, dtype : str or None
+            As for ``LinearInterp``; with traced arrays and ``backend="jax"``,
+            this can be called inside ``jax.jit`` and ``jax.vmap``.
+
+        Returns
+        -------
+        LinearInterpOnInterp1D
+        """
+        inner = [
+            LinearInterp(
+                x_values[k],
+                f_values[k],
+                lower_extrap=lower_extrap,
+                backend=backend,
+                dtype=dtype,
+            )
+            for k in range(len(y_values))
+        ]
+        return cls(inner, y_values, backend=backend, dtype=dtype)
+
+    def __init__(self, xInterpolators, y_values, *, backend=None, dtype=None):
+        # backend was acted on by __new__
         self.xInterpolators = xInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
@@ -3834,11 +3991,32 @@ class MargValueFuncCRRA(MetricObject):
         envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).
     CRRA : float
         Coefficient of relative risk aversion.
+    backend : str or None
+        Follows ``cFunc``: if it is JAX-backed (constructed with
+        ``backend="jax"``), so is this function, and ``CRRA`` must then be a
+        number, not a traced value. A backend that disagrees with ``cFunc`` is
+        refused.
+    dtype : str or None
+        Must match ``cFunc``'s precision if given.
     """
 
     distance_criteria = ["cFunc", "CRRA"]
 
-    def __init__(self, cFunc, CRRA):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        components = args[:1] or [kwargs[k] for k in ("cFunc",) if k in kwargs]
+        cls = _dispatch_composite(
+            cls,
+            MargValueFuncCRRA,
+            "JaxMargValueFuncCRRA",
+            components,
+            not args and not kwargs,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    def __init__(self, cFunc, CRRA, *, backend=None, dtype=None):
+        # backend was acted on by __new__
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
@@ -3903,11 +4081,32 @@ class MargMargValueFuncCRRA(MetricObject):
         envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).
     CRRA : float
         Coefficient of relative risk aversion.
+    backend : str or None
+        Follows ``cFunc``: if it is JAX-backed (constructed with
+        ``backend="jax"``), so is this function, and ``CRRA`` must then be a
+        number, not a traced value. A backend that disagrees with ``cFunc`` is
+        refused.
+    dtype : str or None
+        Must match ``cFunc``'s precision if given.
     """
 
     distance_criteria = ["cFunc", "CRRA"]
 
-    def __init__(self, cFunc, CRRA):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        components = args[:1] or [kwargs[k] for k in ("cFunc",) if k in kwargs]
+        cls = _dispatch_composite(
+            cls,
+            MargMargValueFuncCRRA,
+            "JaxMargMargValueFuncCRRA",
+            components,
+            not args and not kwargs,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    def __init__(self, cFunc, CRRA, *, backend=None, dtype=None):
+        # backend was acted on by __new__
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
