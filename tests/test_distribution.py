@@ -16,6 +16,7 @@ from HARK.distributions import (
     Normal,
     Uniform,
     Weibull,
+    add_discrete_outcome_constant_mean,
     calc_lognormal_style_pars_from_normal_pars,
     calc_normal_style_pars_from_lognormal_pars,
     combine_indep_dstns,
@@ -538,6 +539,55 @@ class DistributionClassTests(unittest.TestCase):
         self.assertEqual(len(result.pmv), 2)
         self.assertAlmostEqual(result.pmv[0], 0.5)  # P(0)
         self.assertAlmostEqual(result.pmv[1], 0.5)  # P(1)
+
+
+class LimitBoundsTests(unittest.TestCase):
+    """
+    The bounds in a discretized distribution's limit are those of the true
+    distribution, which can lie beyond the outermost atoms, and they must
+    survive the operations that build income shocks.
+    """
+
+    def test_uniform_bounds_are_bot_and_top(self):
+        uni = Uniform(bot=0.9, top=0.94)
+        np.testing.assert_array_equal(uni.infimum, [0.9])
+        np.testing.assert_array_equal(uni.supremum, [0.94])
+        uni_discrete = uni.discretize(7)
+        np.testing.assert_array_equal(uni_discrete.limit["infimum"], [0.9])
+        np.testing.assert_array_equal(uni_discrete.limit["supremum"], [0.94])
+
+    def test_constant_mean_outcome_rescales_bounds(self):
+        base = Uniform(bot=0.5, top=1.5).discretize(5)
+        x, p = 0.2, 0.1
+        dstn = add_discrete_outcome_constant_mean(base, x=x, p=p)
+        scale = (1 - p * x) / (1 - p)
+        self.assertAlmostEqual(dstn.limit["infimum"][0], x)
+        self.assertAlmostEqual(dstn.limit["supremum"][0], 1.5 * scale)
+        self.assertGreaterEqual(dstn.limit["supremum"][0], np.max(dstn.atoms))
+
+    def test_make_univariate_keeps_component_bounds(self):
+        perm = Uniform(bot=0.8, top=1.2).discretize(3)
+        tran = Uniform(bot=0.5, top=1.5).discretize(4)
+        joint = combine_indep_dstns(perm, tran)
+        for dim, component in enumerate((perm, tran)):
+            univariate = joint.make_univariate(dim)
+            np.testing.assert_array_equal(
+                univariate.limit["infimum"], component.limit["infimum"]
+            )
+            np.testing.assert_array_equal(
+                univariate.limit["supremum"], component.limit["supremum"]
+            )
+            self.assertIs(univariate.limit["dist"], component)
+
+    def test_make_univariate_without_bounds_uses_atoms(self):
+        # A joint distribution with the default limit has no bounds beyond its atoms
+        joint = DiscreteDistribution(
+            np.array([0.25, 0.75]), np.array([[1.0, 2.0], [3.0, 4.0]])
+        )
+        univariate = joint.make_univariate(1)
+        np.testing.assert_array_equal(univariate.limit["infimum"], [3.0])
+        np.testing.assert_array_equal(univariate.limit["supremum"], [4.0])
+        self.assertNotIn("dist", univariate.limit)
 
 
 class IndexDistributionClassTests(unittest.TestCase):

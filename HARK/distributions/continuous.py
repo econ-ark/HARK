@@ -468,8 +468,8 @@ class Uniform(ContinuousFrozenDistribution):
         self.top = np.asarray(top)
 
         super().__init__(uniform, loc=self.bot, scale=self.top - self.bot, seed=seed)
-        self.infimum = np.array([0.0])
-        self.supremum = np.array([np.inf])
+        self.infimum = np.array(self.bot, dtype=float, ndmin=1)
+        self.supremum = np.array(self.top, dtype=float, ndmin=1)
 
     def _approx_equiprobable(self, N, endpoints=False):
         """
