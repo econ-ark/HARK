@@ -7,7 +7,9 @@ convergence.  The interpolator classes currently in this module inherit their
 distance method from MetricObject.
 """
 
+import contextvars
 import warnings
+from contextlib import contextmanager
 from copy import deepcopy
 
 import numpy as np
@@ -15,6 +17,160 @@ from scipy.interpolate import CubicHermiteSpline
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
 from HARK._numba import njit
+
+
+# The computational backend of interpolators that have more than one: "numpy", the
+# default, or "jax" (with a precision, float32 or float64). LinearInterp and
+# BilinearInterp take backend= and dtype= arguments; when those are omitted, they use
+# the default set here. set_backend sets it for the whole process, and using_backend
+# overrides it within a block (a context variable, so the override stays in its own
+# thread or task). Worker processes start with the numpy default.
+_BACKENDS = ("numpy", "jax")
+_process_backend = ["numpy", None]
+_scoped_backend = contextvars.ContextVar("HARK_interpolation_backend", default=None)
+
+
+def _check_backend(backend, dtype):
+    if backend not in _BACKENDS:
+        raise ValueError(f"backend must be one of {_BACKENDS}, not {backend!r}.")
+    if backend == "numpy":
+        if dtype is not None and np.dtype(dtype) != np.float64:
+            raise NotImplementedError(
+                "The numpy backend computes in float64 only; dtype "
+                f"{np.dtype(dtype).name} needs backend='jax'."
+            )
+    else:
+        from HARK._jax import resolve_dtype
+
+        resolve_dtype(dtype)
+
+
+def set_backend(backend="numpy", dtype=None):
+    """
+    Set the default backend of interpolators that have more than one, for the
+    whole process.
+
+    Parameters
+    ----------
+    backend : str
+        "numpy" (HARK's default) or "jax". The JAX backend requires JAX
+        (``pip install econ-ark[jax]``) and is meant for code compiled with
+        JAX; code that is not compiled should keep the numpy backend.
+    dtype : str or None
+        The JAX backend's precision, "float32" or "float64". None means float64,
+        which needs JAX's 64-bit mode (``jax_enable_x64``). The numpy backend
+        computes in float64 only.
+    """
+    _check_backend(backend, dtype)
+    _process_backend[:] = [backend, dtype]
+
+
+def get_backend():
+    """Return the default ``(backend, dtype)`` in effect here."""
+    scoped = _scoped_backend.get()
+    return scoped if scoped is not None else tuple(_process_backend)
+
+
+@contextmanager
+def using_backend(backend, dtype=None):
+    """
+    Use ``backend`` (and ``dtype``) as the default within a ``with`` block.
+
+    Parameters are as for :func:`set_backend`.
+    """
+    _check_backend(backend, dtype)
+    token = _scoped_backend.set((backend, dtype))
+    try:
+        yield
+    finally:
+        _scoped_backend.reset(token)
+
+
+def _resolve_backend(backend, dtype):
+    """Fill an omitted ``backend`` and ``dtype`` from the default, and check them."""
+    default_backend, default_dtype = get_backend()
+    if backend is None:
+        backend = default_backend
+    if dtype is None and backend == default_backend:
+        dtype = default_dtype
+    _check_backend(backend, dtype)
+    return backend, dtype
+
+
+def _dispatch_backend(cls, base, jax_class_name, args, kwargs, backend, dtype):
+    """
+    The class ``base.__new__`` should construct: ``base``'s JAX implementation when
+    the resolved backend is "jax", otherwise ``cls`` itself. A call without
+    arguments (as from copy and pickle) restores an existing object, so it never
+    dispatches.
+    """
+    if not args and not kwargs:
+        return cls
+    # The common case, checked first: nothing asked for and the default is numpy
+    if (
+        backend is None
+        and dtype is None
+        and _scoped_backend.get() is None
+        and _process_backend[0] == "numpy"
+    ):
+        return cls
+    if _resolve_backend(backend, dtype)[0] != "jax":
+        return cls
+    from HARK import _interp_jax
+
+    jax_class = getattr(_interp_jax, jax_class_name)
+    if cls is base or issubclass(cls, jax_class):
+        return jax_class
+    raise NotImplementedError(
+        f"backend='jax' is not available for {cls.__name__}, a subclass of "
+        f"{base.__name__}."
+    )
+
+
+def _is_jax_backed(func):
+    return getattr(func, "_hark_jax_backed", False)
+
+
+def _dispatch_composite(
+    cls, base, jax_class_name, components, restoring, backend, dtype=None
+):
+    """
+    The class ``base.__new__`` should construct, for an interpolator built from
+    other functions: its backend follows its components. JAX-backed components
+    give ``base``'s JAX implementation, numpy components the numpy class, and a
+    mixture is refused, as is an explicit backend that disagrees with them.
+    ``restoring`` is True for a call without arguments (copy and pickle).
+    """
+    if restoring:
+        return cls
+    if backend is not None:
+        _check_backend(backend, None)
+    jax_backed = [_is_jax_backed(f) for f in components]
+    if not any(jax_backed):
+        if backend == "jax":
+            raise NotImplementedError(
+                f"{base.__name__}(backend='jax') needs JAX-backed components: "
+                "construct them with backend='jax'."
+            )
+        _check_backend("numpy", dtype)
+        return cls
+    if not all(jax_backed):
+        raise NotImplementedError(
+            f"{base.__name__} cannot combine JAX-backed and numpy components."
+        )
+    if backend == "numpy":
+        raise ValueError(
+            f"{base.__name__}(backend='numpy') was given JAX-backed components."
+        )
+    from HARK import _interp_jax
+
+    jax_class = getattr(_interp_jax, jax_class_name)
+    if cls is base or issubclass(cls, jax_class):
+        return jax_class
+    raise NotImplementedError(
+        f"backend='jax' is not available for {cls.__name__}, a subclass of "
+        f"{base.__name__}."
+    )
 
 
 def _isscalar(x):
@@ -923,9 +1079,25 @@ class LinearInterp(HARKinterpolator1D):
         default behavior of np.maximum(np.searchsorted(self.x_list[:-1], x), 1).
         WARNING: User is responsible for verifying that their custom indexer is
         actually correct versus default behavior.
+    backend : str or None
+        "numpy" or "jax". None (default) uses the default set by
+        :func:`set_backend` or :func:`using_backend`, which is "numpy" unless
+        changed. "jax" constructs a JAX-backed interpolator, which returns JAX
+        arrays and can be passed into and called inside ``jax.jit`` and
+        ``jax.vmap``. It does not support ``pre_compute`` or ``indexer``.
+    dtype : str or None
+        Precision of a JAX-backed interpolator, "float32" or "float64"; None uses
+        the default precision, float64 unless changed. The numpy backend computes
+        in float64 only.
     """
 
     distance_criteria = ["x_list", "y_list"]
+
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        cls = _dispatch_backend(
+            cls, LinearInterp, "JaxLinearInterp", args, kwargs, backend, dtype
+        )
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -936,7 +1108,11 @@ class LinearInterp(HARKinterpolator1D):
         lower_extrap=False,
         pre_compute=False,
         indexer=None,
+        *,
+        backend=None,
+        dtype=None,
     ):
+        # backend and dtype were acted on by __new__
         # Make the basic linear spline interpolation
         self.x_list = _coerce_1d_grid(x_list)
         self.y_list = _coerce_1d_grid(y_list)
@@ -1514,11 +1690,28 @@ class BilinearInterp(HARKinterpolator2D):
         An array of x values, with length designated x_n.
     y_list : numpy.array
         An array of y values, with length designated y_n.
+    backend : str or None
+        "numpy" or "jax". None (default) uses the default set by
+        :func:`set_backend` or :func:`using_backend`, which is "numpy" unless
+        changed. "jax" constructs a JAX-backed interpolator, which returns JAX
+        arrays and can be passed into and called inside ``jax.jit`` and
+        ``jax.vmap``.
+    dtype : str or None
+        Precision of a JAX-backed interpolator, "float32" or "float64"; None uses
+        the default precision, float64 unless changed. The numpy backend computes
+        in float64 only.
     """
 
     distance_criteria = ["x_list", "y_list", "f_values"]
 
-    def __init__(self, f_values, x_list, y_list):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        cls = _dispatch_backend(
+            cls, BilinearInterp, "JaxBilinearInterp", args, kwargs, backend, dtype
+        )
+        return super().__new__(cls)
+
+    def __init__(self, f_values, x_list, y_list, *, backend=None, dtype=None):
+        # backend and dtype were acted on by __new__
         self.f_values = f_values
         self.x_list = _coerce_1d_grid(x_list)
         self.y_list = _coerce_1d_grid(y_list)
@@ -2131,11 +2324,30 @@ class LowerEnvelope2D(HARKinterpolator2D):
     nan_bool : boolean
         An indicator for whether the solver should exclude NA's when forming
         the lower envelope.
+    backend : str or None
+        Follows the functions: if they are all JAX-backed (constructed with
+        ``backend="jax"``), so is the envelope. A mixture of JAX-backed and
+        numpy functions, or a backend that disagrees with them, is refused.
+    dtype : str or None
+        Must match the functions' precision if given.
     """
 
     distance_criteria = ["functions"]
 
-    def __init__(self, *functions, nan_bool=True):
+    def __new__(cls, *functions, nan_bool=True, backend=None, dtype=None):
+        cls = _dispatch_composite(
+            cls,
+            LowerEnvelope2D,
+            "JaxLowerEnvelope2D",
+            functions,
+            not functions,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    def __init__(self, *functions, nan_bool=True, backend=None, dtype=None):
+        # backend was acted on by __new__
         _init_envelope_state(self, functions, nan_bool, lower=True)
 
     def _evaluate(self, x, y):
@@ -2227,11 +2439,33 @@ class VariableLowerBoundFunc2D(HARKinterpolator2D):
     lowerBound : function
         The lower bound in the first input of the function of interest, as
         a function of the second input.
+    backend : str or None
+        Follows ``func`` and ``lowerBound``: if both are JAX-backed (constructed
+        with ``backend="jax"``), so is this function. A mixture, or a backend that
+        disagrees with them, is refused.
+    dtype : str or None
+        Must match the components' precision if given.
     """
 
     distance_criteria = ["func", "lowerBound"]
 
-    def __init__(self, func, lowerBound):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        components = list(args) + [
+            kwargs[k] for k in ("func", "lowerBound") if k in kwargs
+        ]
+        cls = _dispatch_composite(
+            cls,
+            VariableLowerBoundFunc2D,
+            "JaxVariableLowerBoundFunc2D",
+            components,
+            not args and not kwargs,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    def __init__(self, func, lowerBound, *, backend=None, dtype=None):
+        # backend was acted on by __new__
         self.func = func
         self.lowerBound = lowerBound
 
@@ -2432,11 +2666,81 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         xInterpolators represents f(x,y_values[n]).
     y_values: numpy.array
         An array of y values equal in length to xInterpolators.
+    backend : str or None
+        Follows ``xInterpolators``: if they are all JAX-backed ``LinearInterp``
+        objects (constructed with ``backend="jax"``), so is this interpolator. Their
+        grids may differ in length. A mixture, or a backend that disagrees with
+        them, is refused.
+    dtype : str or None
+        Must match the inner interpolators' precision if given.
     """
 
     distance_criteria = ["xInterpolators", "y_list"]
 
-    def __init__(self, xInterpolators, y_values):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        if args:
+            components = args[0]
+        else:
+            components = kwargs.get("xInterpolators", [])
+        cls = _dispatch_composite(
+            cls,
+            LinearInterpOnInterp1D,
+            "JaxLinearInterpOnInterp1D",
+            components,
+            not args and not kwargs,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    @classmethod
+    def from_arrays(
+        cls,
+        x_values,
+        f_values,
+        y_values,
+        lower_extrap=False,
+        *,
+        backend=None,
+        dtype=None,
+    ):
+        """
+        Make a LinearInterpOnInterp1D from arrays of grids and values: row ``k``
+        of ``x_values`` and ``f_values`` is a ``LinearInterp`` of
+        ``f(x, y_values[k])``.
+
+        Parameters
+        ----------
+        x_values, f_values : np.array or [np.array]
+            Arrays of shape ``(y_n, x_n)``, or sequences of ``y_n`` one-dimensional
+            arrays, whose lengths may then differ from row to row.
+        y_values : np.array
+            The ``y_n`` values of y, in increasing order.
+        lower_extrap : bool
+            Whether each row extrapolates below its first knot (True) or gives
+            NaN there (False, ``LinearInterp``'s default).
+        backend, dtype : str or None
+            As for ``LinearInterp``; with traced arrays and ``backend="jax"``,
+            this can be called inside ``jax.jit`` and ``jax.vmap``.
+
+        Returns
+        -------
+        LinearInterpOnInterp1D
+        """
+        inner = [
+            LinearInterp(
+                x_values[k],
+                f_values[k],
+                lower_extrap=lower_extrap,
+                backend=backend,
+                dtype=dtype,
+            )
+            for k in range(len(y_values))
+        ]
+        return cls(inner, y_values, backend=backend, dtype=dtype)
+
+    def __init__(self, xInterpolators, y_values, *, backend=None, dtype=None):
+        # backend was acted on by __new__
         self.xInterpolators = xInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
@@ -3687,11 +3991,32 @@ class MargValueFuncCRRA(MetricObject):
         envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).
     CRRA : float
         Coefficient of relative risk aversion.
+    backend : str or None
+        Follows ``cFunc``: if it is JAX-backed (constructed with
+        ``backend="jax"``), so is this function, and ``CRRA`` must then be a
+        number, not a traced value. A backend that disagrees with ``cFunc`` is
+        refused.
+    dtype : str or None
+        Must match ``cFunc``'s precision if given.
     """
 
     distance_criteria = ["cFunc", "CRRA"]
 
-    def __init__(self, cFunc, CRRA):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        components = args[:1] or [kwargs[k] for k in ("cFunc",) if k in kwargs]
+        cls = _dispatch_composite(
+            cls,
+            MargValueFuncCRRA,
+            "JaxMargValueFuncCRRA",
+            components,
+            not args and not kwargs,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    def __init__(self, cFunc, CRRA, *, backend=None, dtype=None):
+        # backend was acted on by __new__
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
@@ -3756,11 +4081,32 @@ class MargMargValueFuncCRRA(MetricObject):
         envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).
     CRRA : float
         Coefficient of relative risk aversion.
+    backend : str or None
+        Follows ``cFunc``: if it is JAX-backed (constructed with
+        ``backend="jax"``), so is this function, and ``CRRA`` must then be a
+        number, not a traced value. A backend that disagrees with ``cFunc`` is
+        refused.
+    dtype : str or None
+        Must match ``cFunc``'s precision if given.
     """
 
     distance_criteria = ["cFunc", "CRRA"]
 
-    def __init__(self, cFunc, CRRA):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        components = args[:1] or [kwargs[k] for k in ("cFunc",) if k in kwargs]
+        cls = _dispatch_composite(
+            cls,
+            MargMargValueFuncCRRA,
+            "JaxMargMargValueFuncCRRA",
+            components,
+            not args and not kwargs,
+            backend,
+            dtype=dtype,
+        )
+        return super().__new__(cls)
+
+    def __init__(self, cFunc, CRRA, *, backend=None, dtype=None):
+        # backend was acted on by __new__
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
