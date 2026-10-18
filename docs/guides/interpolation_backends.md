@@ -1,6 +1,6 @@
 # Interpolation Backends: numpy and JAX
 
-`LinearInterp` and `BilinearInterp` can compute with [JAX](https://docs.jax.dev) instead of numpy. The JAX backend is optional: HARK never imports JAX unless it is asked for, so a default install, including the browser one, is unaffected. More interpolators will follow the same pattern.
+`LinearInterp` and `BilinearInterp` can compute with [JAX](https://docs.jax.dev) instead of numpy, and so can the interpolators built from them: `LinearInterpOnInterp1D`, `LowerEnvelope2D`, `VariableLowerBoundFunc2D`, `MargValueFuncCRRA` and `MargMargValueFuncCRRA`. The JAX backend is optional: HARK never imports JAX unless it is asked for, so a default install, including the browser one, is unaffected.
 
 ## What it is for
 
@@ -70,12 +70,18 @@ Two consequences of `float32` for solvers: knots closer together than about `1e-
 |---|---|
 | `LinearInterp` | level, `derivative`, `eval_with_derivative`; `lower_extrap`; decay to a limiting linear function (`intercept_limit` and `slope_limit`) |
 | `BilinearInterp` | level, `derivativeX`, `derivativeY` |
+| `LinearInterpOnInterp1D` | level, `derivativeX`, `derivativeY`; inner `LinearInterp` grids of any lengths; `LinearInterpOnInterp1D.from_arrays` builds one from an array of grids and values, inside `jax.jit` too |
+| `LowerEnvelope2D` | level, `derivativeX`, `derivativeY`; `nan_bool` |
+| `VariableLowerBoundFunc2D` | level, `derivativeX`, `derivativeY`, with a `LinearInterp` lower bound |
+| `MargValueFuncCRRA`, `MargMargValueFuncCRRA` | level, and `derivativeX` of the marginal value; `CRRA` must be a number, not a traced value |
 
-An option the JAX backend does not implement is refused with `NotImplementedError`, never ignored: `pre_compute` and a custom `indexer` on `LinearInterp`, and `backend="jax"` on a subclass of either class.
+The interpolators built from other functions take their backend from those functions: built from JAX-backed functions, they are JAX-backed. Every component must be JAX-backed, and a mixture is refused, as is an explicit `backend` or `dtype` that disagrees with the components. So the default set by `set_backend` decides only the interpolators made directly from grids.
+
+An option the JAX backend does not implement is refused with `NotImplementedError`, never ignored: `pre_compute` and a custom `indexer` on `LinearInterp`, inner interpolators other than `LinearInterp` in `LinearInterpOnInterp1D`, and `backend="jax"` on a subclass of any of these classes.
 
 ## A caution about processes
 
-JAX is not safe across `fork`. A program that forks worker processes after JAX has started can deadlock. Start workers with the `spawn` method, or before JAX is first used.
+A process that has started JAX must not `os.fork()`. JAX runs thread pools, and a forked child copies only the thread that forked, so it inherits locks held by threads it does not have and can block on its first JAX call (JAX warns at the fork). Start worker processes with the `spawn` or `forkserver` method, or do all JAX work inside the workers. HARK's `multi_thread_commands` uses joblib's default backend, which starts fresh worker processes, so it is not affected; selecting joblib's fork-based `multiprocessing` backend after starting JAX would be.
 
 ## For developers: one implementation
 
