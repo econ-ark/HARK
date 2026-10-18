@@ -7,7 +7,9 @@ convergence.  The interpolator classes currently in this module inherit their
 distance method from MetricObject.
 """
 
+import contextvars
 import warnings
+from contextlib import contextmanager
 from copy import deepcopy
 
 import numpy as np
@@ -15,6 +17,114 @@ from scipy.interpolate import CubicHermiteSpline
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
 from HARK._numba import njit
+
+
+# The computational backend of interpolators that have more than one: "numpy", the
+# default, or "jax" (with a precision, float32 or float64). LinearInterp and
+# BilinearInterp take backend= and dtype= arguments; when those are omitted, they use
+# the default set here. set_backend sets it for the whole process, and using_backend
+# overrides it within a block (a context variable, so the override stays in its own
+# thread or task). Worker processes start with the numpy default.
+_BACKENDS = ("numpy", "jax")
+_process_backend = ["numpy", None]
+_scoped_backend = contextvars.ContextVar("HARK_interpolation_backend", default=None)
+
+
+def _check_backend(backend, dtype):
+    if backend not in _BACKENDS:
+        raise ValueError(f"backend must be one of {_BACKENDS}, not {backend!r}.")
+    if backend == "numpy":
+        if dtype is not None and np.dtype(dtype) != np.float64:
+            raise NotImplementedError(
+                "The numpy backend computes in float64 only; dtype "
+                f"{np.dtype(dtype).name} needs backend='jax'."
+            )
+    else:
+        from HARK._jax import resolve_dtype
+
+        resolve_dtype(dtype)
+
+
+def set_backend(backend="numpy", dtype=None):
+    """
+    Set the default backend of interpolators that have more than one, for the
+    whole process.
+
+    Parameters
+    ----------
+    backend : str
+        "numpy" (HARK's default) or "jax". The JAX backend requires JAX
+        (``pip install econ-ark[jax]``) and is meant for code compiled with
+        JAX; code that is not compiled should keep the numpy backend.
+    dtype : str or None
+        The JAX backend's precision, "float32" or "float64". None means float64,
+        which needs JAX's 64-bit mode (``jax_enable_x64``). The numpy backend
+        computes in float64 only.
+    """
+    _check_backend(backend, dtype)
+    _process_backend[:] = [backend, dtype]
+
+
+def get_backend():
+    """Return the default ``(backend, dtype)`` in effect here."""
+    scoped = _scoped_backend.get()
+    return scoped if scoped is not None else tuple(_process_backend)
+
+
+@contextmanager
+def using_backend(backend, dtype=None):
+    """
+    Use ``backend`` (and ``dtype``) as the default within a ``with`` block.
+
+    Parameters are as for :func:`set_backend`.
+    """
+    _check_backend(backend, dtype)
+    token = _scoped_backend.set((backend, dtype))
+    try:
+        yield
+    finally:
+        _scoped_backend.reset(token)
+
+
+def _resolve_backend(backend, dtype):
+    """Fill an omitted ``backend`` and ``dtype`` from the default, and check them."""
+    default_backend, default_dtype = get_backend()
+    if backend is None:
+        backend = default_backend
+    if dtype is None and backend == default_backend:
+        dtype = default_dtype
+    _check_backend(backend, dtype)
+    return backend, dtype
+
+
+def _dispatch_backend(cls, base, jax_class_name, args, kwargs, backend, dtype):
+    """
+    The class ``base.__new__`` should construct: ``base``'s JAX implementation when
+    the resolved backend is "jax", otherwise ``cls`` itself. A call without
+    arguments (as from copy and pickle) restores an existing object, so it never
+    dispatches.
+    """
+    if not args and not kwargs:
+        return cls
+    # The common case, checked first: nothing asked for and the default is numpy
+    if (
+        backend is None
+        and dtype is None
+        and _scoped_backend.get() is None
+        and _process_backend[0] == "numpy"
+    ):
+        return cls
+    if _resolve_backend(backend, dtype)[0] != "jax":
+        return cls
+    from HARK import _interp_jax
+
+    jax_class = getattr(_interp_jax, jax_class_name)
+    if cls is base or issubclass(cls, jax_class):
+        return jax_class
+    raise NotImplementedError(
+        f"backend='jax' is not available for {cls.__name__}, a subclass of "
+        f"{base.__name__}."
+    )
 
 
 def _isscalar(x):
@@ -923,9 +1033,25 @@ class LinearInterp(HARKinterpolator1D):
         default behavior of np.maximum(np.searchsorted(self.x_list[:-1], x), 1).
         WARNING: User is responsible for verifying that their custom indexer is
         actually correct versus default behavior.
+    backend : str or None
+        "numpy" or "jax". None (default) uses the default set by
+        :func:`set_backend` or :func:`using_backend`, which is "numpy" unless
+        changed. "jax" constructs a JAX-backed interpolator, which returns JAX
+        arrays and can be passed into and called inside ``jax.jit`` and
+        ``jax.vmap``. It does not support ``pre_compute`` or ``indexer``.
+    dtype : str or None
+        Precision of a JAX-backed interpolator, "float32" or "float64"; None uses
+        the default precision, float64 unless changed. The numpy backend computes
+        in float64 only.
     """
 
     distance_criteria = ["x_list", "y_list"]
+
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        cls = _dispatch_backend(
+            cls, LinearInterp, "JaxLinearInterp", args, kwargs, backend, dtype
+        )
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -936,7 +1062,11 @@ class LinearInterp(HARKinterpolator1D):
         lower_extrap=False,
         pre_compute=False,
         indexer=None,
+        *,
+        backend=None,
+        dtype=None,
     ):
+        # backend and dtype were acted on by __new__
         # Make the basic linear spline interpolation
         self.x_list = _coerce_1d_grid(x_list)
         self.y_list = _coerce_1d_grid(y_list)
@@ -1514,11 +1644,28 @@ class BilinearInterp(HARKinterpolator2D):
         An array of x values, with length designated x_n.
     y_list : numpy.array
         An array of y values, with length designated y_n.
+    backend : str or None
+        "numpy" or "jax". None (default) uses the default set by
+        :func:`set_backend` or :func:`using_backend`, which is "numpy" unless
+        changed. "jax" constructs a JAX-backed interpolator, which returns JAX
+        arrays and can be passed into and called inside ``jax.jit`` and
+        ``jax.vmap``.
+    dtype : str or None
+        Precision of a JAX-backed interpolator, "float32" or "float64"; None uses
+        the default precision, float64 unless changed. The numpy backend computes
+        in float64 only.
     """
 
     distance_criteria = ["x_list", "y_list", "f_values"]
 
-    def __init__(self, f_values, x_list, y_list):
+    def __new__(cls, *args, backend=None, dtype=None, **kwargs):
+        cls = _dispatch_backend(
+            cls, BilinearInterp, "JaxBilinearInterp", args, kwargs, backend, dtype
+        )
+        return super().__new__(cls)
+
+    def __init__(self, f_values, x_list, y_list, *, backend=None, dtype=None):
+        # backend and dtype were acted on by __new__
         self.f_values = f_values
         self.x_list = _coerce_1d_grid(x_list)
         self.y_list = _coerce_1d_grid(y_list)
