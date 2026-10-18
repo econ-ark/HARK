@@ -304,9 +304,11 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
             dstn_approx = add_discrete_outcome_constant_mean(
                 dstn_approx, p=UnempPrb, x=IncUnemp
             )
-        # Rescale the transitory shock values to account for new features
+        # Rescale the transitory shock values, and their bounds, to account for new features
         TranShkMean_temp = (1.0 - tax_rate) * labor * wage
         dstn_approx.atoms *= TranShkMean_temp
+        for key in ("infimum", "supremum"):
+            dstn_approx.limit[key] = dstn_approx.limit[key] * TranShkMean_temp
         super().__init__(
             pmv=dstn_approx.pmv,
             atoms=dstn_approx.atoms,
