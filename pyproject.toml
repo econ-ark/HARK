@@ -35,6 +35,7 @@ file = "requirements/base.txt"
 [tool.setuptools.dynamic.optional-dependencies]
 dev.file = "requirements/dev.txt"
 doc.file = "requirements/doc.txt"
+jax.file = "requirements/jax.txt"
 
 [project.urls]
 Homepage = "https://github.com/econ-ark/HARK"
