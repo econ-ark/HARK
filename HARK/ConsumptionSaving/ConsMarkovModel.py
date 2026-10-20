@@ -1205,8 +1205,14 @@ class MarkovConsumerType(IndShockConsumerType):
         if _cache:
             self._base_shock_draws = base_draws_dict
 
+        # A newborn without a transitory shock gets its state's mean transitory
+        # income: 1 for an income process that folds unemployment into the
+        # transitory shock, or the employed or unemployed state's own mean when
+        # unemployment is a Markov state
         if not self.NewbornTransShk:
-            TranShkNow[newborn] = 1.0
+            for j in range(self.MrkvArray[0].shape[0]):
+                these = np.logical_and(newborn, MrkvNow == j)
+                TranShkNow[these] = getattr(self.IncShkDstn[0][j], "TranShkMean", 1.0)
         if not getattr(self, "NewbornPermShk", True):
             PermShkNow[newborn] = 1.0
 
