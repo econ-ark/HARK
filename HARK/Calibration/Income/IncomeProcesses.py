@@ -424,6 +424,14 @@ class EmploymentIncShkDstn(DiscreteDistributionLabeled):
     -------
     IncShkDstn : DiscreteDistributionLabeled
         Income shock distribution in this employment state.
+
+    Attributes
+    ----------
+    TranShkMean : float
+        This state's mean transitory income, exactly: the employed scale, or
+        IncUnemp. A newborn who draws no transitory shock gets it, and shock
+        normalization targets it. Distributions without the attribute are
+        taken to have mean one.
     """
 
     def __init__(
@@ -476,6 +484,9 @@ class EmploymentIncShkDstn(DiscreteDistributionLabeled):
             atoms=joint_dstn.atoms,
             limit=joint_dstn.limit,
             seed=seed,
+        )
+        self.TranShkMean = (
+            (1 - UnempPrb * IncUnemp) / (1 - UnempPrb) if employed else IncUnemp
         )
 
 

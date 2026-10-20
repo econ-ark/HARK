@@ -442,6 +442,47 @@ class testEmploymentMarkov(unittest.TestCase):
             make_employment_markov(1, 1.0)
 
 
+class testNewbornTransShkByState(unittest.TestCase):
+    """
+    A newborn who draws no transitory shock (NewbornTransShk False) gets its
+    state's mean transitory income: 1 under the default income process, and
+    the employed or unemployed state's own mean when unemployment is a state.
+    """
+
+    def simulate_newborns(self, params):
+        agent = MarkovConsumerType(**params)
+        agent.solve()
+        agent.track_vars = ["Mrkv", "TranShk", "t_age"]
+        agent.initialize_sim()
+        agent.simulate()
+        newborn = agent.history["t_age"] == 1  # recorded after the period's aging
+        return agent, agent.history["Mrkv"][newborn], agent.history["TranShk"][newborn]
+
+    def test_employment_states(self):
+        params = deepcopy(init_employment_markov)
+        params.update(
+            cycles=0,
+            NewbornTransShk=False,
+            MrkvPrbsInit=np.array([0.5, 0.5]),
+            AgentCount=2000,
+            T_sim=30,
+        )
+        agent, state, TranShk = self.simulate_newborns(params)
+        scale = (1 - agent.UnempPrb * agent.IncUnemp) / (1 - agent.UnempPrb)
+        self.assertTrue(np.any(state == 0) and np.any(state == 1))
+        np.testing.assert_array_equal(TranShk[state == 0], scale)
+        np.testing.assert_array_equal(TranShk[state == 1], agent.IncUnemp)
+
+    def test_default_income_process_unchanged(self):
+        params = deepcopy(init_indshk_markov)
+        params.update(
+            cycles=0, MrkvPrbsInit=np.array([0.5, 0.5]), AgentCount=2000, T_sim=30
+        )
+        self.assertFalse(params["NewbornTransShk"])
+        _, _, TranShk = self.simulate_newborns(params)
+        np.testing.assert_array_equal(TranShk, 1.0)
+
+
 class testRatchet(unittest.TestCase):
     def test_ratchet_markov(self):
         some_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.2, 0.1])]
