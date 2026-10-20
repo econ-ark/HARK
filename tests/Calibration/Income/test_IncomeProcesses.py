@@ -13,6 +13,9 @@ import unittest
 import numpy as np
 
 from HARK.Calibration.Income.IncomeProcesses import (
+    BufferStockIncShkDstn,
+    EmploymentIncShkDstn,
+    construct_employment_income_process,
     _expand_expense_shock_schedule,
     _markov_unemployment_lists,
     _validate_markov_retirement,
@@ -184,3 +187,79 @@ class testExpandExpenseShockSchedule(unittest.TestCase):
     def test_final_band_spans_31_positions(self):
         for pos in range(90, 121):
             np.testing.assert_array_equal(self.out[pos], np.array([8.0]))
+
+
+class testEmploymentIncShkDstn(unittest.TestCase):
+    """The employed and unemployed states together are BufferStockIncShkDstn."""
+
+    pars = dict(sigma_Perm=0.1, sigma_Tran=0.1, n_approx_Perm=7, n_approx_Tran=7)
+
+    def test_states_make_up_buffer_stock_distribution(self):
+        for UnempPrb, IncUnemp in ((0.05, 0.3), (0.005, 0.0), (0.0, 0.3)):
+            joint = BufferStockIncShkDstn(
+                UnempPrb=UnempPrb, IncUnemp=IncUnemp, **self.pars
+            )
+            emp, unemp = (
+                EmploymentIncShkDstn(
+                    UnempPrb=UnempPrb, IncUnemp=IncUnemp, employed=e, **self.pars
+                )
+                for e in (True, False)
+            )
+            atoms = np.concatenate([emp.atoms, unemp.atoms], axis=1)
+            pmv = np.concatenate([(1 - UnempPrb) * emp.pmv, UnempPrb * unemp.pmv])
+            keep = pmv > 0
+            atoms, pmv = atoms[:, keep], pmv[keep]
+            order = np.lexsort((atoms[1], atoms[0]))
+            order_joint = np.lexsort((joint.atoms[1], joint.atoms[0]))
+            np.testing.assert_array_equal(atoms[:, order], joint.atoms[:, order_joint])
+            np.testing.assert_allclose(pmv[order], joint.pmv[order_joint], rtol=1e-14)
+
+    def test_transitory_means(self):
+        UnempPrb, IncUnemp = 0.05, 0.3
+        emp, unemp = (
+            EmploymentIncShkDstn(
+                UnempPrb=UnempPrb, IncUnemp=IncUnemp, employed=e, **self.pars
+            )
+            for e in (True, False)
+        )
+        scale = (1 - UnempPrb * IncUnemp) / (1 - UnempPrb)
+        self.assertAlmostEqual(np.dot(emp.pmv, emp.atoms[1]), scale, places=14)
+        np.testing.assert_array_equal(unemp.atoms[1], IncUnemp)
+        self.assertAlmostEqual(np.dot(emp.pmv, emp.atoms[0]), 1.0, places=14)
+        self.assertAlmostEqual(np.dot(unemp.pmv, unemp.atoms[0]), 1.0, places=14)
+
+    def test_constructor_by_period(self):
+        RNG = np.random.default_rng(0)
+        dstns = construct_employment_income_process(
+            T_cycle=2,
+            PermShkStd=[0.1, 0.2],
+            PermShkCount=5,
+            TranShkStd=[0.1, 0.1],
+            TranShkCount=5,
+            UnempPrb=[0.05, 0.1],
+            IncUnemp=0.0,
+            RNG=RNG,
+        )
+        self.assertEqual(len(dstns), 2)
+        for t, UnempPrb in enumerate((0.05, 0.1)):
+            emp, unemp = dstns[t]
+            self.assertAlmostEqual(
+                np.dot(emp.pmv, emp.atoms[1]), 1 / (1 - UnempPrb), places=14
+            )
+            np.testing.assert_array_equal(unemp.atoms[1], 0.0)
+        self.assertGreater(np.std(dstns[1][0].atoms[0]), np.std(dstns[0][0].atoms[0]))
+
+    def test_invalid(self):
+        RNG = np.random.default_rng(0)
+        pars = dict(
+            T_cycle=1,
+            PermShkStd=[0.1],
+            PermShkCount=3,
+            TranShkStd=[0.1],
+            TranShkCount=3,
+            RNG=RNG,
+        )
+        with self.assertRaises(ValueError):
+            construct_employment_income_process(UnempPrb=1.0, IncUnemp=0.0, **pars)
+        with self.assertRaises(ValueError):
+            construct_employment_income_process(UnempPrb=0.5, IncUnemp=2.0, **pars)
