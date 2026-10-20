@@ -7,7 +7,9 @@ from HARK.Calibration.Income.IncomeProcesses import LognormPermIncShk
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
+    init_employment_markov,
     init_indshk_markov,
+    make_employment_markov,
     make_simple_binary_markov,
     make_ratchet_markov,
 )
@@ -384,6 +386,60 @@ class testMarkovMatchesIndShock(unittest.TestCase):
         agent.solve()
         for cFunc in agent.solution[0].cFunc:
             self.assertTrue(np.all(np.diff(cFunc.functions[0].x_list) > 0))
+
+
+class testEmploymentMarkov(unittest.TestCase):
+    """
+    init_employment_markov states IndShockConsumerType's default problem with
+    unemployment as a Markov state, so its solution is IndShockConsumerType's, and
+    its newborns are born employed while drawing the transitory shock.
+    """
+
+    def make_pair(self, **kwds):
+        ind = IndShockConsumerType(cycles=0, **kwds)
+        params = deepcopy(init_employment_markov)
+        params.update(cycles=0, **kwds)
+        return ind, MarkovConsumerType(**params)
+
+    def test_solution_matches_indshock(self):
+        for kwds in ({}, {"IncUnemp": 0.0, "BoroCnstArt": None}):
+            ind, mrkv = self.make_pair(**kwds)
+            ind.solve()
+            mrkv.solve()
+            m = np.linspace(ind.solution[0].mNrmMin + 1e-3, 20.0, 2001)
+            for i in range(2):
+                np.testing.assert_allclose(
+                    mrkv.solution[0].cFunc[i](m),
+                    ind.solution[0].cFunc(m),
+                    rtol=0,
+                    atol=1e-12,
+                )
+
+    def test_born_employed(self):
+        _, mrkv = self.make_pair(IncUnemp=0.0, BoroCnstArt=None)
+        mrkv.solve()
+        mrkv.AgentCount = 5000
+        mrkv.T_sim = 100
+        mrkv.track_vars = ["Mrkv", "t_age", "TranShk", "mNrm"]
+        mrkv.initialize_sim()
+        mrkv.simulate()
+        newborn = mrkv.history["t_age"] == 1  # recorded after the period's aging
+        employed_values = np.unique(mrkv.IncShkDstn[0][0].atoms[1])
+        self.assertTrue(np.all(mrkv.history["Mrkv"][newborn] == 0))
+        self.assertTrue(
+            np.all(np.isin(mrkv.history["TranShk"][newborn], employed_values))
+        )
+        self.assertTrue(np.all(mrkv.history["mNrm"][newborn] > 0.0))
+        # Survivors are unemployed with probability UnempPrb
+        share = np.mean(mrkv.history["Mrkv"][50:][~newborn[50:]] == 1)
+        self.assertAlmostEqual(share, mrkv.UnempPrb, delta=0.005)
+
+    def test_markov_arrays(self):
+        arrays = make_employment_markov(2, [0.05, 0.1])
+        np.testing.assert_array_equal(arrays[1], [[0.9, 0.1], [0.9, 0.1]])
+        self.assertEqual(len(make_employment_markov(3, 0.05)), 3)
+        with self.assertRaises(ValueError):
+            make_employment_markov(1, 1.0)
 
 
 class testRatchet(unittest.TestCase):

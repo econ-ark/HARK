@@ -11,6 +11,7 @@ import numpy as np
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
+    construct_employment_income_process,
     construct_markov_lognormal_income_process_unemployment,
     get_PermShkDstn_from_IncShkDstn_markov,
     get_TranShkDstn_from_IncShkDstn_markov,
@@ -153,6 +154,33 @@ def make_simple_binary_markov(T_cycle, Mrkv_p11, Mrkv_p22):
         np.array([[p11[t], 1.0 - p11[t]], [1.0 - p22[t], p22[t]]])
         for t in range(T_cycle)
     ]
+    return MrkvArray
+
+
+def make_employment_markov(T_cycle, UnempPrb):
+    """
+    Make a list of Markov arrays between employment (state 0) and unemployment
+    (state 1) in which the probability of being unemployed next period is UnempPrb
+    from either state: unemployment drawn the same way whatever this period's
+    employment state is. With construct_employment_income_process, this states
+    IndShockConsumerType's income process with unemployment as a Markov state.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in this instance's sequential problem.
+    UnempPrb : float or [float]
+        Probability of unemployment, one value or one per non-terminal period.
+
+    Returns
+    -------
+    MrkvArray : [np.array]
+        List of 2x2 Markov transition arrays, one for each non-terminal period.
+    """
+    UnempPrb_list = np.broadcast_to(np.asarray(UnempPrb, dtype=float), (T_cycle,))
+    if np.any(UnempPrb_list < 0.0) or np.any(UnempPrb_list >= 1.0):
+        raise ValueError("UnempPrb must be at least 0 and less than 1 in every period.")
+    MrkvArray = [np.array([[1.0 - p, p], [1.0 - p, p]]) for p in UnempPrb_list.tolist()]
     return MrkvArray
 
 
@@ -801,6 +829,55 @@ init_indshk_markov.update(default_aXtraGrid_params)
 init_indshk_markov.update(default_MrkvArray_params)
 init_indshk_markov.update(default_kNrmInitDstn_params)
 init_indshk_markov.update(default_pLvlInitDstn_params)
+
+
+# Make a dictionary of constructors for unemployment as a Markov state: employed
+# (state 0) or unemployed (state 1), entered with probability UnempPrb from either
+employment_markov_constructor_dict = markov_constructor_dict.copy()
+employment_markov_constructor_dict["IncShkDstn"] = construct_employment_income_process
+employment_markov_constructor_dict["MrkvArray"] = make_employment_markov
+
+# Make a dictionary for IndShockConsumerType's default problem with unemployment
+# stated as a Markov state. Its newborns are born employed and draw the employed
+# transitory shock, and its solution is IndShockConsumerType's.
+init_employment_markov = {
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": employment_markov_constructor_dict,  # See dictionary above
+    "markov_shuffle": False,  # Quota-exact Markov transitions when True (see get_markov_states)
+    "balanced_transitions": False,  # With markov_shuffle: systematic sampling by pLvl
+    "pseudo_terminal": False,  # Terminal period really does exist
+    "global_markov": False,  # Whether the Markov state is shared across agents
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": [np.array([1.03, 1.03])],  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
+    "PermGroFac": [np.array([1.01, 1.01])],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [
+        0.1
+    ],  # Standard deviation of log transitory income shocks when employed
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of being unemployed next period, from either state
+    "IncUnemp": 0.3,  # Transitory income when unemployed
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    "MrkvPrbsInit": np.array([1.0, 0.0]),  # Newborns are born employed
+    "NewbornTransShk": True,  # Newborns draw the transitory shock of their state
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
+    "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
+    "income_shuffle": False,  # Exact per-period shock frequencies when True (see get_shocks)
+}
+init_employment_markov.update(default_aXtraGrid_params)
+init_employment_markov.update(default_kNrmInitDstn_params)
+init_employment_markov.update(default_pLvlInitDstn_params)
 
 
 class MarkovConsumerType(IndShockConsumerType):
