@@ -887,9 +887,21 @@ class ConsMarkovStationaryProblem(KnotProblem):
         return LowerEnvelope(cFuncUnc, cFuncCnst)
 
     def make_vFunc(self, m, vNvrs, c_on_m, state):
-        # As the solver builds it: a linear interpolant of the inverse value.
-        vNvrsFunc = LinearInterp(
-            np.insert(m, 0, self.scalars["mNrmMin"][state]), np.insert(vNvrs, 0, 0.0)
+        # As the solver builds it, which is as IndShockConsumerType's does: the
+        # slope of the inverse value at the knots follows from the envelope
+        # condition v'(m) = u'(c(m)) and the chain rule, and the inverse value
+        # approaches its limiting linear function above the grid.
+        uFunc = UtilityFuncCRRA(self.CRRA)
+        vNvrsP = uFunc.der(c_on_m) * uFunc.derinv(uFunc(vNvrs), order=(0, 1))
+        power = -self.CRRA / (1.0 - self.CRRA)
+        MPCminNvrs = self.scalars["MPCmin"][state] ** power
+        MPCmaxNvrs = self.scalars["MPCmax"][state] ** power
+        vNvrsFunc = CubicInterp(
+            np.insert(m, 0, self.scalars["mNrmMin"][state]),
+            np.insert(vNvrs, 0, 0.0),
+            np.insert(vNvrsP, 0, MPCmaxNvrs),
+            MPCminNvrs * self.scalars["hNrm"][state],
+            MPCminNvrs,
         )
         return ValueFuncCRRA(vNvrsFunc, self.CRRA)
 
