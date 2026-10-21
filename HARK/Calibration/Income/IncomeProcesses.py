@@ -383,6 +383,114 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
         )
 
 
+class EmploymentIncShkDstn(DiscreteDistributionLabeled):
+    """
+    A one-period joint distribution of permanent and transitory income shocks in
+    one employment state, for models in which unemployment is a discrete Markov
+    state rather than a value of the transitory shock:
+
+    - Lognormal, discretized permanent income shocks, in either state.
+    - When employed, a mean one lognormal transitory shock theta, scaled by
+      (1 - UnempPrb * IncUnemp) / (1 - UnempPrb), so that transitory income has
+      mean one when the probability of being unemployed is UnempPrb.
+    - When unemployed, transitory income IncUnemp.
+
+    With the employed state reached with probability 1 - UnempPrb and the
+    unemployed state with probability UnempPrb, the two distributions together
+    are BufferStockIncShkDstn's, point by point.
+
+    Parameters
+    ----------
+    sigma_Perm : float
+        Standard deviation of the log- permanent shock.
+    sigma_Tran : float
+        Standard deviation of the log- transitory shock theta.
+    n_approx_Perm : int
+        Number of points to use in the discrete approximation of the permanent shock.
+    n_approx_Tran : int
+        Number of points to use in the discrete approximation of theta.
+    UnempPrb : float
+        Probability of being unemployed, which sets the employed state's scale.
+    IncUnemp : float
+        Transitory income when unemployed.
+    employed : bool
+        Whether this is the employed state's distribution (True) or the
+        unemployed state's (False).
+    neutral_measure : Bool, optional
+        Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
+    seed : int, optional
+        Random seed. The default is 0.
+
+    Returns
+    -------
+    IncShkDstn : DiscreteDistributionLabeled
+        Income shock distribution in this employment state.
+
+    Attributes
+    ----------
+    TranShkMean : float
+        This state's mean transitory income, exactly: the employed scale, or
+        IncUnemp. A newborn who draws no transitory shock gets it, and shock
+        normalization targets it. Distributions without the attribute are
+        taken to have mean one.
+    """
+
+    def __init__(
+        self,
+        sigma_Perm,
+        sigma_Tran,
+        n_approx_Perm,
+        n_approx_Tran,
+        UnempPrb,
+        IncUnemp,
+        employed,
+        neutral_measure=False,
+        seed=0,
+    ):
+        perm_dstn = LognormPermIncShk(
+            sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
+        )
+        if employed:
+            theta = MeanOneLogNormal(sigma_Tran).discretize(
+                n_approx_Tran if sigma_Tran > 0.0 else 1,
+                method="equiprobable",
+                tail_N=0,
+            )
+            # Scale theta as add_discrete_outcome_constant_mean scales the atoms it
+            # keeps, in the same order of operations, so the values are identical
+            atoms = theta.atoms * (1 - UnempPrb * IncUnemp) / (1 - UnempPrb)
+            scale = (1 - UnempPrb * IncUnemp) / (1 - UnempPrb)
+            limit = {
+                "dist": theta,
+                "infimum": np.asarray(theta.limit["infimum"]) * scale,
+                "supremum": np.asarray(theta.limit["supremum"]) * scale,
+            }
+            tran_dstn = DiscreteDistribution(pmv=theta.pmv, atoms=atoms, limit=limit)
+        else:
+            tran_dstn = DiscreteDistribution(
+                pmv=np.ones(1),
+                atoms=np.array([IncUnemp]),
+                limit={
+                    "infimum": np.array([IncUnemp]),
+                    "supremum": np.array([IncUnemp]),
+                },
+            )
+        joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
+
+        state = "employed" if employed else "unemployed"
+        super().__init__(
+            name=f"Joint distribution of permanent and transitory shocks to income when {state}",
+            var_names=["PermShk", "TranShk"],
+            pmv=joint_dstn.pmv,
+            atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
+            seed=seed,
+        )
+        self.TranShkMean = (
+            (1 - UnempPrb * IncUnemp) / (1 - UnempPrb) if employed else IncUnemp
+        )
+
+
 class IncShkDstn_HANK(DiscreteDistributionLabeled):
     """
     A one-period distribution object for the joint distribution of income
@@ -855,6 +963,93 @@ def construct_markov_lognormal_income_process_unemployment(
         IncShkDstn.append(IncShkDstn_t)
 
     return IncShkDstn
+
+
+def construct_employment_income_process(
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    TranShkStd,
+    TranShkCount,
+    UnempPrb,
+    IncUnemp,
+    RNG,
+    neutral_measure=False,
+):
+    """
+    Generates a nested list of discrete approximations to the income process in
+    each period, for two discrete Markov states: employed (state 0) and unemployed
+    (state 1). Unemployment is a state, not a value of the transitory shock, so a
+    newborn's or anyone's employment can be conditioned on while the transitory
+    and permanent shocks are still drawn. Permanent shocks are mean one lognormal
+    with standard deviation PermShkStd[t] in either state. When employed, the
+    transitory shock is a mean one lognormal theta with standard deviation
+    TranShkStd[t], scaled by (1 - UnempPrb * IncUnemp) / (1 - UnempPrb); when
+    unemployed, transitory income is IncUnemp.
+
+    With make_employment_markov's transition arrays, in which UnempPrb is the
+    probability of unemployment next period from either state, the problem is
+    the one that construct_lognormal_income_process_unemployment states with
+    unemployment folded into the transitory shock. For a persistent employment
+    process, supply MrkvArray directly and set UnempPrb to the unemployment rate
+    at which transitory income should have mean one. Retirement is not handled.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Total number of non-terminal periods in the consumer's sequence of periods.
+    PermShkStd : [float]
+        List of length T_cycle of standard deviations of log permanent income shocks.
+    PermShkCount : int
+        Number of points in the discrete approximation to the permanent shock.
+    TranShkStd : [float]
+        List of length T_cycle of standard deviations of log theta, the transitory
+        shock when employed.
+    TranShkCount : int
+        Number of points in the discrete approximation to theta.
+    UnempPrb : float or [float]
+        Probability of being unemployed, one value or one per period.
+    IncUnemp : float or [float]
+        Transitory income when unemployed, one value or one per period.
+    RNG : np.random.Generator
+        Random number generator for this type.
+    neutral_measure : bool
+        Indicator for whether the permanent-income-neutral measure should be used.
+
+    Returns
+    -------
+    IncShkDstn : [[DiscreteDistributionLabeled]]
+        A list with T_cycle elements, each a list of the employed and unemployed
+        states' income shock distributions in that period.
+    """
+    UnempPrb_list = np.broadcast_to(np.asarray(UnempPrb, dtype=float), (T_cycle,))
+    IncUnemp_list = np.broadcast_to(np.asarray(IncUnemp, dtype=float), (T_cycle,))
+    if np.any(UnempPrb_list < 0.0) or np.any(UnempPrb_list >= 1.0):
+        raise ValueError("UnempPrb must be at least 0 and less than 1 in every period.")
+    if np.any(UnempPrb_list * IncUnemp_list >= 1.0):
+        raise ValueError("UnempPrb * IncUnemp must be less than 1 in every period.")
+
+    IncShkDstn_by_state = []
+    for employed in (True, False):
+        IncShkDstn_state = IndexDistribution(
+            engine=EmploymentIncShkDstn,
+            conditional={
+                "sigma_Perm": list(PermShkStd),
+                "sigma_Tran": list(TranShkStd),
+                "n_approx_Perm": [PermShkCount] * T_cycle,
+                "n_approx_Tran": [TranShkCount] * T_cycle,
+                "UnempPrb": UnempPrb_list.tolist(),
+                "IncUnemp": IncUnemp_list.tolist(),
+                "employed": [employed] * T_cycle,
+                "neutral_measure": [neutral_measure] * T_cycle,
+            },
+            RNG=RNG,
+            seed=RNG.integers(0, 2**31 - 1),
+        )
+        IncShkDstn_by_state.append(IncShkDstn_state)
+
+    # Element [t][k] is the income shock distribution in period t, state k
+    return [[IncShkDstn_by_state[k][t] for k in range(2)] for t in range(T_cycle)]
 
 
 def construct_HANK_lognormal_income_process_unemployment(

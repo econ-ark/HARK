@@ -2071,6 +2071,7 @@ IndShockConsumerType_simulation_default = {
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    "NewbornPermShk": True,  # Whether newborns have a permanent shock (and growth)
     # ADDITIONAL OPTIONAL PARAMETERS
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
@@ -2194,6 +2195,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
     NewbornTransShk: boolean
         Whether Newborns have transitory shock.
+    NewbornPermShk: boolean
+        Whether newborns have a permanent shock, and expected growth, in their
+        first period (default True). If False, their permanent shock is 1, so
+        they enter with pLvl drawn from pLvlInitDstn exactly. Read by
+        ``simulate``; the model-file simulator (``initialize_sym``) refuses False.
 
     Attributes
     ----------
@@ -2335,6 +2341,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
+        # Whether newborns have a permanent shock and growth. The default is True.
+        if not getattr(self, "NewbornPermShk", True):
+            PermShkNow[newborn] = 1.0
 
         if _cache:
             self._base_shock_draws = base_draws_dict
@@ -2949,6 +2958,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
     NewbornTransShk: boolean
         Whether Newborns have transitory shock.
+    NewbornPermShk: boolean
+        Whether newborns have a permanent shock, and expected growth, in their
+        first period (default True). If False, their permanent shock is 1, so
+        they enter with pLvl drawn from pLvlInitDstn exactly. Read by
+        ``simulate``; the model-file simulator (``initialize_sym``) refuses False.
 
     Attributes
     ----------

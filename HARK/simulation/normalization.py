@@ -167,7 +167,9 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
     After ``get_shocks()`` draws ``PermShk`` and ``TranShk`` for the
     population, rescales each so that the cross-sectional mean equals its
     theoretical value: ``PermGroFac`` for ``PermShk`` (HARK folds growth
-    into that array; see the module docstring) and 1.0 for ``TranShk``.
+    into that array; see the module docstring) and, for ``TranShk``, the
+    distribution's ``TranShkMean`` where it has one (an employment state's
+    mean transitory income) and 1.0 otherwise.
     This makes the aggregate effect of sampling noise exact in every
     period, regardless of population size, without touching the
     deterministic growth trend.
@@ -253,6 +255,35 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
                 return None
         return target
 
+    def _tran_shk_mean_target(self, idx):
+        """Per-agent cross-sectional mean of ``shocks["TranShk"]``.
+
+        This is ``TranShkMean`` of the distribution each agent drew from, for
+        distributions that record it, such as the employed and unemployed
+        states of ``construct_employment_income_process``, and 1.0 for the
+        rest, whose transitory shock has mean one by construction. ``idx`` is
+        the period index from :meth:`_income_dstn_index`.
+        """
+        target = np.ones(len(idx), dtype=float)
+        IncShkDstn = getattr(self, "IncShkDstn", None)
+        if IncShkDstn is None:
+            return target
+        mrkv = self._mrkv_labels()
+        for i in np.unique(idx):
+            selected = idx == i
+            try:
+                entry = IncShkDstn[int(i)]
+            except (IndexError, KeyError, TypeError):
+                continue
+            if mrkv is None or not isinstance(entry, (list, tuple)):
+                target[selected] = getattr(entry, "TranShkMean", 1.0)
+                continue
+            for j in np.unique(mrkv[selected]):
+                if j < len(entry):
+                    these = np.logical_and(selected, mrkv == j)
+                    target[these] = getattr(entry[int(j)], "TranShkMean", 1.0)
+        return target
+
     def _normalize_shock_means(self):
         """Rescale ``PermShk`` and ``TranShk`` so group means hit their targets.
 
@@ -281,7 +312,7 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
         dstn_index = self._income_dstn_index()
         labels = self._shock_group_labels(dstn_index)
 
-        targets = {"TranShk": np.ones(len(labels))}
+        targets = {"TranShk": self._tran_shk_mean_target(dstn_index)}
         perm_target = self._perm_shk_mean_target(dstn_index)
         if perm_target is not None:
             targets["PermShk"] = perm_target
@@ -294,11 +325,14 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
                 "Override _perm_shk_mean_target() for this model.",
             )
 
-        # Models that pin newborn TranShk to exactly 1.0 (NewbornTransShk
-        # False) are making a deliberate choice; rescaling would undo it.
+        # Models that pin a newborn's TranShk or PermShk to exactly 1.0
+        # (NewbornTransShk or NewbornPermShk False) are making a deliberate
+        # choice; rescaling would undo it.
         held_out = {}
         if not getattr(self, "NewbornTransShk", True):
             held_out["TranShk"] = np.asarray(self.t_age, dtype=int) == 0
+        if not getattr(self, "NewbornPermShk", True):
+            held_out["PermShk"] = np.asarray(self.t_age, dtype=int) == 0
 
         skipped = 0
         for name, target in targets.items():
@@ -313,6 +347,11 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
                     mask = np.logical_and(mask, ~exclude)
                 if mask.sum() < 2:
                     skipped += int(mask.sum())
+                    continue
+                # A group already at its target, such as the unemployed when
+                # unemployment income is the same for all, needs no rescaling,
+                # even when the target is zero
+                if np.all(shock_arr[mask] == target[mask]):
                     continue
                 empirical_mean = float(np.mean(shock_arr[mask]))
                 # Relative, not absolute: what makes the division unsafe is
