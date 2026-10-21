@@ -388,6 +388,7 @@ class EmploymentIncShkDstn(DiscreteDistributionLabeled):
     A one-period joint distribution of permanent and transitory income shocks in
     one employment state, for models in which unemployment is a discrete Markov
     state rather than a value of the transitory shock:
+
     - Lognormal, discretized permanent income shocks, in either state.
     - When employed, a mean one lognormal transitory shock theta, scaled by
       (1 - UnempPrb * IncUnemp) / (1 - UnempPrb), so that transitory income has
