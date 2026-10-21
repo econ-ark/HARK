@@ -179,7 +179,10 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         def diffFunc(m):
             return self.TBSType.solution[0].cFunc(m) - self.MarkovType.cFunc[0][0](m)
 
-        points = np.arange(0.1, 10.0, 0.01)
+        # Compare where both models are solved: TBS up to its mUpperBnd, which is
+        # also the top of the Markov model's asset grid. Above it both functions
+        # are extrapolations.
+        points = np.arange(0.1, self.TBSType.mUpperBnd, 0.01)
         difference = diffFunc(points)
         max_difference = np.max(np.abs(difference))
 
