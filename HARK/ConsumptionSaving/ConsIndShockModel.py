@@ -59,7 +59,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
-from HARK.utilities import make_assets_grid
+from HARK.utilities import get_arg_names, make_assets_grid
 from scipy.optimize import newton
 
 from HARK import (
@@ -638,6 +638,7 @@ def solve_one_period_ConsIndShock(
     aXtraGrid,
     vFuncBool,
     CubicBool,
+    BoroCnstInfimum=True,
 ):
     """Solves one period of a consumption-saving model with idiosyncratic shocks to
     permanent and transitory income, with one risk free asset and CRRA utility.
@@ -673,6 +674,10 @@ def solve_one_period_ConsIndShock(
         included in the reported solution.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear interpolation.
+    BoroCnstInfimum: boolean
+        Whether the natural borrowing constraint is computed from the infima of
+        the true shock distributions, recorded in IncShkDstn.limit["infimum"],
+        rather than from the lowest discretized atoms. Default True.
 
     Returns
     -------
@@ -701,6 +706,14 @@ def solve_one_period_ConsIndShock(
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
     mNrmMinNow = calc_m_nrm_min(BoroCnstArt, BoroCnstNat)
+    # The true distributions' infima can bound resources more tightly than the
+    # atoms do. The atoms' limit still anchors the asset grid, where marginal value
+    # is infinite, so the infima's limit is imposed as a constraint, as BoroCnstArt is.
+    if BoroCnstInfimum:
+        BoroCnstInf = calc_boro_const_nat(
+            solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, use_infimum=True
+        )
+        mNrmMinNow = max(mNrmMinNow, BoroCnstInf)
 
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = calc_patience_factor(Rfree, DiscFacEff, CRRA)
@@ -923,6 +936,7 @@ def solve_one_period_ConsKinkedR(
             aXtraGrid,
             vFuncBool,
             CubicBool,
+            BoroCnstInfimum=False,  # as this solver's own path does
         )
         return solution_now
 
@@ -2061,6 +2075,7 @@ IndShockConsumerType_solving_default = {
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "BoroCnstInfimum": True,  # Whether the natural constraint uses the shocks' infima
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation
 }
@@ -2452,6 +2467,51 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
+    def solve(self, *args, **kwargs):
+        # Registered here, not in pre_solve, which solve(presolve=False) skips
+        self.add_solver_option("BoroCnstInfimum", True)
+        return super().solve(*args, **kwargs)
+
+    def solver_takes(self, name):
+        """
+        Whether this agent's one period solver takes the named argument.
+
+        Parameters
+        ----------
+        name : str
+            Name of the solver's argument.
+
+        Returns
+        -------
+        bool
+        """
+        if hasattr(self.solve_one_period, "__getitem__"):
+            return False  # a sequence of solvers, one per period
+        return name in get_arg_names(self.solve_one_period)
+
+    def add_solver_option(self, name, default):
+        """
+        Pass an optional argument to the one period solver, if the solver takes
+        it, so that subclasses with other solvers need no such parameter. The
+        argument is added to time_inv, and set to its default if it is missing.
+
+        Parameters
+        ----------
+        name : str
+            Name of the solver's argument, and of the parameter that sets it.
+        default
+            Value used when the agent has no such parameter.
+
+        Returns
+        -------
+        None
+        """
+        if not self.solver_takes(name):
+            return
+        if not hasattr(self, name):
+            setattr(self, name, default)
+        self.add_to_time_inv(name)
+
     def describe_parameters(self):
         """
         Generate a string describing the primitive model parameters that will
@@ -2590,6 +2650,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Find the upper bound of the MPC as market resources approach the minimum
         BoroCnstArt = -np.inf if self.BoroCnstArt is None else self.BoroCnstArt
+        if self.solver_takes("BoroCnstInfimum") and getattr(
+            self, "BoroCnstInfimum", True
+        ):
+            # The limit implied by the true distributions' infima binds like BoroCnstArt
+            PermShkInf, TranShkInf = self.IncShkDstn[0].limit["infimum"]
+            temp = PermShkInf * aux_dict["FHWFac"]
+            BoroCnstArt = max(BoroCnstArt, -TranShkInf * temp / (1.0 - temp))
         if BoroCnstNat < BoroCnstArt:
             MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
         else:
