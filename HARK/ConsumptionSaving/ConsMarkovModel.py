@@ -286,6 +286,7 @@ def solve_one_period_ConsMarkov(
     aXtraGrid,
     vFuncBool,
     CubicBool,
+    BoroCnstInfimum=True,
 ):
     """
     Solves a single period consumption-saving problem with risky income and
@@ -334,6 +335,11 @@ def solve_one_period_ConsMarkov(
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
+    BoroCnstInfimum: boolean
+        Whether the natural borrowing constraint is computed from the infima of
+        the true shock distributions, recorded in each succeeding state's
+        IncShkDstn.limit["infimum"], rather than from the lowest discretized
+        atoms. Default True.
 
     Returns
     -------
@@ -361,6 +367,7 @@ def solve_one_period_ConsMarkov(
 
     # Initialize the natural borrowing constraint when entering each succeeding state
     BoroCnstNat_temp = np.zeros(StateCountNext) + np.nan
+    BoroCnstInf_temp = np.zeros(StateCountNext) - np.inf
 
     # Find the natural borrowing constraint conditional on next period's state
     for j in range(StateCountNext):
@@ -371,6 +378,14 @@ def solve_one_period_ConsMarkov(
             * (PermGroFac_list[j] * PermShkMinNext)
             / Rfree_list[j]
         )
+        # The same limit from the true distributions' infima, if requested
+        if BoroCnstInfimum:
+            PermShkInfNext, TranShkInfNext = IncShkDstn_list[j].limit["infimum"]
+            BoroCnstInf_temp[j] = (
+                (solution_next.mNrmMin[j] - TranShkInfNext)
+                * (PermGroFac_list[j] * PermShkInfNext)
+                / Rfree_list[j]
+            )
 
     # Initialize the natural borrowing constraint and minimum value of mNrm for
     # *this* period's Markov states, as well as a "dependency table"
@@ -390,6 +405,11 @@ def solve_one_period_ConsMarkov(
             mNrmMin_list[i] = BoroCnstNat_list[i]
         else:
             mNrmMin_list[i] = np.max([BoroCnstNat_list[i], BoroCnstArt])
+        # The infima's limit can be tighter than the atoms'. The atoms' limit still
+        # anchors the asset grid, so the infima's is imposed like BoroCnstArt.
+        mNrmMin_list[i] = np.max(
+            [mNrmMin_list[i], np.max(BoroCnstInf_temp[possible_next_states])]
+        )
         BoroCnstDependency[i, :] = BoroCnstNat_list[i] == BoroCnstNat_temp
     # Also creates a Boolean array indicating whether the natural borrowing
     # constraint *could* be hit when transitioning from i to j.
@@ -778,6 +798,7 @@ init_indshk_markov = {
     "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
     "PermGroFac": [np.array([0.99, 1.03])],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "BoroCnstInfimum": True,  # Whether the natural constraint uses the shocks' infima
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
