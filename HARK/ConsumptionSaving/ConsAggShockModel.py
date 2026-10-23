@@ -842,6 +842,7 @@ class AggShockConsumerType(IndShockConsumerType):
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
+        time_inv_.remove("BoroCnstInfimum")  # its solver uses the atoms' limit
     except:  # pragma: nocover
         pass
     market_vars = [
