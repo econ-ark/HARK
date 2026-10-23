@@ -406,7 +406,8 @@ def solve_one_period_ConsMarkov(
         else:
             mNrmMin_list[i] = np.max([BoroCnstNat_list[i], BoroCnstArt])
         # The infima's limit can be tighter than the atoms'. The atoms' limit still
-        # anchors the asset grid, so the infima's is imposed like BoroCnstArt.
+        # anchors the asset grid, so the infima's is imposed like BoroCnstArt; see
+        # the note in solve_one_period_ConsIndShock on why it is not the anchor.
         mNrmMin_list[i] = np.max(
             [mNrmMin_list[i], np.max(BoroCnstInf_temp[possible_next_states])]
         )
