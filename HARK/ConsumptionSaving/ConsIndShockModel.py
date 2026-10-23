@@ -2242,6 +2242,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "vFuncBool",
         "CubicBool",
         "aXtraGrid",
+        "BoroCnstInfimum",
     ]
     time_vary_ = PerfForesightConsumerType.time_vary_ + [
         "IncShkDstn",
@@ -2258,6 +2259,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "kNrmInitDstn",
         "pLvlInitDstn",
     ]
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        # A subclass's defaults may lack this option. Its solver receives only the
+        # arguments it takes, so the default is harmless where the solver ignores it.
+        if not hasattr(self, "BoroCnstInfimum"):
+            self.assign_parameters(BoroCnstInfimum=True)
 
     def update_income_process(self):
         self.update("IncShkDstn", "PermShkDstn", "TranShkDstn")
@@ -2471,11 +2479,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
-    def solve(self, *args, **kwargs):
-        # Registered here, not in pre_solve, which solve(presolve=False) skips
-        self.add_solver_option("BoroCnstInfimum", True)
-        return super().solve(*args, **kwargs)
-
     def solver_takes(self, name):
         """
         Whether this agent's one period solver takes the named argument.
@@ -2492,29 +2495,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if hasattr(self.solve_one_period, "__getitem__"):
             return False  # a sequence of solvers, one per period
         return name in get_arg_names(self.solve_one_period)
-
-    def add_solver_option(self, name, default):
-        """
-        Pass an optional argument to the one period solver, if the solver takes
-        it, so that subclasses with other solvers need no such parameter. The
-        argument is added to time_inv, and set to its default if it is missing.
-
-        Parameters
-        ----------
-        name : str
-            Name of the solver's argument, and of the parameter that sets it.
-        default
-            Value used when the agent has no such parameter.
-
-        Returns
-        -------
-        None
-        """
-        if not self.solver_takes(name):
-            return
-        if not hasattr(self, name):
-            setattr(self, name, default)
-        self.add_to_time_inv(name)
 
     def describe_parameters(self):
         """
@@ -2654,9 +2634,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Find the upper bound of the MPC as market resources approach the minimum
         BoroCnstArt = -np.inf if self.BoroCnstArt is None else self.BoroCnstArt
-        if self.solver_takes("BoroCnstInfimum") and getattr(
-            self, "BoroCnstInfimum", True
-        ):
+        if self.solver_takes("BoroCnstInfimum") and self.BoroCnstInfimum:
             # The limit implied by the true distributions' infima binds like BoroCnstArt
             PermShkInf, TranShkInf = self.IncShkDstn[0].limit["infimum"]
             temp = PermShkInf * aux_dict["FHWFac"]
