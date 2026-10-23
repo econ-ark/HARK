@@ -1567,6 +1567,12 @@ class testBoroCnstInfimum(unittest.TestCase):
 
     Here both shocks are mean-one lognormals truncated at three standard deviations
     of their logs, discretized by equiprobable conditional means, as in BST.
+
+    The infima's limit is imposed as BoroCnstArt is, while the atoms' limit still
+    anchors the asset grid. Making the infima's limit the anchor, as PR #1524 did,
+    left the first endogenous gridpoint far above the bottom and broke the value
+    function, which PR #1589 reverted. The comparison with an artificial
+    constraint at the same level, and the check on the anchor, guard against that.
     """
 
     R, G, p, xi, sigma = 1.03, 1.01, 0.05, 0.3, 0.1
@@ -1645,6 +1651,15 @@ class testBoroCnstInfimum(unittest.TestCase):
             self.assertLess(atoms.solution[0].mNrmMin, bound - 0.1)
             self.assertEqual(infima.solution[0].MPCmax, 1.0)
             self.assertEqual(infima.bilt["MPCmax"], 1.0)
+
+            # The atoms' limit, one step below the bound, still anchors the
+            # unconstrained function, so its endogenous gridpoints reach the bottom
+            shocks = infima.IncShkDstn[0].atoms
+            anchor = (bound - shocks[1].min()) * self.G * shocks[0].min() / self.R
+            knots = infima.solution[0].cFunc.functions[0].x_list
+            self.assertAlmostEqual(knots[0], anchor, places=10)
+            self.assertLess(anchor, bound)
+            self.assertLess(knots[1] - knots[0], 0.05)
 
             # The infima's limit binds as an artificial constraint at that level does
             art, _ = self.make_agent(BoroCnstArt=bound, CubicBool=cubic)

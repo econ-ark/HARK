@@ -709,6 +709,10 @@ def solve_one_period_ConsIndShock(
     # The true distributions' infima can bound resources more tightly than the
     # atoms do. The atoms' limit still anchors the asset grid, where marginal value
     # is infinite, so the infima's limit is imposed as a constraint, as BoroCnstArt is.
+    # Making it BoroCnstNat itself, as PR #1524 did, anchored the grid where the
+    # atoms' marginal value is still finite, which left the first endogenous
+    # gridpoint far above the bottom and broke the value function; PR #1589
+    # reverted that.
     if BoroCnstInfimum:
         BoroCnstInf = calc_boro_const_nat(
             solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, use_infimum=True

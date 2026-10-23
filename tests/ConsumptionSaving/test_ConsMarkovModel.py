@@ -634,7 +634,7 @@ class testMarkovBoroCnstInfimum(unittest.TestCase):
     rows must then match IndShockConsumerType with the same infima.
     """
 
-    def test_matches_indshock(self):
+    def check_matches_indshock(self, cubic):
         R, LivPrb, G, p, xi, std = 1.03, 0.98, 1.01, 0.05, 0.3, 0.1
         inf = np.exp(-(std**2) / 2 - 3 * std)
         scale = (1 - p * xi) / (1 - p)
@@ -643,6 +643,7 @@ class testMarkovBoroCnstInfimum(unittest.TestCase):
             BoroCnstArt=None,
             BoroCnstInfimum=True,
             vFuncBool=True,
+            CubicBool=cubic,
             tolerance=1e-12,
         )
         ind = IndShockConsumerType(
@@ -699,3 +700,9 @@ class testMarkovBoroCnstInfimum(unittest.TestCase):
             np.testing.assert_allclose(
                 mrkv.solution[0].vFunc[s](m), ind.solution[0].vFunc(m), rtol=1e-12
             )
+
+    def test_matches_indshock(self):
+        self.check_matches_indshock(cubic=False)
+
+    def test_matches_indshock_cubic(self):
+        self.check_matches_indshock(cubic=True)
