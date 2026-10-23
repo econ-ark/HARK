@@ -619,7 +619,9 @@ def solve_one_period_ConsMarkov(
             cFuncNowUnc = LinearInterp(
                 mNrmNow[i, :], cNrmNow[i, :], MPCminNow_i * hNrmNow_i, MPCminNow_i
             )
-        cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
+        # NaN below mNrmMin, as in IndShockConsumerType, rather than the
+        # unconstrained function's value there
+        cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
 
         # Make the marginal (marginal) value function
         vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)

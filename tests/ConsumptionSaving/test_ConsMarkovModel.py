@@ -625,3 +625,22 @@ class testNewbornMarkovStates(unittest.TestCase):
         newborn = agent.history["t_age"] == 1  # t_age is recorded after the increment
         self.assertTrue(newborn[1:].any())
         np.testing.assert_array_equal(Mrkv, newborn.astype(int))
+
+
+class testMarkovConstraintDomain(unittest.TestCase):
+    """
+    The consumption function is undefined below mNrmMin. The lower envelope
+    returns NaN there, as IndShockConsumerType's does, rather than the
+    unconstrained function's value.
+    """
+
+    def test_nan_below_mNrmMin(self):
+        agent = MarkovConsumerType(cycles=1, BoroCnstArt=0.2)
+        agent.solve()
+        for s in range(2):
+            cFunc = agent.solution[0].cFunc[s]
+            mNrmMin = agent.solution[0].mNrmMin[s]
+            self.assertEqual(mNrmMin, 0.2)
+            self.assertTrue(np.isnan(cFunc(mNrmMin - 1e-6)))
+            self.assertEqual(cFunc(mNrmMin), 0.0)
+            self.assertAlmostEqual(cFunc(mNrmMin + 1e-6), 1e-6, places=12)
