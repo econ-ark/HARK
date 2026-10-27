@@ -187,13 +187,12 @@ class PowerLawDecayCubicHermiteInterp(CubicHermiteInterp):
     form; interior evaluation and derivatives are inherited untouched (as is
     the scipy-deepcopy immunity of the base class).
 
-
     Base-class note: this subclasses ``CubicHermiteInterp`` (whose
     coefficient rows are ``[intercept, slope, gap, slope/gap]``). A
-    field-tested vendored twin in HAFiscal subclasses the older
-    ``CubicInterp`` instead; the two were verified numerically
-    equivalent on the shared coeffs-row contract, and this class
-    inherits ``CubicHermiteInterp``'s scipy-independent
+    subclass of the older ``CubicInterp`` works the same way on the
+    shared coefficient-row contract, and the two were verified
+    numerically equivalent; this class inherits
+    ``CubicHermiteInterp``'s scipy-independent
     ``__getstate__``/``__setstate__`` immunity (PR #1802).
     """
 
