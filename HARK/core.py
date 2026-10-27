@@ -1454,6 +1454,29 @@ class AgentType(Model):
         """
         return None
 
+    def convergence_report_hook(self, solution_now, solution_last, info):
+        """
+        Model-specific part of the convergence report (see report_convergence):
+        returns a dictionary merged into the report. The base class adds
+        nothing; consumption models add the target levels of market resources
+        and the state of convergence at the knots nearest them.
+
+        Parameters
+        ----------
+        solution_now : Solution
+            The converged solution of the one period problem.
+        solution_last : Solution
+            The iterate before it.
+        info : dict
+            The report so far: cycles, last_step, contraction_rate,
+            implied_distance, tolerance, stopping_rule.
+
+        Returns
+        -------
+        extra : dict
+        """
+        return {}
+
     def get_market_params(self, mkt, construct=True):
         """
         Fetch data named in class attribute market_vars and assign it as attributes
@@ -2822,29 +2845,6 @@ class Market(Model):
                     err,
                 )  # sys.exc_info()[0])
             multi_thread_commands_fake(self.agents, ["solve()"])
-
-    def convergence_report_hook(self, solution_now, solution_last, info):
-        """
-        Model-specific part of the convergence report (see report_convergence):
-        returns a dictionary merged into the report. The base class adds
-        nothing; consumption models add the target levels of market resources
-        and the state of convergence at the knots nearest them.
-
-        Parameters
-        ----------
-        solution_now : Solution
-            The converged solution of the one period problem.
-        solution_last : Solution
-            The iterate before it.
-        info : dict
-            The report so far: cycles, last_step, contraction_rate,
-            implied_distance, tolerance, stopping_rule.
-
-        Returns
-        -------
-        extra : dict
-        """
-        return {}
 
     def solve(self):
         """

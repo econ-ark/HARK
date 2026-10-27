@@ -1672,6 +1672,14 @@ class test_stopping_rule_and_report(unittest.TestCase):
         with self.assertRaises(ValueError):
             a.solve()
 
+    def test_report_works_without_a_model_hook(self):
+        # TractableConsumerType has no convergence_report_hook of its own, so
+        # the report carries the global figures alone.
+        a = TractableConsumerType(report_convergence=True)
+        a.solve()
+        for key in ("cycles", "last_step", "contraction_rate", "implied_distance"):
+            self.assertIn(key, a.convergence_report)
+
     def test_report_is_attached_to_agent_and_solution(self):
         from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 

@@ -1622,6 +1622,14 @@ class testStoppingRuleAndTargetReport(unittest.TestCase):
         top = float(np.asarray(a.solution[0].cFunc.functions[0].x_list)[-1])
         self.assertEqual(rep["target_population_knots"][1], top)
 
+    def test_perfect_foresight_is_declined_gracefully(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+
+        a = PerfForesightConsumerType(cycles=0, report_convergence=True)
+        a.solve()
+        self.assertIn("target_note", a.convergence_report)
+        self.assertIn("cycles", a.convergence_report)
+
     def test_state_dependent_solutions_are_declined_gracefully(self):
         from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 
