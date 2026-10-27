@@ -180,7 +180,7 @@ class PowerLawDecayCubicHermiteInterp(CubicHermiteInterp):
     linear tail uses. This subclass replaces only the above-top functional
     form; interior evaluation and derivatives are inherited untouched (as is
     the scipy-deepcopy immunity of the base class).
-    
+
 
     Base-class note: this subclasses ``CubicHermiteInterp`` (whose
     coefficient rows are ``[intercept, slope, gap, slope/gap]``). A
@@ -460,8 +460,9 @@ def retrofit_powerlaw(interp, decay_extrap_Q, q_diagnostics=None):
     return False
 
 
-def measure_local_q(m, c, kappa_min, h, targets=(0.8, 0.64), min_span=0.05,
-                    gap_floor=1e-10):
+def measure_local_q(
+    m, c, kappa_min, h, targets=(0.8, 0.64), min_span=0.05, gap_floor=1e-10
+):
     """Measure the local power-law decay exponent ``Q`` from a solved policy's
     own top knots — the estimation companion to :func:`retrofit_powerlaw`,
     which *consumes* a ``Q`` but provides no way to obtain one.
@@ -516,8 +517,14 @@ def measure_local_q(m, c, kappa_min, h, targets=(0.8, 0.64), min_span=0.05,
     x = m + h
 
     def _bad(reason):
-        return {"ok": False, "Q": None, "Q1": None, "Q2": None,
-                "drift": None, "reason": reason}
+        return {
+            "ok": False,
+            "Q": None,
+            "Q1": None,
+            "Q2": None,
+            "drift": None,
+            "reason": reason,
+        }
 
     def _select(xv):
         n = len(xv)
@@ -552,7 +559,8 @@ def measure_local_q(m, c, kappa_min, h, targets=(0.8, 0.64), min_span=0.05,
     if span < min_span:
         return _bad(
             f"ln(x) span {span:.3f} < {min_span} (grid top too low relative "
-            "to h for local-Q identifiability)")
+            "to h for local-Q identifiability)"
+        )
     c3 = c[idx]
     gap3 = kappa_min * x3 - c3
     if np.any(gap3 <= 0.0) or np.any(gap3 / np.maximum(c3, 1e-300) <= gap_floor):
@@ -570,11 +578,12 @@ def measure_local_q(m, c, kappa_min, h, targets=(0.8, 0.64), min_span=0.05,
         if np.log(x3i[-1] / x3i[0]) >= min_span:
             c3i = c[:-1][idxi]
             gap3i = kappa_min * x3i - c3i
-            if not (np.any(gap3i <= 0.0)
-                    or np.any(gap3i / np.maximum(c3i, 1e-300) <= gap_floor)):
+            if not (
+                np.any(gap3i <= 0.0)
+                or np.any(gap3i / np.maximum(c3i, 1e-300) <= gap_floor)
+            ):
                 drift = _two_secant(x3i, gap3i)[2]
-    return {"ok": True, "Q": q2, "Q1": q1, "Q2": q2, "drift": drift,
-            "reason": ""}
+    return {"ok": True, "Q": q2, "Q1": q1, "Q2": q2, "drift": drift, "reason": ""}
 
 
 def chartify_in_place(interp, MPCmin, hNrm, interp_kind="hermite"):

@@ -229,7 +229,7 @@ def test_measure_local_q_recovers_exact_exponent():
 
 
 def test_measure_local_q_rejects_shallow_span():
-    m = np.linspace(10.0, 10.2, 5)   # ln-span far below min_span
+    m = np.linspace(10.0, 10.2, 5)  # ln-span far below min_span
     xi = m + H
     c = KAPPA * xi - A_TOP * (xi / (m[-1] + H)) ** (-Q_TRUE)
     out = measure_local_q(m, c, KAPPA, H)
