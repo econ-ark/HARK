@@ -27,6 +27,7 @@ Overview
    ../../examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ-flow-budget-and-aggregation.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-lifecycle.ipynb
 
 .. nbgallery::
