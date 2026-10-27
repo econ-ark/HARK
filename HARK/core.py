@@ -1121,7 +1121,8 @@ class AgentType(Model):
         Whether to attach a report on where convergence stands to the agent
         (convergence_report) and to solution[0] after an infinite horizon
         solve: the last step, the contraction rate and the implied distance
-        to the fixed point, and, for models that implement
+        to the fixed point (zero after a zero step; None, with a note, when
+        the last steps show no contraction), and, for models that implement
         convergence_report_hook, the same at the knots nearest the target
         levels of market resources. The default is False.
     verbose : int
@@ -2452,20 +2453,15 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                         if recent[i - 1] > 0.0
                     ]
                     contraction_rate = max(ratios) if ratios else np.nan
-                    if contraction_rate < 1.0:
-                        implied_distance = (
-                            solution_distance
-                            * contraction_rate
-                            / (1.0 - contraction_rate)
-                        )
-                    else:
-                        implied_distance = np.inf
+                    implied_distance = _implied_distance(
+                        solution_distance, contraction_rate
+                    )
                     agent.contraction_rate = contraction_rate
                     agent.implied_distance = implied_distance
+                    # None: no contraction observed yet, so the solve goes on
                     go = (
-                        implied_distance > agent.tolerance
-                        and completed_cycles < max_cycles
-                    )
+                        implied_distance is None or implied_distance > agent.tolerance
+                    ) and completed_cycles < max_cycles
                 else:
                     go = (
                         solution_distance > agent.tolerance
@@ -2525,11 +2521,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                     if recent[i - 1] > 0.0
                 ]
                 contraction_rate = max(ratios) if ratios else np.nan
-                implied_distance = (
-                    solution_distance * contraction_rate / (1.0 - contraction_rate)
-                    if contraction_rate < 1.0
-                    else np.inf
-                )
+            implied_distance = _implied_distance(solution_distance, contraction_rate)
             report = {
                 "cycles": getattr(agent, "completed_cycles", completed_cycles),
                 "stopping_rule": stopping_rule,
@@ -2538,6 +2530,10 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                 "contraction_rate": contraction_rate,
                 "implied_distance": implied_distance,
             }
+            if implied_distance is None:
+                report["implied_distance_note"] = (
+                    "not available: the last steps show no contraction"
+                )
             report.update(
                 agent.convergence_report_hook(solution[0], solution_prev, report)
             )
@@ -2550,6 +2546,21 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                 print("Convergence report: " + _format_convergence_report(report))
 
     return solution
+
+
+def _implied_distance(step, rate):
+    """
+    The distance to the fixed point that a contraction at the per-cycle rate
+    implies after the given step, step * rate / (1 - rate). A zero step means
+    the fixed point is reached, whatever the rate. When the rate is not below
+    one, or not a number, no contraction has been observed and the bound does
+    not apply: None.
+    """
+    if step == 0.0:
+        return 0.0
+    if np.isfinite(rate) and rate < 1.0:
+        return step * rate / (1.0 - rate)
+    return None
 
 
 def _format_convergence_report(report):
