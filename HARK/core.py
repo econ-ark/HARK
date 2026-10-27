@@ -1107,6 +1107,26 @@ class AgentType(Model):
         one period problem in an infinite horizon (cycles=0) model in order
         for the solution to be considered as having "converged".  Inoperative
         when cycles>0.
+    stopping_rule : str
+        How an infinite horizon solve decides that it has converged. 'step'
+        (the default) stops when the distance between successive iterates
+        falls below tolerance. 'contraction' estimates the per-cycle
+        contraction rate r from the last few distances and stops when the
+        distance to the fixed point that r implies, distance * r / (1 - r),
+        falls below tolerance; near the growth-impatience edge r is close
+        to one and the last step understates the remaining distance by
+        1 / (1 - r), so 'step' can stop while consumption is still orders
+        of magnitude further from the fixed point than the tolerance. When
+        the last steps show no contraction (r not below one) the bound does
+        not apply and the step rule decides; the report then says so.
+    report_convergence : bool
+        Whether to attach a report on where convergence stands to the agent
+        (convergence_report) and to solution[0] after an infinite horizon
+        solve: the last step, the contraction rate and the implied distance
+        to the fixed point (zero after a zero step; None, with a note, when
+        the last steps show no contraction), and, for models that implement
+        convergence_report_hook, the same at the knots nearest the target
+        levels of market resources. The default is False.
     verbose : int
         Level of output to be displayed by this instance, default is 1.
     quiet : bool
@@ -1152,6 +1172,8 @@ class AgentType(Model):
         seed=0,
         construct=True,
         use_defaults=True,
+        stopping_rule="step",
+        report_convergence=False,
         **kwds,
     ):
         super().__init__()
@@ -1187,6 +1209,8 @@ class AgentType(Model):
         self.solution_terminal = solution_terminal  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
         self.tolerance = tolerance  # NOQA
+        self.stopping_rule = stopping_rule
+        self.report_convergence = report_convergence
         self.verbose = verbose
         self.quiet = quiet
         self.seed = seed  # NOQA
@@ -1432,6 +1456,29 @@ class AgentType(Model):
         none
         """
         return None
+
+    def convergence_report_hook(self, solution_now, solution_last, info):
+        """
+        Model-specific part of the convergence report (see report_convergence):
+        returns a dictionary merged into the report. The base class adds
+        nothing; consumption models add the target levels of market resources
+        and the state of convergence at the knots nearest them.
+
+        Parameters
+        ----------
+        solution_now : Solution
+            The converged solution of the one period problem.
+        solution_last : Solution
+            The iterate before it.
+        info : dict
+            The report so far: cycles, last_step, contraction_rate,
+            implied_distance, tolerance, stopping_rule.
+
+        Returns
+        -------
+        extra : dict
+        """
+        return {}
 
     def get_market_params(self, mkt, construct=True):
         """
@@ -2366,6 +2413,16 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
     go = True  # NOQA
     completed_cycles = 0  # NOQA
     max_cycles = 5000  # NOQA  - escape clause
+    stopping_rule = getattr(agent, "stopping_rule", "step")
+    if stopping_rule not in ("step", "contraction"):
+        raise ValueError(
+            "stopping_rule must be 'step' or 'contraction', got " + repr(stopping_rule)
+        )
+    distance_history = []  # the distances between successive iterates
+    contraction_rate = np.nan
+    implied_distance = np.nan
+    step_rule_decides = True  # whether the last stopping test was the step rule's
+    solution_prev = None  # the iterate before solution_last, for the report
     if verbose:
         t_last = time()
     while go:
@@ -2386,10 +2443,35 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                 agent.completed_cycles = (
                     completed_cycles  # query them to see if solution is ready
                 )
-                go = (
-                    solution_distance > agent.tolerance
-                    and completed_cycles < max_cycles
-                )
+                distance_history.append(solution_distance)
+                if stopping_rule == "contraction" and len(distance_history) >= 3:
+                    # The per-cycle contraction rate, floored over the last
+                    # three ratios (the knot at which the distance is attained
+                    # moves, which makes a single ratio jump around); the
+                    # distance still to travel is the geometric tail.
+                    recent = distance_history[-4:]
+                    ratios = [
+                        recent[i] / recent[i - 1]
+                        for i in range(1, len(recent))
+                        if recent[i - 1] > 0.0
+                    ]
+                    contraction_rate = max(ratios) if ratios else np.nan
+                    implied_distance = _implied_distance(
+                        solution_distance, contraction_rate
+                    )
+                    agent.contraction_rate = contraction_rate
+                    agent.implied_distance = implied_distance
+                    # None: no contraction observed, so the bound does not
+                    # apply and the step rule decides
+                    step_rule_decides = implied_distance is None
+                    bound = solution_distance if step_rule_decides else implied_distance
+                    go = bound > agent.tolerance and completed_cycles < max_cycles
+                else:
+                    step_rule_decides = True
+                    go = (
+                        solution_distance > agent.tolerance
+                        and completed_cycles < max_cycles
+                    )
             else:  # Assume solution does not converge after only one cycle
                 solution_distance = 100.0
                 go = True
@@ -2398,6 +2480,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
             go = cycles_left > 0
 
         # Update the "last period solution"
+        solution_prev = solution_last
         solution_last = solution_now
         completed_cycles += 1
 
@@ -2430,8 +2513,74 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         solution = (
             solution_cycle  # PseudoTerminal=False impossible for infinite horizon
         )
+        if getattr(agent, "report_convergence", False) and solution_prev is not None:
+            # Where convergence stands: the global figures the stopping rule
+            # used, and whatever the model adds (the targets, the knots nearest
+            # them and the last step there). Attached to the agent and to the
+            # solution, printed under verbose.
+            if len(distance_history) >= 2 and np.isnan(contraction_rate):
+                recent = distance_history[-4:]
+                ratios = [
+                    recent[i] / recent[i - 1]
+                    for i in range(1, len(recent))
+                    if recent[i - 1] > 0.0
+                ]
+                contraction_rate = max(ratios) if ratios else np.nan
+            implied_distance = _implied_distance(solution_distance, contraction_rate)
+            report = {
+                "cycles": getattr(agent, "completed_cycles", completed_cycles),
+                "stopping_rule": stopping_rule,
+                "tolerance": agent.tolerance,
+                "last_step": solution_distance,
+                "contraction_rate": contraction_rate,
+                "implied_distance": implied_distance,
+            }
+            if implied_distance is None:
+                report["implied_distance_note"] = (
+                    "not available: the last steps show no contraction"
+                )
+            if stopping_rule == "contraction" and step_rule_decides:
+                report["stopping_note"] = (
+                    "stopped on the step rule: the last steps show no contraction"
+                )
+            report.update(
+                agent.convergence_report_hook(solution[0], solution_prev, report)
+            )
+            agent.convergence_report = report
+            try:
+                solution[0].convergence_report = report
+            except AttributeError:
+                pass
+            if verbose:
+                print("Convergence report: " + _format_convergence_report(report))
 
     return solution
+
+
+def _implied_distance(step, rate):
+    """
+    The distance to the fixed point that a contraction at the per-cycle rate
+    implies after the given step, step * rate / (1 - rate). A zero step means
+    the fixed point is reached, whatever the rate. When the rate is not below
+    one, or not a number, no contraction has been observed and the bound does
+    not apply: None.
+    """
+    if step == 0.0:
+        return 0.0
+    if np.isfinite(rate) and rate < 1.0:
+        return step * rate / (1.0 - rate)
+    return None
+
+
+def _format_convergence_report(report):
+    """One line for a convergence report, numbers in short form."""
+    parts = []
+    for key, value in report.items():
+        if isinstance(value, float):
+            parts.append(key + "=" + "{:.3g}".format(value))
+        else:
+            parts.append(key + "=" + str(value))
+    return ", ".join(parts)
 
 
 def _resolve_solve_one_period(agent, k):

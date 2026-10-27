@@ -1648,3 +1648,127 @@ class test_get_states_arity(unittest.TestCase):
         # equality assert here would break it.
         agent = self._agent((np.zeros(10),))
         agent.get_states()
+
+
+class test_stopping_rule_and_report(unittest.TestCase):
+    """The infinite-horizon stopping rule option and the convergence report (issue #1837)."""
+
+    def test_default_path_is_unchanged_and_silent(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+
+        a = IndShockConsumerType(cycles=0)
+        a.solve()
+        b = IndShockConsumerType(cycles=0, stopping_rule="step")
+        b.solve()
+        self.assertEqual(a.completed_cycles, b.completed_cycles)
+        self.assertEqual(a.solution[0].distance(b.solution[0]), 0.0)
+        self.assertFalse(hasattr(a, "convergence_report"))
+        self.assertFalse(hasattr(a.solution[0], "convergence_report"))
+
+    def test_unknown_stopping_rule_is_refused(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+
+        a = IndShockConsumerType(cycles=0, stopping_rule="nonsense")
+        with self.assertRaises(ValueError):
+            a.solve()
+
+    def test_report_works_without_a_model_hook(self):
+        # TractableConsumerType has no convergence_report_hook of its own, so
+        # the report carries the global figures alone.
+        a = TractableConsumerType(report_convergence=True)
+        a.solve()
+        for key in ("cycles", "last_step", "contraction_rate", "implied_distance"):
+            self.assertIn(key, a.convergence_report)
+
+    def test_report_is_attached_to_agent_and_solution(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+
+        a = IndShockConsumerType(cycles=0, report_convergence=True)
+        a.solve()
+        rep = a.convergence_report
+        self.assertIs(a.solution[0].convergence_report, rep)
+        for key in (
+            "cycles",
+            "stopping_rule",
+            "tolerance",
+            "last_step",
+            "contraction_rate",
+            "implied_distance",
+        ):
+            self.assertIn(key, rep)
+        self.assertEqual(rep["cycles"], a.completed_cycles)
+        self.assertEqual(rep["last_step"], a.solution_distance)
+        # the last step understates the implied distance whenever r is close to one
+        self.assertGreater(rep["implied_distance"], rep["last_step"])
+
+    @staticmethod
+    def _stepping_agent(steps, **kwds):
+        # an infinite-horizon agent whose iterate moves by the given steps in
+        # turn, then stays put; powers of two keep the distances exact
+        class Iterate(MetricObject):
+            distance_criteria = ["x"]
+
+            def __init__(self, x):
+                self.x = x
+
+        moves = iter(steps)
+        agent = AgentType(solution_terminal=Iterate(0.0), cycles=0, **kwds)
+        agent.T_cycle = 1
+        agent.solve_one_period = lambda solution_next: Iterate(
+            solution_next.x + next(moves, 0.0)
+        )
+        return agent
+
+    def test_implied_distance_bound(self):
+        from HARK.core import _implied_distance
+
+        self.assertEqual(_implied_distance(1e-6, 0.5), 1e-6)
+        # a zero step reaches the fixed point, whatever the rate
+        self.assertEqual(_implied_distance(0.0, 1.0), 0.0)
+        self.assertEqual(_implied_distance(0.0, np.nan), 0.0)
+        # without a contraction the bound does not apply
+        for rate in (1.0, 1.5, np.inf, np.nan):
+            self.assertIsNone(_implied_distance(1e-6, rate))
+
+    def test_zero_last_step_implies_zero_distance(self):
+        # TractableConsumerType's distance counts grid points: its last step is
+        # exactly zero and its contraction rate one
+        a = TractableConsumerType(report_convergence=True)
+        a.solve()
+        rep = a.convergence_report
+        self.assertEqual(rep["last_step"], 0)
+        self.assertEqual(rep["contraction_rate"], 1.0)
+        self.assertEqual(rep["implied_distance"], 0.0)
+        self.assertNotIn("implied_distance_note", rep)
+
+    def test_no_implied_distance_without_a_contraction(self):
+        # steps that stop shrinking until the last one: no contraction observed
+        a = self._stepping_agent(
+            [0.5, 2.0**-19, 2.0**-19, 2.0**-19, 2.0**-21], report_convergence=True
+        )
+        a.solve()
+        rep = a.convergence_report
+        self.assertEqual(rep["last_step"], 2.0**-21)
+        self.assertEqual(rep["contraction_rate"], 1.0)
+        self.assertIsNone(rep["implied_distance"])
+        self.assertIn("implied_distance_note", rep)
+
+    def test_contraction_rule_falls_back_on_the_step_rule(self):
+        # without a contraction the bound does not apply: the step rule stops
+        # the solve at the first step under the tolerance, and the report says so
+        steps = [0.5, 2.0**-19, 2.0**-19, 2.0**-19] + 20 * [2.0**-21]
+        a = self._stepping_agent(
+            steps, stopping_rule="contraction", report_convergence=True
+        )
+        a.solve()
+        self.assertEqual(a.convergence_report["cycles"], 4)
+        self.assertIn("stopping_note", a.convergence_report)
+        # steps that halve each cycle contract, and the bound decides
+        b = self._stepping_agent(
+            [0.5] + [2.0**-k for k in range(10, 40)],
+            stopping_rule="contraction",
+            report_convergence=True,
+        )
+        b.solve()
+        self.assertEqual(b.convergence_report["contraction_rate"], 0.5)
+        self.assertNotIn("stopping_note", b.convergence_report)
