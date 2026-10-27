@@ -1956,8 +1956,9 @@ class PerfForesightConsumerType(AgentType):
         the fixed point that the contraction rate implies there. Not available
         for state-dependent solutions (a list of consumption functions), for a
         solution without a consumption function cFunc, nor without income shocks
-        (a perfect foresight agent); the types with a risky asset and the
-        representative agent decline it in hooks of their own.
+        (a perfect foresight agent). The types with a risky asset and the
+        representative agent have targets too, not yet worked out here; their
+        own hooks say so.
 
         Parameters
         ----------

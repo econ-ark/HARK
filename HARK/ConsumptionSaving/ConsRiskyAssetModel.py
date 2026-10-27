@@ -588,10 +588,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
     def convergence_report_hook(self, solution_now, solution_last, info):
         """
-        The target part of the convergence report is declined for an agent with
-        a risky asset: its comparison takes E[m' | a] at the risk-free factor,
-        and this agent's saving earns a risky return. The report keeps its
-        global figures and carries a target_note.
+        The convergence report does not compute the target for an agent with a
+        risky asset. A target exists here too, but the report's comparison takes
+        E[m' | a] at the risk-free factor, while this agent's saving earns a
+        risky return, and the target under a risky return is not yet worked out.
+        The report keeps its global figures and carries a target_note.
 
         Parameters
         ----------
@@ -606,7 +607,10 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         extra : dict
         """
-        return {"target_note": "not available with a risky asset"}
+        return {
+            "target_note": "not computed with a risky asset: a target exists, but "
+            "this report takes E[m' | a] at the risk-free factor"
+        }
 
 
 # This is to preserve compatibility with old name
