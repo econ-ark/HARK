@@ -443,10 +443,12 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     def convergence_report_hook(self, solution_now, solution_last, info):
         """
-        The target part of the convergence report is declined for the
-        representative agent: its interest factor is set by its own capital, so
-        the comparison of m with E[m' | a] at a given factor does not apply. The
-        report keeps its global figures and carries a target_note.
+        The convergence report does not compute the target for the
+        representative agent. A target exists here too, but the report's
+        comparison takes E[m' | a] at a given interest factor, while this agent's
+        factor is set by its own capital, and the target under that factor is not
+        yet worked out. The report keeps its global figures and carries a
+        target_note.
 
         Parameters
         ----------
@@ -461,7 +463,10 @@ class RepAgentConsumerType(IndShockConsumerType):
         -------
         extra : dict
         """
-        return {"target_note": "not available for a representative agent"}
+        return {
+            "target_note": "not computed for the representative agent: a target "
+            "exists, but this report takes the interest factor as given"
+        }
 
 
 ###############################################################################
