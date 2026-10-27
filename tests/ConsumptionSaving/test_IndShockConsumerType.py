@@ -1637,3 +1637,81 @@ class testStoppingRuleAndTargetReport(unittest.TestCase):
         a.solve()
         self.assertIn("target_note", a.convergence_report)
         self.assertIn("cycles", a.convergence_report)
+
+    def test_kinked_interest_rate_takes_each_knots_own_factor(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+
+        a = KinkedRconsumerType(cycles=0, report_convergence=True)
+        a.solve()
+        rep = a.convergence_report
+        self.assertNotIn("target_note", rep)
+        # at the individual target the expected ratio next period is the target
+        # itself, with the factor that applies to the target's assets
+        m = rep["target_individual"]
+        aNrm = m - float(a.solution[0].cFunc(m))
+        R = a.Rsave if aNrm > 0.0 else a.Rboro
+        dstn = a.IncShkDstn[0]
+        Ex_PermShkInv = np.sum(dstn.pmv / dstn.atoms[0])
+        Ex_TranShk = np.sum(dstn.pmv * dstn.atoms[1])
+        Ex_m_next = R / a.PermGroFac[0] * Ex_PermShkInv * aNrm + Ex_TranShk
+        self.assertAlmostEqual(Ex_m_next, m, places=8)
+
+    def test_solution_without_cFunc_is_declined_gracefully(self):
+        # as MedShockConsumerType's solution (a dict) and the labeled solutions are
+        a = IndShockConsumerType(cycles=0)
+        a.solve()
+        self.assertIn("target_note", a.convergence_report_hook({}, {}, {}))
+
+    def test_stock_types_report_or_decline(self):
+        # each of these stock consumer types, solved on its defaults, either
+        # reports the targets or declines them with a note; none raises
+        from HARK.ConsumptionSaving.ConsBequestModel import (
+            BequestWarmGlowConsumerType,
+        )
+        from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+        from HARK.ConsumptionSaving.ConsLaborModel import LaborIntMargConsumerType
+        from HARK.ConsumptionSaving.ConsNewKeynesianModel import (
+            NewKeynesianConsumerType,
+        )
+        from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioConsumerType
+        from HARK.ConsumptionSaving.ConsPrefShockModel import (
+            KinkyPrefConsumerType,
+            PrefShockConsumerType,
+        )
+        from HARK.ConsumptionSaving.ConsRepAgentModel import RepAgentConsumerType
+        from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
+            IndShockRiskyAssetConsumerType,
+        )
+        from HARK.ConsumptionSaving.ConsWealthPortfolioModel import (
+            WealthPortfolioConsumerType,
+        )
+        from HARK.ConsumptionSaving.ConsWealthUtilityModel import (
+            WealthUtilityConsumerType,
+        )
+
+        with_targets = [
+            KinkedRconsumerType,
+            BequestWarmGlowConsumerType,
+            NewKeynesianConsumerType,
+            WealthUtilityConsumerType,
+        ]
+        declined = [
+            PrefShockConsumerType,
+            KinkyPrefConsumerType,
+            LaborIntMargConsumerType,
+            IndShockRiskyAssetConsumerType,
+            PortfolioConsumerType,
+            WealthPortfolioConsumerType,
+            RepAgentConsumerType,
+        ]
+        for agent_type in with_targets + declined:
+            with self.subTest(agent_type=agent_type.__name__):
+                a = agent_type(cycles=0, report_convergence=True)
+                a.solve()
+                rep = a.convergence_report
+                self.assertIn("contraction_rate", rep)
+                if agent_type in with_targets:
+                    self.assertNotIn("target_note", rep)
+                    self.assertIn("target_individual", rep)
+                else:
+                    self.assertIn("target_note", rep)
