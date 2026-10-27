@@ -1950,7 +1950,8 @@ class PerfForesightConsumerType(AgentType):
         For each target the report gives the flanking knots, the change of
         consumption at them in the last cycle and the distance to the fixed point
         that the contraction rate implies there. Not available for
-        state-dependent solutions (a list of consumption functions).
+        state-dependent solutions (a list of consumption functions), nor
+        without income shocks (a perfect foresight agent).
 
         Parameters
         ----------
@@ -1965,6 +1966,8 @@ class PerfForesightConsumerType(AgentType):
         -------
         extra : dict
         """
+        if not hasattr(self, "IncShkDstn"):
+            return {"target_note": "not available without income shocks"}
         cFunc = solution_now.cFunc
         if isinstance(cFunc, list) or isinstance(solution_last.cFunc, list):
             return {"target_note": "not available for state-dependent solutions"}
