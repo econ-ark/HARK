@@ -32,6 +32,11 @@ Contents:
   do not wish to modify: every captured reference (for example a
   ``MargValueFuncCRRA`` holding the same object) sees the upgraded tail.
 
+* ``measure_local_q`` -- the estimation companion of ``retrofit_powerlaw``:
+  measures the local decay exponent ``Q`` from a solved policy's own top
+  knots (two log-log secant slopes and a convergence-drift diagnostic), so
+  the module is usable end to end without an externally supplied exponent.
+
 * ``MoMLogGapChartInterp`` / ``chartify_in_place`` -- a Method-of-Moderation
   style re-chart of a solved consumption function: cubic interpolation of
   y = log(cbar - c) against xi = log(m + hNrm), with exact transformed knot
@@ -71,6 +76,7 @@ __all__ = [
     "PowerLawDecayCubicHermiteInterp",
     "MoMLogGapChartInterp",
     "retrofit_powerlaw",
+    "measure_local_q",
     "chartify_in_place",
 ]
 
