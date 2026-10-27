@@ -1945,13 +1945,18 @@ class PerfForesightConsumerType(AgentType):
         newborn term, zero when newborns start with no capital). Both are one
         vectorized sign test along the knots; the crossing is placed by linear
         interpolation between the two flanking knots, which is exact because the
-        consumption function is linear between them. When every knot is on the
-        building side the target lies above the grid, and the report says so.
-        For each target the report gives the flanking knots, the change of
-        consumption at them in the last cycle and the distance to the fixed point
-        that the contraction rate implies there. Not available for
-        state-dependent solutions (a list of consumption functions), nor
-        without income shocks (a perfect foresight agent).
+        consumption function is linear between them. Under a kinked interest
+        rate each knot takes the factor that applies to its assets (Rsave on
+        saving, Rboro on borrowing); the solver puts a pair of knots at the kink,
+        so the factor is constant between knots and the test stays exact. When
+        every knot is on the building side the target lies above the grid, and
+        the report says so. For each target the report gives the flanking knots,
+        the change of consumption at them in the last cycle and the distance to
+        the fixed point that the contraction rate implies there. Not available
+        for state-dependent solutions (a list of consumption functions), for a
+        solution without a consumption function cFunc, nor without income shocks
+        (a perfect foresight agent); the types with a risky asset and the
+        representative agent decline it in hooks of their own.
 
         Parameters
         ----------
@@ -1968,7 +1973,9 @@ class PerfForesightConsumerType(AgentType):
         """
         if not hasattr(self, "IncShkDstn"):
             return {"target_note": "not available without income shocks"}
-        cFunc = solution_now.cFunc
+        cFunc = getattr(solution_now, "cFunc", None)
+        if cFunc is None:
+            return {"target_note": "not available for a solution without cFunc"}
         if isinstance(cFunc, list) or isinstance(solution_last.cFunc, list):
             return {"target_note": "not available for state-dependent solutions"}
         interp = cFunc.functions[0] if hasattr(cFunc, "functions") else cFunc
@@ -1982,7 +1989,15 @@ class PerfForesightConsumerType(AgentType):
             return {"target_note": "fewer than two knots above mNrmMin"}
         a_knots = m_knots - c_knots
 
-        Rfree = float(np.asarray(self.Rfree).ravel()[0])
+        if hasattr(self, "Rboro") and hasattr(self, "Rsave"):
+            # a kinked interest rate: each knot takes the factor that applies to
+            # its assets (at a = 0 the two give the same m'), and newborns'
+            # capital earns Rsave
+            R_knots = np.where(a_knots > 0.0, self.Rsave, self.Rboro)
+            R_newborn = self.Rsave
+        else:
+            R_knots = float(np.asarray(self.Rfree).ravel()[0])
+            R_newborn = R_knots
         PermGroFac = float(np.asarray(self.PermGroFac).ravel()[0])
         LivPrb = float(np.asarray(self.LivPrb).ravel()[0])
         dstn = self.IncShkDstn[0]
@@ -2001,8 +2016,8 @@ class PerfForesightConsumerType(AgentType):
             )
         else:
             Ex_kNrmInit = 0.0
-        Rbar = Rfree / PermGroFac * Ex_PermShkInv
-        newborn_m = Rbar * Ex_kNrmInit + Ex_TranShk
+        Rbar = R_knots / PermGroFac * Ex_PermShkInv
+        newborn_m = R_newborn / PermGroFac * Ex_PermShkInv * Ex_kNrmInit + Ex_TranShk
 
         r = info.get("contraction_rate", np.nan)
         extra = {"newborn_m": newborn_m}
