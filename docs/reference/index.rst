@@ -18,6 +18,7 @@ API Reference
    tools/numba_tools
    tools/rewards
    tools/simulation
+   tools/tail_interpolation
    tools/utilities
    tools/validators
 
