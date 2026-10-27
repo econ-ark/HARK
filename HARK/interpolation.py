@@ -3309,12 +3309,10 @@ def boundary_check(xq, yq, x1, y1, x2, y2):  # pragma: no cover
 # Define a numba helper function for finding the sector in the irregular grid
 @njit
 def find_sector_numba(X_query, Y_query, X_values, Y_values):  # pragma: no cover
-    # Initialize the sector guess
+    # Grid dimensions and the bounds of the sector indices
     M = X_query.size
     x_n = X_values.shape[0]
     y_n = X_values.shape[1]
-    ii = int(x_n / 2)
-    jj = int(y_n / 2)
     top_ii = x_n - 2
     top_jj = y_n - 2
 
@@ -3322,9 +3320,15 @@ def find_sector_numba(X_query, Y_query, X_values, Y_values):  # pragma: no cover
     X_pos = np.empty(M, dtype=np.int32)
     Y_pos = np.empty(M, dtype=np.int32)
 
-    # Identify the correct sector for each point to be evaluated
+    # Identify the correct sector for each point to be evaluated. Each point's
+    # search starts at the middle of the grid, so the sector found for a point
+    # does not depend on the other points in the call: a search started where
+    # the previous one ended can stop in a sector with a nan vertex, where the
+    # comparisons are false, whatever the point's coordinates.
     max_loops = x_n + y_n
     for m in range(M):
+        ii = int(x_n / 2)
+        jj = int(y_n / 2)
         found = False
         loops = 0
         while not found and loops < max_loops:
