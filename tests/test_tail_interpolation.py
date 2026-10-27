@@ -21,6 +21,7 @@ from HARK.tail_interpolation import (
     PowerLawDecayCubicHermiteInterp,
     PowerLawDecayLinearInterp,
     chartify_in_place,
+    measure_local_q,
     retrofit_powerlaw,
 )
 
@@ -205,14 +206,9 @@ def test_retrofit_rejects_nonpositive_q():
     assert type(f) is LinearInterp
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
-
-
 # ---------------------------------------------------------------------------
-# measure_local_q (the estimation companion: PR amendment 2026-08-23)
+# measure_local_q (the estimation companion)
 # ---------------------------------------------------------------------------
-from HARK.tail_interpolation import measure_local_q
 
 
 def test_measure_local_q_recovers_exact_exponent():
@@ -252,3 +248,7 @@ def test_measure_then_retrofit_end_to_end():
     assert ok
     c_ref, _ = closed_form(X_ABOVE, x[-1])
     assert_allclose(f(X_ABOVE), c_ref, rtol=1e-10)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
