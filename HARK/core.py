@@ -1116,7 +1116,9 @@ class AgentType(Model):
         falls below tolerance; near the growth-impatience edge r is close
         to one and the last step understates the remaining distance by
         1 / (1 - r), so 'step' can stop while consumption is still orders
-        of magnitude further from the fixed point than the tolerance.
+        of magnitude further from the fixed point than the tolerance. When
+        the last steps show no contraction (r not below one) the bound does
+        not apply and the step rule decides; the report then says so.
     report_convergence : bool
         Whether to attach a report on where convergence stands to the agent
         (convergence_report) and to solution[0] after an infinite horizon
@@ -2419,6 +2421,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
     distance_history = []  # the distances between successive iterates
     contraction_rate = np.nan
     implied_distance = np.nan
+    step_rule_decides = True  # whether the last stopping test was the step rule's
     solution_prev = None  # the iterate before solution_last, for the report
     if verbose:
         t_last = time()
@@ -2458,11 +2461,13 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                     )
                     agent.contraction_rate = contraction_rate
                     agent.implied_distance = implied_distance
-                    # None: no contraction observed yet, so the solve goes on
-                    go = (
-                        implied_distance is None or implied_distance > agent.tolerance
-                    ) and completed_cycles < max_cycles
+                    # None: no contraction observed, so the bound does not
+                    # apply and the step rule decides
+                    step_rule_decides = implied_distance is None
+                    bound = solution_distance if step_rule_decides else implied_distance
+                    go = bound > agent.tolerance and completed_cycles < max_cycles
                 else:
+                    step_rule_decides = True
                     go = (
                         solution_distance > agent.tolerance
                         and completed_cycles < max_cycles
@@ -2533,6 +2538,10 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
             if implied_distance is None:
                 report["implied_distance_note"] = (
                     "not available: the last steps show no contraction"
+                )
+            if stopping_rule == "contraction" and step_rule_decides:
+                report["stopping_note"] = (
+                    "stopped on the step rule: the last steps show no contraction"
                 )
             report.update(
                 agent.convergence_report_hook(solution[0], solution_prev, report)

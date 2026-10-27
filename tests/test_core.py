@@ -1752,3 +1752,23 @@ class test_stopping_rule_and_report(unittest.TestCase):
         self.assertEqual(rep["contraction_rate"], 1.0)
         self.assertIsNone(rep["implied_distance"])
         self.assertIn("implied_distance_note", rep)
+
+    def test_contraction_rule_falls_back_on_the_step_rule(self):
+        # without a contraction the bound does not apply: the step rule stops
+        # the solve at the first step under the tolerance, and the report says so
+        steps = [0.5, 2.0**-19, 2.0**-19, 2.0**-19] + 20 * [2.0**-21]
+        a = self._stepping_agent(
+            steps, stopping_rule="contraction", report_convergence=True
+        )
+        a.solve()
+        self.assertEqual(a.convergence_report["cycles"], 4)
+        self.assertIn("stopping_note", a.convergence_report)
+        # steps that halve each cycle contract, and the bound decides
+        b = self._stepping_agent(
+            [0.5] + [2.0**-k for k in range(10, 40)],
+            stopping_rule="contraction",
+            report_convergence=True,
+        )
+        b.solve()
+        self.assertEqual(b.convergence_report["contraction_rate"], 0.5)
+        self.assertNotIn("stopping_note", b.convergence_report)
