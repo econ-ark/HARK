@@ -1700,3 +1700,55 @@ class test_stopping_rule_and_report(unittest.TestCase):
         self.assertEqual(rep["last_step"], a.solution_distance)
         # the last step understates the implied distance whenever r is close to one
         self.assertGreater(rep["implied_distance"], rep["last_step"])
+
+    @staticmethod
+    def _stepping_agent(steps, **kwds):
+        # an infinite-horizon agent whose iterate moves by the given steps in
+        # turn, then stays put; powers of two keep the distances exact
+        class Iterate(MetricObject):
+            distance_criteria = ["x"]
+
+            def __init__(self, x):
+                self.x = x
+
+        moves = iter(steps)
+        agent = AgentType(solution_terminal=Iterate(0.0), cycles=0, **kwds)
+        agent.T_cycle = 1
+        agent.solve_one_period = lambda solution_next: Iterate(
+            solution_next.x + next(moves, 0.0)
+        )
+        return agent
+
+    def test_implied_distance_bound(self):
+        from HARK.core import _implied_distance
+
+        self.assertEqual(_implied_distance(1e-6, 0.5), 1e-6)
+        # a zero step reaches the fixed point, whatever the rate
+        self.assertEqual(_implied_distance(0.0, 1.0), 0.0)
+        self.assertEqual(_implied_distance(0.0, np.nan), 0.0)
+        # without a contraction the bound does not apply
+        for rate in (1.0, 1.5, np.inf, np.nan):
+            self.assertIsNone(_implied_distance(1e-6, rate))
+
+    def test_zero_last_step_implies_zero_distance(self):
+        # TractableConsumerType's distance counts grid points: its last step is
+        # exactly zero and its contraction rate one
+        a = TractableConsumerType(report_convergence=True)
+        a.solve()
+        rep = a.convergence_report
+        self.assertEqual(rep["last_step"], 0)
+        self.assertEqual(rep["contraction_rate"], 1.0)
+        self.assertEqual(rep["implied_distance"], 0.0)
+        self.assertNotIn("implied_distance_note", rep)
+
+    def test_no_implied_distance_without_a_contraction(self):
+        # steps that stop shrinking until the last one: no contraction observed
+        a = self._stepping_agent(
+            [0.5, 2.0**-19, 2.0**-19, 2.0**-19, 2.0**-21], report_convergence=True
+        )
+        a.solve()
+        rep = a.convergence_report
+        self.assertEqual(rep["last_step"], 2.0**-21)
+        self.assertEqual(rep["contraction_rate"], 1.0)
+        self.assertIsNone(rep["implied_distance"])
+        self.assertIn("implied_distance_note", rep)

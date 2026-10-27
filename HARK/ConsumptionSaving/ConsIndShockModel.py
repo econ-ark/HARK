@@ -68,6 +68,7 @@ from HARK import (
     _log,
     set_verbosity_level,
 )
+from HARK.core import _implied_distance
 
 __all__ = [
     "ConsumerSolution",
@@ -2046,8 +2047,8 @@ class PerfForesightConsumerType(AgentType):
                 extra["target_" + name] = None
                 extra["target_" + name + "_knots"] = None
                 extra["target_" + name + "_above_grid"] = False
-                extra["last_step_at_target_" + name] = np.nan
-                extra["implied_distance_at_target_" + name] = np.nan
+                extra["last_step_at_target_" + name] = None
+                extra["implied_distance_at_target_" + name] = None
                 continue
             pair = (float(m_knots[i0]), float(m_knots[i1]))
             step = max(
@@ -2058,9 +2059,7 @@ class PerfForesightConsumerType(AgentType):
             extra["target_" + name + "_knots"] = pair
             extra["target_" + name + "_above_grid"] = above
             extra["last_step_at_target_" + name] = step
-            extra["implied_distance_at_target_" + name] = (
-                step * r / (1.0 - r) if (np.isfinite(r) and r < 1.0) else np.nan
-            )
+            extra["implied_distance_at_target_" + name] = _implied_distance(step, r)
         return extra
 
     def calc_stable_points(self, force=False):
