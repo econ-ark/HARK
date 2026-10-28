@@ -44,6 +44,19 @@ def _hermite_discretize(distribution, N, endpoints, atoms_transform, lower_endpo
     )
 
 
+def _log_coordinate(mu, sigma):
+    """The standard normal coordinate (ln x - mu) / sigma, -inf where x <= 0."""
+
+    def coord(x):
+        x = np.asarray(x, dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(
+                x > 0.0, (np.log(np.where(x > 0.0, x, 1.0)) - mu) / sigma, -np.inf
+            )
+
+    return coord
+
+
 # CONTINUOUS DISTRIBUTIONS
 
 
@@ -135,6 +148,23 @@ class Normal(ContinuousFrozenDistribution):
         """
 
         return super().discretize(N, method, endpoints)
+
+    def normal_coordinate(self):
+        """
+        The coordinate in which this law is the standard normal, as
+        expected_continuous() integrates in it: z = (x - mu) / sigma.
+
+        Returns
+        -------
+        bot, top : float
+            The bounds of z, here -inf and inf.
+        value : callable
+            The law's value at z.
+        coord : callable
+            The coordinate z of a value.
+        """
+        mu, sigma = float(np.squeeze(self.mu)), float(np.squeeze(self.sigma))
+        return -np.inf, np.inf, lambda z: mu + sigma * z, lambda x: (x - mu) / sigma
 
     def _approx_hermite(self, N, endpoints=False):
         """
@@ -406,6 +436,28 @@ class LogNormal(ContinuousFrozenDistribution):
 
         return _hermite_discretize(self, N, endpoints, np.exp, 0.0)
 
+    def normal_coordinate(self):
+        """
+        The coordinate in which this law is the standard normal, as
+        expected_continuous() integrates in it: z = (ln x - mu) / sigma.
+
+        Returns
+        -------
+        bot, top : float
+            The bounds of z, here -inf and inf.
+        value : callable
+            The law's value at z.
+        coord : callable
+            The coordinate z of a value, -inf at values not above zero.
+        """
+        mu, sigma = float(np.squeeze(self.mu)), float(np.squeeze(self.sigma))
+        return (
+            -np.inf,
+            np.inf,
+            lambda z: np.exp(mu + sigma * z),
+            _log_coordinate(mu, sigma),
+        )
+
     @classmethod
     def from_mean_std(cls, mean, std, seed=None):
         """
@@ -602,6 +654,29 @@ class LogNormalTruncated(ContinuousFrozenDistribution):
         """The standard normal coordinate (ln x - mu) / sigma of x."""
         with np.errstate(divide="ignore"):
             return (np.log(x) - self.mu) / self.sigma
+
+    def normal_coordinate(self):
+        """
+        The coordinate in which this law is the standard normal truncated to
+        [bot, top], as expected_continuous() integrates in it: the underlying
+        normal's z = (ln x - mu) / sigma.
+
+        Returns
+        -------
+        bot, top : float
+            The bounds of z, the truncation's.
+        value : callable
+            The law's value at z.
+        coord : callable
+            The coordinate z of a value, -inf at values not above zero.
+        """
+        mu, sigma = self.mu, self.sigma
+        return (
+            self.bot,
+            self.top,
+            lambda z: np.exp(mu + sigma * z),
+            _log_coordinate(mu, sigma),
+        )
 
     def moment(self, order):
         """
