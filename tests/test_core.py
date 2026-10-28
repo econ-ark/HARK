@@ -1648,3 +1648,42 @@ class test_get_states_arity(unittest.TestCase):
         # equality assert here would break it.
         agent = self._agent((np.zeros(10),))
         agent.get_states()
+
+
+class test_solve_agent_nonfinite_distance(unittest.TestCase):
+    """A distance between iterates that is not finite is not convergence (issue #1864)."""
+
+    @staticmethod
+    def _scripted_agent(values):
+        # an infinite-horizon agent whose iterates take the given values in turn,
+        # then keep the last one
+        class Iterate(MetricObject):
+            distance_criteria = ["x"]
+
+            def __init__(self, x):
+                self.x = x
+
+        values = list(values)
+        it = iter(values)
+        agent = AgentType(solution_terminal=Iterate(0.0), cycles=0)
+        agent.T_cycle = 1
+        agent.solve_one_period = lambda solution_next: Iterate(next(it, values[-1]))
+        return agent
+
+    def test_nan_distance_does_not_stop_the_solve(self):
+        # the iterate is nan for one cycle: two nan distances, then a zero one
+        agent = self._scripted_agent([1.0, np.nan, 1.0])
+        with self.assertWarns(UserWarning):
+            agent.solve()
+        self.assertEqual(agent.completed_cycles, 3)
+        self.assertEqual(agent.solution_distance, 0.0)
+
+    def test_finite_and_infinite_distances_do_not_warn(self):
+        # an inf distance always kept the solve going, so it is not warned about
+        for values, cycles in (([1.0, 0.5, 0.5], 2), ([1.0, np.inf, 1.0], 3)):
+            agent = self._scripted_agent(values)
+            with std_warnings.catch_warnings():
+                std_warnings.simplefilter("error")
+                agent.solve()
+            self.assertEqual(agent.completed_cycles, cycles)
+            self.assertEqual(agent.solution_distance, 0.0)
