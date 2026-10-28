@@ -110,6 +110,15 @@ def solve_one_period_ConsBasicHealth(
     # Adjust the assets grid if liquidity constraint will bind somewhere
     aLvlGrid_temp = np.insert(aLvlGrid, 0, 0.0) if constrained else aLvlGrid
 
+    # Ending the period with no assets and no health leaves nothing for the next
+    # one (no wealth, and no income from health): both end-of-period marginal
+    # values are infinite there and their ratio is undefined, so the health
+    # investment at that corner, and every constrained point of the zero-health
+    # column scaled from it, came out nan. A bottom health node at zero is moved
+    # just above it, to a millionth of the grid's first step.
+    if HLvlGrid[0] == 0.0:
+        HLvlGrid = np.concatenate(([1e-6 * HLvlGrid[1]], HLvlGrid[1:]))
+
     # Make meshes of end-of-period states aLvl and HLvl
     (aLvl, HLvl) = np.meshgrid(aLvlGrid_temp, HLvlGrid, indexing="ij")
 
