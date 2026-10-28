@@ -29,6 +29,7 @@ __all__ = [
     "combine_indep_dstns",
     "distr_of_function",
     "expected",
+    "expected_continuous",
     "Uniform",
     "MarkovProcess",
     "add_discrete_outcome",
@@ -79,6 +80,7 @@ from HARK.distributions.utils import (
     distr_of_function,
     employed_atoms,
     expected,
+    expected_continuous,
     make_tauchen_ar1,
     restrict_to_atoms,
 )
