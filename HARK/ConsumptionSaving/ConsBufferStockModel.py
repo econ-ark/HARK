@@ -368,8 +368,11 @@ def solve_one_period_ConsBufferStock(
     constraint taken from the true laws, and, where the perfect foresight limit
     is not finite, a different extrapolation above the grid.
 
-    That solver computes the natural constraint from the discretization, the
-    lowest atom of each shock. When the worst income under the laws, WorstInc,
+    That solver, called with BoroCnstInfimum=False, computes the natural
+    constraint from the discretization, the lowest atom of each shock: the class
+    imposes the laws' constraint itself, as it reads the laws, in which a discrete
+    law's atoms are its support, though the infimum it records may be that of a
+    law it was discretized from. When the worst income under the laws, WorstInc,
     is positive, the lowest atoms lie above the laws' infima, so its constraint
     is looser than the laws', and repayment would not be certain under the true
     laws. The laws' constraint,
@@ -422,6 +425,7 @@ def solve_one_period_ConsBufferStock(
         aXtraGrid,
         vFuncBool,
         CubicBool,
+        BoroCnstInfimum=False,  # the laws' constraint is imposed above
     )
     if cFuncSlopeAboveGrid is not None:
         _extend_along_a_line(solution, cFuncSlopeAboveGrid, CRRA, CubicBool)

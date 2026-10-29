@@ -3,6 +3,7 @@ import unittest
 from copy import copy, deepcopy
 
 import numpy as np
+from scipy.stats import norm
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -11,6 +12,11 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.distributions import (
+    DiscreteDistribution,
+    DiscreteDistributionLabeled,
+    combine_indep_dstns,
+)
 from HARK.distributions.base import MarkovProcess
 from HARK.utilities import plot_funcs, plot_funcs_der
 from tests import HARK_PRECISION
@@ -1569,7 +1575,9 @@ class testAssetGridAtTheArtificialConstraint(unittest.TestCase):
         self.assertAlmostEqual(mNrm[1] - cNrm[1], agent.BoroCnstArt, places=12)
 
     def test_grid_unchanged_where_the_natural_limit_binds(self):
-        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        # The atoms' natural limit: by default the infima's limit is imposed, and
+        # binds on the atoms as an artificial constraint does (testBoroCnstInfimum)
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None, BoroCnstInfimum=False)
         agent.solve()
         mNrm, cNrm = self.unconstrained_nodes(agent)
         self.assertAlmostEqual(
@@ -1631,7 +1639,8 @@ class testKinkAttributes(unittest.TestCase):
         self.assertAlmostEqual(solution.MPCaboveKink, 0.5139080425, places=8)
 
     def test_no_kink_where_the_natural_constraint_binds(self):
-        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        # The atoms' natural limit, as in testAssetGridAtTheArtificialConstraint
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None, BoroCnstInfimum=False)
         agent.solve()
         solution = agent.solution[0]
         self.assertTrue(np.isnan(solution.mNrmKink))
@@ -1648,3 +1657,158 @@ class testKinkAttributes(unittest.TestCase):
             )
         # The terminal solution is not solved on a grid, and records nothing
         self.assertIsNone(agent.solution[-1].mNrmKink)
+
+
+class testBoroCnstInfimum(unittest.TestCase):
+    """
+    By default (BoroCnstInfimum=True), the natural borrowing constraint comes from
+    the infima of the true shock distributions, recorded in IncShkDstn's limit,
+    rather than from the discretized atoms. The infima belong to the continuous
+    laws, so every discretization of the same laws has the same constraint.
+
+    Here both shocks are mean-one lognormals truncated at three standard deviations
+    of their logs, discretized by equiprobable conditional means, as in BST.
+
+    The infima's limit is imposed as BoroCnstArt is, while the atoms' limit still
+    anchors the asset grid. Making the infima's limit the anchor, as PR #1524 did,
+    left the first endogenous gridpoint far above the bottom and broke the value
+    function, which PR #1589 reverted. The comparison with an artificial
+    constraint at the same level, and the check on the anchor, guard against that.
+    """
+
+    R, G, p, xi, sigma = 1.03, 1.01, 0.05, 0.3, 0.1
+
+    def truncated_nodes(self, n):
+        # Conditional means of exp(mu + sigma z) on n equiprobable bins of z,
+        # a standard normal truncated to [-3, 3], scaled to mean one
+        mu, sig = -(self.sigma**2) / 2, self.sigma
+        lo, hi = norm.cdf(-3.0), norm.cdf(3.0)
+        z = norm.ppf(lo + (hi - lo) * np.arange(n + 1) / n)
+        mass = norm.cdf(z[1:] - sig) - norm.cdf(z[:-1] - sig)
+        nodes = np.exp(mu + sig**2 / 2) * mass / ((hi - lo) / n)
+        mean = np.mean(nodes)
+        return nodes / mean, np.exp(mu - 3.0 * sig) / mean
+
+    def make_agent(self, n=7, **kwds):
+        params = dict(
+            cycles=0,
+            Rfree=[self.R],
+            PermGroFac=[self.G],
+            UnempPrb=self.p,
+            IncUnemp=self.xi,
+            vFuncBool=True,
+            tolerance=1e-12,
+        )
+        params.update(kwds)
+        agent = IndShockConsumerType(**params)
+        nodes, inf = self.truncated_nodes(n)
+        scale = (1 - self.p * self.xi) / (1 - self.p)
+        perm = DiscreteDistribution(
+            np.ones(n) / n,
+            nodes,
+            limit={"infimum": np.array([inf]), "supremum": np.array([np.inf])},
+        )
+        tran = DiscreteDistribution(
+            np.append(self.p, (1 - self.p) * np.ones(n) / n),
+            np.append(self.xi, scale * nodes),
+            limit={
+                "infimum": np.array([min(self.xi, scale * inf)]),
+                "supremum": np.array([np.inf]),
+            },
+        )
+        joint = combine_indep_dstns(perm, tran)
+        agent.IncShkDstn = [
+            DiscreteDistributionLabeled(
+                pmv=joint.pmv,
+                atoms=joint.atoms,
+                var_names=["PermShk", "TranShk"],
+                limit=joint.limit,
+            )
+        ]
+        return agent, inf
+
+    def limit_from(self, tran_min, perm_min):
+        kappa = self.G * perm_min / self.R
+        return -tran_min * kappa / (1 - kappa)
+
+    def atom_limit(self, agent):
+        atoms = agent.IncShkDstn[0].atoms
+        return self.limit_from(np.min(atoms[1]), np.min(atoms[0]))
+
+    def test_limit_and_constraint(self):
+        for cubic in [False, True]:
+            infima, inf = self.make_agent(BoroCnstArt=None, CubicBool=cubic)
+            infima.solve()
+            atoms, _ = self.make_agent(
+                BoroCnstArt=None, BoroCnstInfimum=False, CubicBool=cubic
+            )
+            atoms.solve()
+            bound = self.limit_from(self.xi, inf)
+            self.assertTrue(infima.BoroCnstInfimum)
+            self.assertAlmostEqual(infima.solution[0].mNrmMin, bound, places=10)
+            self.assertAlmostEqual(
+                atoms.solution[0].mNrmMin, self.atom_limit(atoms), places=10
+            )
+            self.assertLess(atoms.solution[0].mNrmMin, bound - 0.1)
+            self.assertEqual(infima.solution[0].MPCmax, 1.0)
+            self.assertEqual(infima.bilt["MPCmax"], 1.0)
+
+            # The atoms' limit, one step below the bound, still anchors the
+            # unconstrained function. The bound binds on the atoms, so the asset
+            # grid starts at it, as at an artificial constraint: the first
+            # endogenous gridpoint is the kink, where the consumer ends the period
+            # at the bound, and the solution records it
+            shocks = infima.IncShkDstn[0].atoms
+            anchor = (bound - shocks[1].min()) * self.G * shocks[0].min() / self.R
+            unconstrained = infima.solution[0].cFunc.functions[0]
+            knots, cons = unconstrained.x_list, unconstrained.y_list
+            self.assertAlmostEqual(knots[0], anchor, places=10)
+            self.assertLess(anchor, bound)
+            self.assertAlmostEqual(knots[1] - cons[1], bound, places=12)
+            self.assertAlmostEqual(infima.solution[0].mNrmKink, knots[1], places=12)
+
+            # The infima's limit binds as an artificial constraint at that level does
+            art, _ = self.make_agent(BoroCnstArt=bound, CubicBool=cubic)
+            art.solve()
+            m = np.linspace(bound + 1e-9, 20.0, 1001)
+            c_inf = infima.solution[0].cFunc(m)
+            np.testing.assert_allclose(c_inf, art.solution[0].cFunc(m), atol=1e-12)
+            # Value is compared from a little above the bound, where it is -inf
+            mv = m[m > bound + 1e-4]
+            v_inf = infima.solution[0].vFunc(mv)
+            np.testing.assert_allclose(v_inf, art.solution[0].vFunc(mv), rtol=1e-10)
+
+            # The worst draw of the true laws from the bound lands on the bound, up
+            # to rounding; cFunc is NaN even an ulp below mNrmMin, so clip there
+            worst = self.R * bound / (self.G * inf) + self.xi
+            self.assertAlmostEqual(worst, bound, places=12)
+            m_worst = max(worst, infima.solution[0].mNrmMin)
+            c_worst = infima.solution[0].cFunc(np.array([m_worst]))[0]
+            self.assertAlmostEqual(c_worst, 0.0, places=12)
+
+    def test_same_limit_for_every_discretization(self):
+        limits, atom_limits = [], []
+        for n in [5, 7, 15, 40]:
+            infima, inf = self.make_agent(n=n, BoroCnstArt=None, tolerance=1e-10)
+            infima.solve()
+            atoms, _ = self.make_agent(
+                n=n, BoroCnstArt=None, BoroCnstInfimum=False, tolerance=1e-10
+            )
+            atoms.solve()
+            limits.append(infima.solution[0].mNrmMin)
+            atom_limits.append(atoms.solution[0].mNrmMin)
+        np.testing.assert_allclose(limits, self.limit_from(self.xi, inf), atol=1e-12)
+        # The atoms' limit moves with the discretization, toward the infima's
+        self.assertTrue(np.all(np.diff(atom_limits) > 0.0))
+        self.assertTrue(np.all(np.array(atom_limits) < limits[0]))
+
+    def test_untruncated_lognormal(self):
+        # HARK's default lognormal is untruncated: its infimum is 0, so with
+        # unemployment income the natural constraint is 0
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        agent.solve()
+        np.testing.assert_array_equal(agent.IncShkDstn[0].limit["infimum"], [0, 0])
+        self.assertEqual(agent.solution[0].mNrmMin, 0.0)
+        atoms = IndShockConsumerType(cycles=0, BoroCnstArt=None, BoroCnstInfimum=False)
+        atoms.solve()
+        self.assertAlmostEqual(atoms.solution[0].mNrmMin, self.atom_limit(atoms), 10)
