@@ -338,11 +338,15 @@ def solve_one_period_ConsBufferStock(
     constraint taken from the true laws, and, where the perfect foresight limit
     is not finite, a different extrapolation above the grid.
 
-    That solver computes the natural constraint from the discretization, the
-    lowest atom of each shock. When the worst income under the laws, WorstInc,
-    is positive, the lowest atoms lie above the laws' infima, so its constraint
-    is looser than the laws', and repayment would not be certain under the true
-    laws. The laws' constraint,
+    That solver imposes the natural constraint from the infima the income
+    distribution records, which for this class's distribution are its laws'
+    (a discrete law's are its atoms' least and greatest). The class imposes the
+    laws' constraint itself too, as it reads the laws, in which a discrete law's
+    atoms are its support; the two are then the same number, and where they
+    ever differ the tighter binds. When the worst income under the laws,
+    WorstInc, is positive, the lowest atoms lie above the laws' infima, so the
+    atoms' own limit is looser than the laws', and repayment would not be
+    certain under the true laws. The laws' constraint,
     (mNrmMin next period - WorstInc) G PermShkLawInf / R, is then imposed as an
     artificial constraint is, unless the artificial constraint is tighter. With
     zero income in the zero-income event both natural constraints are zero, and
@@ -374,7 +378,7 @@ def solve_one_period_ConsBufferStock(
             (PermGroFac * PermShkLawInf) / Rfree
         )
         BoroCnstNatAtoms = calc_boro_const_nat(
-            solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac
+            solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, use_infimum=False
         )
         if BoroCnstNatLaw > BoroCnstNatAtoms and (
             BoroCnstArt is None or BoroCnstArt < BoroCnstNatLaw
