@@ -33,6 +33,7 @@ from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
     income_wealth_dists_from_scf,
 )
 from HARK.distributions import (
+    DiscreteDistribution,
     LogNormal,
     LogNormalMeanOne,
     Uniform,
@@ -42,6 +43,13 @@ from HARK.distributions import (
     expected,
     employed_atoms,
     restrict_to_atoms,
+    expected_continuous,
+)
+from HARK.distributions.utils import (
+    Z_STEP,
+    Z_UNBOUNDED,
+    _coordinate,
+    _split_gauss_legendre,
 )
 from HARK.interpolation import (
     LinearInterp,
@@ -1151,6 +1159,673 @@ def calc_vpp_next(shock, a, rfree, crra, perm_gro_fac, vppfunc_next):
     return shock["PermShk"] ** (-crra - 1.0) * vppfunc_next(
         calc_m_nrm_next(shock, a, rfree, perm_gro_fac),
     )
+
+
+def _bounds(law):
+    """
+    The ends of a continuous law's support: its infimum and supremum where it
+    records them, else its quantile function at zero and one.
+    """
+    if hasattr(law, "infimum") and hasattr(law, "supremum"):
+        return float(np.ravel(law.infimum)[0]), float(np.ravel(law.supremum)[0])
+    return float(np.ravel(law.ppf(0.0))[0]), float(np.ravel(law.ppf(1.0))[0])
+
+
+class _ScaledLaw:
+    """
+    The law of scale * X, for X distributed as a continuous law: its quantile
+    function, CDF, survival function, density and bounds, all scaled, and the
+    standard-normal coordinate the law supplies, if it supplies one, with its
+    values scaled, and that coordinate's density, if the law supplies it.
+
+    Parameters
+    ----------
+    law : Distribution
+        Any law with a quantile function, CDF and density.
+    scale : float
+        A positive scale.
+    """
+
+    def __init__(self, law, scale):
+        self.law = law
+        self.scale = float(scale)
+        lo, hi = _bounds(law)
+        self.infimum = np.array([self.scale * lo])
+        self.supremum = np.array([self.scale * hi])
+
+    def ppf(self, q):
+        return self.scale * np.asarray(self.law.ppf(q))
+
+    def cdf(self, x):
+        return self.law.cdf(np.asarray(x) / self.scale)
+
+    def sf(self, x):
+        x = np.asarray(x) / self.scale
+        return self.law.sf(x) if hasattr(self.law, "sf") else 1.0 - self.law.cdf(x)
+
+    def pdf(self, x):
+        return self.law.pdf(np.asarray(x) / self.scale) / self.scale
+
+    def mean(self):
+        return self.scale * float(np.squeeze(self.law.mean()))
+
+    @property
+    def normal_coordinate(self):
+        # the law's own, if it has one (AttributeError otherwise)
+        own, scale = self.law.normal_coordinate, self.scale
+
+        def normal_coordinate():
+            bot, top, value, coord = own()
+            return (
+                bot,
+                top,
+                lambda z: scale * np.asarray(value(z)),
+                lambda x: coord(np.asarray(x) / scale),
+            )
+
+        return normal_coordinate
+
+    @property
+    def coordinate_density(self):
+        # the law's own, if it has one (AttributeError otherwise): the scale
+        # moves the values, not the coordinate
+        return self.law.coordinate_density
+
+
+class _Mixture:
+    """
+    A mixture as the continuous expectation reads one: its weights and its
+    components, with the support's ends.
+    """
+
+    def __init__(self, weights, components):
+        self.weights = np.asarray(weights, dtype=float)
+        self.components = list(components)
+        ends = [
+            (np.min(part.atoms), np.max(part.atoms))
+            if isinstance(part, DiscreteDistribution)
+            else _bounds(part)
+            for weight, part in zip(self.weights, self.components)
+            if weight > 0.0
+        ]
+        self.infimum = np.array([min(lo for lo, _ in ends)])
+        self.supremum = np.array([max(hi for _, hi in ends)])
+
+
+def _scaled_law(law, scale):
+    """
+    The law of scale * X, for X distributed as law: a discrete law's atoms
+    scaled, a mixture scaled component by component, and any other law a
+    _ScaledLaw, which keeps the coordinate the law supplies.
+    """
+    if scale == 1.0:
+        return law
+    if isinstance(law, DiscreteDistribution):
+        return DiscreteDistribution(law.pmv, scale * law.atoms)
+    if hasattr(law, "components") and hasattr(law, "weights"):
+        return _Mixture(
+            law.weights, [_scaled_law(part, scale) for part in law.components]
+        )
+    return _ScaledLaw(law, scale)
+
+
+def get_income_shock_laws(IncShkDstn):
+    """
+    The continuous laws behind one period's joint distribution of permanent and
+    transitory income shocks, read from the ``limit`` that IndShock's income
+    constructor records: the permanent shock's law; the transitory shock's law
+    while employed, scaled to the mean (1 - p x) / (1 - p) that the
+    unemployment event leaves it; the probability p of unemployment; and the
+    income x it pays. Unemployment here is IndShock's: a point mass x in the
+    transitory shock, not a state of a Markov model.
+
+    Parameters
+    ----------
+    IncShkDstn : DiscreteDistribution
+        One period's joint income-shock distribution, as BufferStockIncShkDstn
+        makes it.
+
+    Returns
+    -------
+    PermShkLaw : Distribution
+        The law of the permanent shock.
+    TranShkLaw : Distribution
+        The law of the transitory shock while employed.
+    UnempPrb : float
+        The probability of unemployment.
+    IncUnemp : float
+        The transitory income while unemployed.
+    """
+    limit = getattr(IncShkDstn, "limit", None) or {}
+    dists = limit.get("dist")
+    if limit.get("method") != "combine_indep_dstns" or len(dists) != 2:
+        raise ValueError(
+            "This income distribution does not record the laws its atoms come "
+            "from: the continuous expectation needs IncShkDstn as IndShock's "
+            "income constructor builds it."
+        )
+    perm, tran = dists
+    PermShkLaw = perm.limit["dist"]
+    if tran.limit.get("method") == "add_discrete_outcome_constant_mean":
+        UnempPrb, IncUnemp = float(tran.limit["p"]), float(tran.limit["x"])
+        employed = tran.limit["dist"].limit["dist"]
+        scale = (1.0 - UnempPrb * IncUnemp) / (1.0 - UnempPrb)
+    else:
+        UnempPrb, IncUnemp = 0.0, 0.0
+        employed = tran.limit["dist"]
+        scale = 1.0
+    return PermShkLaw, _scaled_law(employed, scale), UnempPrb, IncUnemp
+
+
+def get_mNrm_kinks(solution):
+    """
+    The cash-on-hand points at which a solution's consumption function is not
+    smooth: its recorded ``mNrmKinks``, or else the point at which its borrowing
+    constraint stops binding, found by bisection on the constraint line
+    c = m - mNrmMin. Empty when consumption equals cash-on-hand everywhere, as
+    in the terminal period, or when the constraint binds only at the lowest
+    cash-on-hand itself, as where the natural constraint binds.
+
+    Parameters
+    ----------
+    solution : ConsumerSolution
+        A one-period solution.
+
+    Returns
+    -------
+    np.array
+    """
+    kinks = getattr(solution, "mNrmKinks", None)
+    if kinks is not None:
+        return np.asarray(kinks, dtype=float)
+    cFunc = solution.cFunc
+    m_min = float(solution.mNrmMin)
+    lo, hi, top = m_min, 50.0, max(50.0, m_min + 50.0)
+    unconstrained = getattr(cFunc, "functions", [None])[0]
+    if hasattr(unconstrained, "x_list"):
+        # The envelope is below the line exactly where its unconstrained part is
+        x = np.asarray(unconstrained.x_list, dtype=float)
+        lo, top = float(x[0]), float(x[-1])
+        hi = min(top, hi)
+        cFunc = unconstrained
+
+    def below_line(m):
+        return float(cFunc(np.array([m]))[0]) < m - m_min
+
+    # The search looks below fifty first, where kinks lie in practice, then up
+    # to the unconstrained part's last knot
+    if not below_line(hi):
+        if not (top > hi and below_line(top)):
+            return np.array([])
+        hi = top
+    start = lo
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        if mid == lo or mid == hi:  # lo and hi are adjacent floats
+            break
+        if below_line(mid):
+            hi = mid
+        else:
+            lo = mid
+    kink = 0.5 * (lo + hi)
+    if kink <= start + 8.0 * np.finfo(float).eps * max(1.0, abs(start)):
+        return np.array([])  # below the line from the lowest point on
+    return np.array([kink])
+
+
+def _steps_in_values(law):
+    """
+    The values at which next period's kink cuts the permanent shock's integral,
+    where it reaches them in the transitory shock: the transitory law's
+    coordinate at each multiple of Z_STEP within STEPS_WITHIN of its center,
+    and its ends where it holds probability there (_end_order); for a mixture,
+    its components'; for a discrete law, its atoms. The kink leaves the
+    permanent integrand a bump as wide as the transitory law, which these cuts
+    resolve.
+    """
+    if isinstance(law, DiscreteDistribution):
+        return np.unique(np.asarray(law.atoms, dtype=float))
+    if hasattr(law, "components"):
+        return np.unique(
+            np.concatenate([_steps_in_values(part) for part in law.components])
+        )
+    edges, value, _, _ = _coordinate(law)
+    edges = np.asarray(edges, dtype=float)
+    if STEPS_WITHIN is not None:
+        edges = edges[np.abs(edges) <= STEPS_WITHIN]
+    lo, hi = _bounds(law)
+    ends = [
+        x
+        for x, upper in ((lo, False), (hi, True))
+        if np.isfinite(x) and _end_order(law, x, upper) is not None
+    ]
+    return np.unique(np.r_[np.asarray(value(edges), dtype=float), ends])
+
+
+# How far from a near-pole beyond an end of a law's support, in the law's
+# standard-normal coordinate, the graded rule applies: beyond it, a piece one step
+# wide sees the pole at least seven half-widths away
+GRADE_WITHIN = 3.0
+# The step in the logarithm of the distance to the near-pole at which the graded
+# part is cut: integrands there grow or fall like that distance's powers, so
+# exponentially in its logarithm, and half a step keeps a few nodes a piece as
+# accurate as on the unit steps of the law's coordinate
+GRADE_STEP = 0.5
+# How far out in the transitory law's coordinate its steps cut the permanent
+# shock's integral where next period's kink reaches them: the kink's bump in the
+# permanent integrand beyond three standard deviations carries too little of the
+# law to matter
+STEPS_WITHIN = 3.0
+
+
+def _end_order(law, x, upper):
+    """
+    The power k with which a continuous law's probability approaches a finite end
+    x of its support, P(X within h of x) ~ h^k as h falls: 1 for a density
+    positive at x, 2 for one that rises linearly from zero there, and so on; None
+    where the probability falls faster than any power, as through a tail. Read
+    from the density's one-sided limit, f(x + h) ~ h^(k - 1) (f(x - h) at an upper
+    end), at distances h falling by factors of ten from the distance that holds
+    the law's first thousandth at that end: the estimates settle, their changes
+    shrinking, where there is a power, and keep drifting through a tail.
+    """
+    q = 1.0 - 1e-3 if upper else 1e-3
+    h = abs(float(np.ravel(law.ppf(np.array([q])))[0]) - x) * 10.0 ** -np.arange(14)
+    h = h[h > 1e-12 * abs(x)]  # well clear of the rounding of x itself
+    with np.errstate(all="ignore"):
+        f = np.ravel(law.pdf(x + (-1.0 if upper else 1.0) * np.r_[h, 2.0 * h]))
+        k = 1.0 + np.log(f[h.size :] / f[: h.size]) / np.log(2.0)
+    inside = False  # the widest probes can leave the support
+    for i in range(1, h.size):
+        if not (np.isfinite(k[i - 1]) and np.isfinite(k[i])):
+            if inside:
+                return None  # the density vanishes toward the end: no power
+            continue
+        inside = True
+        change, size = abs(k[i] - k[i - 1]), max(1.0, abs(k[i]))
+        # an exact power, up to rounding, or changes shrinking toward one
+        if change <= 1e-6 * size or (
+            i > 1 and change <= 1e-4 * size and change <= 0.5 * abs(k[i - 1] - k[i - 2])
+        ):
+            return float(np.round(k[i])) if abs(k[i] - np.round(k[i])) < 1e-3 else k[i]
+    return None  # still drifting, as through a tail
+
+
+def _graded_quadrature(law, n, pole, cuts=None):
+    """
+    Nodes and weights against a continuous law for an integrand that may grow
+    like the inverse distance to a near-pole beyond an end of the support, at
+    the values ``pole`` (an array, NaN where there is none), split at the
+    values ``cuts`` (pole.shape + (k,), or None), where the integrand is not
+    smooth. In the law's standard-normal coordinate z, with the pole at z_p a
+    distance d beyond a finite end: where d < GRADE_WITHIN, the part of the
+    support within GRADE_WITHIN of the pole is integrated in u = log|z - z_p|,
+    in which the near-pole is smooth, cut at each GRADE_STEP of u, at each half
+    of Z_STEP in z and at the cuts; the rest in z, cut at each multiple of Z_STEP
+    and at the cuts, as expected_continuous() cuts it; n Gauss-Legendre nodes a
+    piece. Where a law's end is finite in its values but not in its coordinate,
+    as a law reached through its quantile function has it, the same is done in
+    its values, with the part from the end to the law's median graded, at an end
+    the law holds probability at (_end_order), and cut at the half steps of its
+    coordinate within STEPS_WITHIN of its center. Returns the values and the
+    weights, each pole.shape + (m,), the weights carrying the law's density, and
+    whether each row is graded.
+    """
+    edges, value, coord, density = _coordinate(law)
+    lo, hi = edges[0], edges[-1]
+    pole = np.asarray(pole, dtype=float)
+    rows = pole.shape
+    if cuts is None:
+        cuts = np.full(rows + (0,), np.nan)
+    cuts = np.asarray(cuts, dtype=float)
+    in_z = lo > -Z_UNBOUNDED or hi < Z_UNBOUNDED  # a finite end in z
+    with np.errstate(divide="ignore", invalid="ignore"):
+        if in_z:
+            t_lo, t_hi, tp = lo, hi, coord(pole)
+            open_lo, open_hi = lo > -Z_UNBOUNDED, hi < Z_UNBOUNDED
+            # the graded part is also cut at the coordinate's half steps
+            half = 0.5 * Z_STEP
+            steps = half * np.arange(np.ceil(lo / half), np.floor(hi / half) + 1.0)
+            t_cuts = np.concatenate(
+                [coord(cuts), np.broadcast_to(steps, rows + steps.shape)], axis=-1
+            )
+        else:
+            t_lo, t_hi = _bounds(law)
+            # in values, the graded part is also cut at the half steps of the law's
+            # coordinate within STEPS_WITHIN of its center
+            half = 0.5 * Z_STEP
+            reach = Z_UNBOUNDED if STEPS_WITHIN is None else STEPS_WITHIN
+            steps = half * np.arange(
+                -np.floor(reach / half), np.floor(reach / half) + 1
+            )
+            steps = np.asarray(value(steps), dtype=float)
+            tp = pole
+            t_cuts = np.concatenate(
+                [
+                    np.broadcast_to(cuts, rows + cuts.shape[-1:]),
+                    np.broadcast_to(steps, rows + steps.shape),
+                ],
+                axis=-1,
+            )
+            open_lo = (
+                bool(np.isfinite(t_lo)) and _end_order(law, t_lo, False) is not None
+            )
+            open_hi = (
+                bool(np.isfinite(t_hi)) and _end_order(law, t_hi, True) is not None
+            )
+            median = float(np.ravel(law.ppf(np.array([0.5])))[0])
+        # a pole at an end, to within rounding, as at the natural limit itself, is
+        # graded too
+        tol_lo = 1e-12 * max(1.0, abs(t_lo))
+        tol_hi = 1e-12 * max(1.0, abs(t_hi))
+        below = open_lo & np.isfinite(tp) & (tp <= t_lo + tol_lo)
+        above = open_hi & np.isfinite(tp) & (tp >= t_hi - tol_hi) & ~below
+        d = np.where(
+            below,
+            np.maximum(t_lo - tp, 0.0),
+            np.where(above, np.maximum(tp - t_hi, 0.0), np.inf),
+        )
+        if in_z:
+            graded = d < GRADE_WITHIN
+            g = np.where(
+                below,
+                np.minimum(tp + GRADE_WITHIN, t_hi),
+                np.maximum(tp - GRADE_WITHIN, t_lo),
+            )
+            z_g = g
+        else:
+            graded = np.where(below, d < median - t_lo, d < t_hi - median)
+            g = np.full(rows, median)
+            z_g = coord(g)
+    graded = graded & (below | above)
+
+    # the rest, in z, cut at each step and at the cuts
+    z_from = np.where(graded & below, z_g, lo)
+    z_to = np.where(graded & above, z_g, hi)
+    z_cuts = np.nan_to_num(coord(cuts), nan=lo, posinf=hi, neginf=lo)
+    plain = np.concatenate(
+        [
+            np.broadcast_to(np.asarray(edges, dtype=float), rows + (len(edges),)),
+            np.broadcast_to(z_cuts, rows + z_cuts.shape[-1:]),
+            z_from[..., None],
+            z_to[..., None],
+        ],
+        axis=-1,
+    )
+    plain = np.sort(np.clip(plain, z_from[..., None], z_to[..., None]), axis=-1)
+    z, wz = _split_gauss_legendre(plain, n)
+    x_plain, w_plain = value(z), wz * density(z)
+    if not np.any(graded):
+        return x_plain, w_plain, graded
+
+    # the graded part, in u = log of the distance to the pole, cut at each step of
+    # GRADE_STEP in u and at the cuts
+    sign = np.where(above, -1.0, 1.0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        # nearer than this the nodes would round onto the end itself
+        floor = 1e-14 * np.maximum(1.0, np.abs(np.where(above, t_hi, t_lo)))
+        near = np.maximum(np.where(graded, d, 1.0), floor)
+        u_near = np.where(graded, np.log(near), 0.0)
+        u_far = np.where(graded, np.log(np.where(graded, sign * (g - tp), 1.0)), 0.0)
+        u_cuts = np.log(sign[..., None] * (t_cuts - tp[..., None]))
+    # cuts on the pole's side of the end, or none, fall at the graded part's end
+    u_cuts = np.where(np.isfinite(u_cuts), u_cuts, u_far[..., None])
+    steps = GRADE_STEP * np.arange(
+        np.floor(u_near[graded].min() / GRADE_STEP) + 1.0,
+        np.ceil(u_far[graded].max() / GRADE_STEP),
+    )
+    part = np.concatenate(
+        [
+            u_near[..., None],
+            np.broadcast_to(steps, rows + steps.shape),
+            np.broadcast_to(u_cuts, rows + u_cuts.shape[-1:]),
+            u_far[..., None],
+        ],
+        axis=-1,
+    )
+    part = np.sort(np.clip(part, u_near[..., None], u_far[..., None]), axis=-1)
+    u, wu = _split_gauss_legendre(part, n)
+    e = np.exp(u)
+    t = np.where(graded[..., None], tp[..., None] + sign[..., None] * e, t_lo)
+    with np.errstate(invalid="ignore"):
+        if in_z:
+            x_part, w_part = value(t), wu * e * density(t)
+        else:
+            x_part, w_part = t, wu * e * law.pdf(t)
+    w_part = np.where(graded[..., None], w_part, 0.0)
+    x_part = np.where(graded[..., None], x_part, x_plain[..., :1])
+    return (
+        np.concatenate([x_part, x_plain], axis=-1),
+        np.concatenate([w_part, w_plain], axis=-1),
+        graded,
+    )
+
+
+def _near_limit_nodes(base, m_min, PermShkLaw, TranShkLaw, nPerm, nTran, gaps, breaks):
+    """
+    Nodes and weights for calc_BegOfPrd_continuous() at the assets whose landing
+    points come close to next period's minimum cash-on-hand m_min, where its
+    consumption is zero, or None where none do. Landing points
+    m' = base / psi + theta come closest at the transitory shock's lowest value
+    theta_lo, and toward m_min the integrand grows like the inverse distance to
+    it: as a function of the permanent shock, a near-pole at
+    psi_p = base / (m_min - theta_lo); of the transitory shock, at
+    theta_p = m_min - base / psi. Each integral takes _graded_quadrature()
+    toward its pole, split as calc_BegOfPrd_continuous() splits it: the
+    transitory integral where m' reaches next period's non-smooth points,
+    ``breaks``, and the permanent at base / gaps. For continuous laws that hold
+    probability at a finite end (_end_order), the transitory one at its lowest
+    value, or a transitory point, such as the income in IndShock's unemployment,
+    a point mass in its transitory shock. For a mixture, a discrete permanent
+    law, or a law without such an end, None, and expected_continuous()'s rule
+    applies. Returns the assets graded (a boolean mask over base), and for them
+    the permanent shock's values and weights, each (A, Np), and the transitory
+    shock's, each (A, Np, Nt).
+    """
+
+    def held(law, upper):
+        # whether the law holds probability at that finite end, as a power of the
+        # distance (_end_order); not for a mixture or a discrete law
+        if isinstance(law, DiscreteDistribution) or hasattr(law, "components"):
+            return False
+        x = _bounds(law)[1 if upper else 0]
+        return bool(np.isfinite(x)) and _end_order(law, x, upper) is not None
+
+    if not (held(PermShkLaw, False) or held(PermShkLaw, True)):
+        return None
+    if isinstance(TranShkLaw, DiscreteDistribution):
+        atoms = np.unique(TranShkLaw.atoms[0])
+        if atoms.size != 1:
+            return None
+        theta_lo, point = float(atoms[0]), True
+    elif held(TranShkLaw, False):
+        theta_lo, point = _bounds(TranShkLaw)[0], False
+    else:
+        return None
+    with np.errstate(divide="ignore", invalid="ignore"):
+        psi_pole = base / (m_min - theta_lo)
+        psi_cuts = base[:, None] / gaps  # those outside the support are dropped
+    psi, w_psi, graded = _graded_quadrature(PermShkLaw, nPerm, psi_pole, psi_cuts)
+    if not point:
+        # the transitory integral's pole is closest at the permanent law's lowest
+        # value
+        with np.errstate(divide="ignore", invalid="ignore"):
+            closest = m_min - base / _bounds(PermShkLaw)[0]
+        graded = graded | _graded_quadrature(TranShkLaw, nTran, closest)[2]
+    if not np.any(graded):
+        return None
+    psi, w_psi, base = psi[graded], w_psi[graded], base[graded]
+    if point:
+        return (
+            graded,
+            psi,
+            w_psi,
+            np.full(psi.shape + (1,), theta_lo),
+            np.ones(psi.shape + (1,)),
+        )
+    with np.errstate(divide="ignore", invalid="ignore"):
+        theta_pole = m_min - base[:, None] / psi
+    theta_cuts = breaks - (base[:, None] / psi)[..., None]
+    theta, w_theta, _ = _graded_quadrature(TranShkLaw, nTran, theta_pole, theta_cuts)
+    return graded, psi, w_psi, theta, w_theta
+
+
+def calc_BegOfPrd_continuous(
+    aNrm,
+    solution_next,
+    PermShkLaw,
+    TranShkLaw,
+    Rfree,
+    PermGroFac,
+    CRRA,
+    CubicBool=False,
+    vFuncBool=False,
+    PermShkQuadCount=4,
+    TranShkQuadCount=4,
+):
+    """
+    The expectations over next period's income shocks that a one-period solver
+    needs, for one next-period state, taken against the shocks' continuous laws
+    instead of summed over atoms: the counterparts of expected() over
+    calc_vp_next, calc_vpp_next and calc_v_next. With
+    m' = Rfree aNrm / (PermGroFac psi) + theta, they are
+
+        E1 = E[psi^(-rho) v'(m')],
+        E2 = E[psi^(-rho-1) v''(m')],
+        E0 = E[(PermGroFac psi)^(1-rho) v(m')],
+
+    with v' = c^(-rho) and v'' = -rho c^(-rho-1) c' from one evaluation of next
+    period's consumption function c and its slope. The integrals are taken by
+    expected_continuous(), with PermShkQuadCount and TranShkQuadCount
+    Gauss-Legendre nodes a piece, cut where the integrand is not smooth, except
+    at the knots of next period's consumption function: at each unit step of the
+    laws' standard-normal coordinates; in the transitory shock, where m' reaches
+    next period's kink (get_mNrm_kinks), at which marginal value is kinked; and
+    in the permanent shock, where that point reaches the transitory law's unit
+    steps within STEPS_WITHIN of its center, its ends, or its point. The kink
+    leaves the permanent integrand a bump as wide as the transitory law, which
+    those cuts resolve. The knots are not cut at, though linear interpolation
+    kinks marginal value at each of them and a cubic kinks its slope: cutting
+    at them as well moves the solved consumption function and its MPC by small
+    fractions of the grid's own error. Each asset's integrals are taken
+    on their own pieces. Where m' can land just above next period's minimum
+    cash-on-hand, at which its consumption is zero, at the corner of the
+    shocks' support, the integrand grows like an inverse power of the distance
+    to it: both integrals then take the rule graded toward that near-pole inside
+    the same pieces (_near_limit_nodes, _graded_quadrature). A solver's
+    expectation is the probability-weighted sum of these over the next-period
+    states: in IndShock's, the employed and the unemployed.
+
+    Parameters
+    ----------
+    aNrm : np.array
+        End-of-period assets.
+    solution_next : ConsumerSolution
+        Next period's solution in this state.
+    PermShkLaw : Distribution
+        The permanent shock's law, continuous or a point.
+    TranShkLaw : Distribution
+        The transitory shock's law in this state, continuous or a point, such
+        as the income paid in IndShock's unemployment, a point mass in its
+        transitory shock.
+    Rfree : float
+        Risk free interest factor.
+    PermGroFac : float
+        Permanent income growth factor.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    CubicBool : bool, optional
+        Whether to compute E2, for a cubic consumption function. The default is
+        False.
+    vFuncBool : bool, optional
+        Whether to compute E0, for the value function. The default is False.
+    PermShkQuadCount : int, optional
+        Gauss-Legendre nodes a piece of the permanent shock's integral. The
+        default is 4.
+    TranShkQuadCount : int, optional
+        Gauss-Legendre nodes a piece of the transitory shock's integral. The
+        default is 4.
+
+    Returns
+    -------
+    E1 : np.array
+        E[psi^(-rho) v'(m')] at each aNrm.
+    E2 : np.array or None
+        E[psi^(-rho-1) v''(m')] at each aNrm, when CubicBool.
+    E0 : np.array or None
+        E[(PermGroFac psi)^(1-rho) v(m')] at each aNrm, when vFuncBool.
+    """
+    shape = np.shape(aNrm)
+    base = Rfree * np.atleast_1d(np.asarray(aNrm, dtype=float)) / PermGroFac
+    m_min = float(solution_next.mNrmMin)
+    # Where next period's marginal value is kinked: its kink. Its consumption
+    # function's knots are not cut at (see above)
+    breaks = np.unique(get_mNrm_kinks(solution_next))
+    # The permanent shock's integral is cut where that point reaches the
+    # transitory law's steps, or its point
+    steps = _steps_in_values(TranShkLaw)
+    gaps = (breaks[:, None] - steps[None, :]).ravel()
+
+    def psi_cuts(base):
+        # where the transitory splits reach the transitory law's steps or its point,
+        # for assets of either sign: those outside the support are dropped
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return base[..., None] / gaps
+
+    def theta_cuts(psi, base):
+        return breaks - (base / psi)[..., None]
+
+    def integrand(shocks, base):
+        psi = shocks["PermShk"]
+        m_next = base / psi + shocks["TranShk"]
+        c_next, mpc_next = solution_next.cFunc.eval_with_derivative(m_next)
+        vP = c_next ** (-CRRA)
+        out = [psi ** (-CRRA) * vP]
+        if CubicBool:
+            out.append(-CRRA * psi ** (-CRRA - 1.0) * vP * mpc_next / c_next)
+        if vFuncBool:
+            out.append((PermGroFac * psi) ** (1.0 - CRRA) * solution_next.vFunc(m_next))
+        return np.stack(np.broadcast_arrays(*out))
+
+    # Landing points near next period's minimum, where its consumption is zero,
+    # make the integrand a near-pole at the corner of the shocks' support, graded
+    # at the assets that reach it
+    near = _near_limit_nodes(
+        base,
+        m_min,
+        PermShkLaw,
+        TranShkLaw,
+        PermShkQuadCount,
+        TranShkQuadCount,
+        gaps,
+        breaks,
+    )
+    graded = np.zeros(base.shape, dtype=bool) if near is None else near[0]
+    E = np.empty((1 + CubicBool + vFuncBool,) + base.shape)
+    # One asset at a time: the assets' pieces differ in number, many permanent and
+    # few transitory ones at high assets, the reverse at low, and a call pads each
+    # row to the most any row has
+    for i in np.flatnonzero(~graded):
+        E[:, i] = expected_continuous(
+            integrand,
+            [PermShkLaw, TranShkLaw],
+            args=(base[i : i + 1],),
+            labels=["PermShk", "TranShk"],
+            splits=[psi_cuts, theta_cuts],
+            nodes=[PermShkQuadCount, TranShkQuadCount],
+        )[:, 0]
+    if near is not None:
+        _, psi, w_psi, theta, w_theta = near
+        f = integrand(
+            {"PermShk": psi[..., None], "TranShk": theta},
+            base[graded][:, None, None],
+        )
+        E[:, graded] = np.sum(f * (w_psi[..., None] * w_theta), axis=(-2, -1))
+    E = E.reshape((E.shape[0],) + shape)
+    E1 = E[0]
+    E2 = E[1] if CubicBool else None
+    E0 = E[-1] if vFuncBool else None
+    return E1, E2, E0
 
 
 def solve_one_period_ConsIndShock(
