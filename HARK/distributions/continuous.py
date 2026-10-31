@@ -537,7 +537,7 @@ _truncated_lognorm = _truncated_lognorm_gen(
 )
 
 
-class TruncatedLognormal(ContinuousFrozenDistribution):
+class LogNormalTruncated(ContinuousFrozenDistribution):
     """
     A lognormal distribution truncated in the log: X = exp(mu + sigma Z), with Z a
     standard normal conditioned on bot <= Z <= top. The bounds are in standard
@@ -658,10 +658,7 @@ class TruncatedLognormal(ContinuousFrozenDistribution):
         return DiscreteDistribution(pmv, atoms, seed=self.random_seed(), limit=limit)
 
 
-TruncatedLogNormal = TruncatedLognormal
-
-
-class MeanOneTruncatedLogNormal(TruncatedLognormal):
+class LogNormalTruncatedMeanOne(LogNormalTruncated):
     """
     A truncated lognormal with mean one after the truncation: mu is set so that
     E[X] = 1 for the truncated distribution. The bounds are in standard
@@ -713,7 +710,7 @@ class MeanOneTruncatedLogNormal(TruncatedLognormal):
 
         Returns
         -------
-        MeanOneTruncatedLogNormal or DiscreteDistribution
+        LogNormalTruncatedMeanOne or DiscreteDistribution
         """
         sigma = sd_log / np.sqrt(truncated_normal_variance(bot, top))
         return cls(sigma=sigma, bot=bot, top=top, seed=seed)
@@ -722,6 +719,11 @@ class MeanOneTruncatedLogNormal(TruncatedLognormal):
 # The names these classes had before: they still work, with a DeprecationWarning
 Lognormal = _renamed_class(LogNormal, "Lognormal")
 MeanOneLogNormal = _renamed_class(LogNormalMeanOne, "MeanOneLogNormal")
+TruncatedLognormal = _renamed_class(LogNormalTruncated, "TruncatedLognormal")
+TruncatedLogNormal = _renamed_class(LogNormalTruncated, "TruncatedLogNormal")
+MeanOneTruncatedLogNormal = _renamed_class(
+    LogNormalTruncatedMeanOne, "MeanOneTruncatedLogNormal"
+)
 
 
 class Uniform(ContinuousFrozenDistribution):
