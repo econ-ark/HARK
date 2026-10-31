@@ -29,9 +29,9 @@ from HARK.distributions import (
     MultivariateNormal,
     MultivariateLogNormal,
     approx_lognormal_gauss_hermite,
-    MeanOneTruncatedLogNormal,
-    TruncatedLognormal,
-    TruncatedLogNormal,
+    LogNormalTruncatedMeanOne,
+    LogNormalTruncated,
+    LogNormalTruncated,
     truncated_normal_variance,
 )
 from tests import HARK_PRECISION
@@ -1396,7 +1396,7 @@ class test_shuffle_iid_fallback_warns(unittest.TestCase):
             mrkv.draw(state, shuffle=True)
 
 
-class TruncatedLognormalTests(unittest.TestCase):
+class LogNormalTruncatedTests(unittest.TestCase):
     """
     The truncated lognormal: closed forms, the mean-one variant, variance
     matching, and an equiprobable discretization whose bounds are the same at
@@ -1408,14 +1408,14 @@ class TruncatedLognormalTests(unittest.TestCase):
     perm_sd = 0.03162277660168379
 
     def test_reference_numbers_at_given_sigma(self):
-        tran = MeanOneTruncatedLogNormal(self.tran_sd, bot=-2.0, top=2.0)
+        tran = LogNormalTruncatedMeanOne(self.tran_sd, bot=-2.0, top=2.0)
         self.assertAlmostEqual(tran.mu, -0.0507940676, places=10)
         np.testing.assert_allclose(tran.infimum, [0.459586], atol=5e-7)
         np.testing.assert_allclose(tran.supremum, [1.965687], atol=5e-7)
         atoms = tran.discretize(5).atoms[0]
         ref = [0.609257, 0.792542, 0.951686, 1.143653, 1.502862]
         np.testing.assert_allclose(atoms, ref, atol=5e-7)
-        perm = MeanOneTruncatedLogNormal(self.perm_sd, bot=-2.0, top=2.0)
+        perm = LogNormalTruncatedMeanOne(self.perm_sd, bot=-2.0, top=2.0)
         self.assertAlmostEqual(perm.mu, -0.000386854826, places=12)
         np.testing.assert_allclose(perm.infimum, [0.938350], atol=5e-7)
         np.testing.assert_allclose(perm.supremum, [1.064876], atol=5e-7)
@@ -1431,7 +1431,7 @@ class TruncatedLognormalTests(unittest.TestCase):
         }
         for b, (v, sigma, mu, support) in ref.items():
             self.assertAlmostEqual(truncated_normal_variance(-b, b), v, places=10)
-            tran = MeanOneTruncatedLogNormal.from_sd_log(self.tran_sd, -b, b)
+            tran = LogNormalTruncatedMeanOne.from_sd_log(self.tran_sd, -b, b)
             self.assertAlmostEqual(tran.sigma, sigma, places=12)
             self.assertAlmostEqual(tran.mu, mu, places=10)
             np.testing.assert_allclose(
@@ -1447,7 +1447,7 @@ class TruncatedLognormalTests(unittest.TestCase):
     def test_closed_forms(self):
         from scipy import integrate
 
-        dstn = MeanOneTruncatedLogNormal(self.tran_sd, bot=-2.0, top=2.0)
+        dstn = LogNormalTruncatedMeanOne(self.tran_sd, bot=-2.0, top=2.0)
         lo, hi = dstn.infimum[0], dstn.supremum[0]
         self.assertAlmostEqual(integrate.quad(dstn.pdf, lo, hi)[0], 1.0, places=10)
         q = np.linspace(0.01, 0.99, 25)
@@ -1458,12 +1458,12 @@ class TruncatedLognormalTests(unittest.TestCase):
             self.assertAlmostEqual(float(dstn.moment(k)), quad, places=10)
             part = integrate.quad(lambda x: x**k * dstn.pdf(x), 0.8, 1.2)[0]
             self.assertAlmostEqual(float(dstn.partial_moment(k, 0.8, 1.2)), part, 10)
-        draws = MeanOneTruncatedLogNormal(0.2, seed=3).draw(400000)
-        self.assertTrue(np.all(draws >= MeanOneTruncatedLogNormal(0.2).infimum[0]))
+        draws = LogNormalTruncatedMeanOne(0.2, seed=3).draw(400000)
+        self.assertTrue(np.all(draws >= LogNormalTruncatedMeanOne(0.2).infimum[0]))
         self.assertAlmostEqual(np.mean(draws), 1.0, places=2)
 
     def test_same_bounds_for_every_discretization(self):
-        dstn = MeanOneTruncatedLogNormal(self.tran_sd, bot=-2.0, top=2.0)
+        dstn = LogNormalTruncatedMeanOne(self.tran_sd, bot=-2.0, top=2.0)
         for N in [5, 7, 40, 200]:
             approx = dstn.discretize(N)
             self.assertAlmostEqual(approx.atoms[0] @ approx.pmv, 1.0, places=14)
@@ -1474,7 +1474,7 @@ class TruncatedLognormalTests(unittest.TestCase):
 
     def test_untruncated_is_lognormal(self):
         for sigma in [0.1, 0.3633, 1.0]:
-            trunc = MeanOneTruncatedLogNormal(sigma, bot=None, top=None)
+            trunc = LogNormalTruncatedMeanOne(sigma, bot=None, top=None)
             np.testing.assert_array_equal(trunc.infimum, [0.0])
             np.testing.assert_array_equal(trunc.supremum, [np.inf])
             np.testing.assert_allclose(
@@ -1484,14 +1484,14 @@ class TruncatedLognormalTests(unittest.TestCase):
             )
 
     def test_defaults_and_degenerate(self):
-        dstn = TruncatedLogNormal(mu=0.1, sigma=0.2)
+        dstn = LogNormalTruncated(mu=0.1, sigma=0.2)
         self.assertEqual((dstn.bot, dstn.top), (-3.0, 3.0))
         np.testing.assert_allclose(dstn.infimum, [np.exp(0.1 - 0.6)])
-        for point in [MeanOneTruncatedLogNormal(0.0), TruncatedLognormal(0.0, 0.0)]:
+        for point in [LogNormalTruncatedMeanOne(0.0), LogNormalTruncated(0.0, 0.0)]:
             self.assertIsInstance(point, DiscreteDistribution)
             np.testing.assert_array_equal(point.limit["infimum"], [1.0])
             np.testing.assert_array_equal(point.limit["supremum"], [1.0])
         with self.assertRaises(ValueError):
-            TruncatedLognormal(sigma=0.1, bot=1.0, top=1.0)
+            LogNormalTruncated(sigma=0.1, bot=1.0, top=1.0)
         with self.assertRaises(ValueError):
-            TruncatedLognormal(sigma=-0.1)
+            LogNormalTruncated(sigma=-0.1)
