@@ -270,8 +270,13 @@ class Lognormal(ContinuousFrozenDistribution):
 
         # Set up the RNG
         super().__init__(lognorm, s=self.sigma, scale=np.exp(self.mu), loc=0, seed=seed)
-        self.infimum = np.array([0.0])
-        self.supremum = np.array([np.inf])
+        if np.all(self.sigma == 0.0):
+            # Degenerate at exp(mu), as in retirement's permanent shock
+            self.infimum = np.atleast_1d(np.exp(self.mu)).astype(float)
+            self.supremum = self.infimum.copy()
+        else:
+            self.infimum = np.array([0.0])
+            self.supremum = np.array([np.inf])
 
     def _approx_equiprobable(
         self, N, endpoints=False, tail_N=0, tail_bound=None, tail_order=np.e
