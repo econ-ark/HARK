@@ -956,7 +956,7 @@ class testInitShuffle(unittest.TestCase):
         """Empirical pLvl frequencies should match the discretized dstn
         within +/-1 per atom (the floor-plus-leftover algorithm's worst case).
 
-        Note: ``Lognormal.discretize(N, method='equiprobable')`` produces
+        Note: ``LogNormal.discretize(N, method='equiprobable')`` produces
         pmv = np.full(N, 1/N), and ``1/N`` is not exactly representable in
         float64 for N=15, so the per-atom count can deviate by 1 from the
         ideal ``N_draws/N_atoms`` due to leftover-slot allocation absorbing
@@ -1026,7 +1026,7 @@ class testInitShuffle(unittest.TestCase):
 
         Note: the shuffle variance is not *exactly* zero when atom
         probabilities can't be exactly represented in float64.  For
-        ``Lognormal.discretize(15, method='equiprobable')``, the pmv
+        ``LogNormal.discretize(15, method='equiprobable')``, the pmv
         is ``[1/15, ..., 1/15]`` in float64, and the floor-plus-leftover
         algorithm has to allocate ~1 leftover slot per call, which
         lands in a different atom for different seeds.  That produces

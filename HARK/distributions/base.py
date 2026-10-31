@@ -1,3 +1,4 @@
+import types
 from typing import Any, Optional
 
 import warnings
@@ -754,3 +755,111 @@ class IndexDistribution(Distribution):
                 draws[these] = self[c].draw(N)
 
             return draws
+
+
+def _renamed_message(cls):
+    """The warning for a use of the old name cls, which names the new one."""
+    old = type.__getattribute__(cls, "__name__")
+    new = type.__getattribute__(cls, "_renamed_to").__name__
+    return (
+        f"{old} is now called {new}. The name {old} still works and is not "
+        "scheduled for removal."
+    )
+
+
+class _RenamedClass(type):
+    """
+    The metaclass of the name a class had before it was renamed, kept so that
+    code written with that name keeps working (_renamed_class makes one). The
+    old name works as the class under its new name does, with a
+    DeprecationWarning that names the new name:
+
+    - calling it makes an object of the new class;
+    - isinstance() and issubclass() against it are as against the new class;
+    - a class statement that subclasses it subclasses the new class;
+    - reading, setting or deleting a class attribute through it reads, sets or
+      deletes that attribute of the new class;
+    - an object pickled under the old name loads as one of the new class.
+
+    The old name is itself a subclass of the new class, so issubclass() of it
+    against the new class, or a class the new one derives from, holds too. A
+    star import binds it without warning. It is not scheduled for removal.
+    """
+
+    def __new__(meta, name, bases, namespace, **kwargs):
+        # A class statement whose bases include an old name subclasses the new one
+        resolved = []
+        for base in bases:
+            if isinstance(base, _RenamedClass):
+                warnings.warn(_renamed_message(base), DeprecationWarning, stacklevel=2)
+                base = type.__getattribute__(base, "_renamed_to")
+            resolved.append(base)
+        return types.new_class(
+            name, tuple(resolved), kwargs, lambda body: body.update(namespace)
+        )
+
+    def __call__(cls, *args, **kwargs):
+        warnings.warn(_renamed_message(cls), DeprecationWarning, stacklevel=2)
+        return type.__getattribute__(cls, "_renamed_to")(*args, **kwargs)
+
+    def __instancecheck__(cls, instance):
+        warnings.warn(_renamed_message(cls), DeprecationWarning, stacklevel=2)
+        return isinstance(instance, type.__getattribute__(cls, "_renamed_to"))
+
+    def __subclasscheck__(cls, subclass):
+        warnings.warn(_renamed_message(cls), DeprecationWarning, stacklevel=2)
+        return issubclass(subclass, type.__getattribute__(cls, "_renamed_to"))
+
+    def __getattribute__(cls, name):
+        # Python's own machinery reads the special attributes of the old name
+        # itself; every other attribute is the new class's
+        if name.startswith("__") and name.endswith("__"):
+            return type.__getattribute__(cls, name)
+        warnings.warn(_renamed_message(cls), DeprecationWarning, stacklevel=2)
+        return getattr(type.__getattribute__(cls, "_renamed_to"), name)
+
+    def __setattr__(cls, name, value):
+        warnings.warn(_renamed_message(cls), DeprecationWarning, stacklevel=2)
+        setattr(type.__getattribute__(cls, "_renamed_to"), name, value)
+
+    def __delattr__(cls, name):
+        warnings.warn(_renamed_message(cls), DeprecationWarning, stacklevel=2)
+        delattr(type.__getattribute__(cls, "_renamed_to"), name)
+
+    def __dir__(cls):
+        return dir(type.__getattribute__(cls, "_renamed_to"))
+
+
+def _renamed_class(new, old):
+    """
+    The name old, kept for the class new after new was renamed from it: a
+    subclass of new whose metaclass, _RenamedClass, makes it work as new does,
+    with a DeprecationWarning. Assign it to old in new's module, where objects
+    pickled under the old name look for it.
+
+    Parameters
+    ----------
+    new : type
+        The class under its new name.
+    old : str
+        The class's old name.
+
+    Returns
+    -------
+    type
+        The old name, to bind as old in new's module.
+    """
+
+    def __new__(cls, *args, **kwargs):
+        # Unpickling an object stored under the old name makes one of the new class
+        return new.__new__(new, *args, **kwargs)
+
+    namespace = {
+        "__module__": new.__module__,
+        "__qualname__": old,
+        "__doc__": f"The old name of {new.__name__}, which still works, with a "
+        "DeprecationWarning.",
+        "__new__": __new__,
+        "_renamed_to": new,
+    }
+    return type.__new__(_RenamedClass, old, (new,), namespace)

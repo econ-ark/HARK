@@ -27,7 +27,7 @@ import numpy as np
 from scipy.optimize import brentq, newton
 
 from HARK import AgentType, NullFunc
-from HARK.distributions import Bernoulli, Lognormal
+from HARK.distributions import Bernoulli, LogNormal
 from HARK.interpolation import LinearInterp, CubicInterp
 
 # Import the HARK library.
@@ -623,7 +623,7 @@ class TractableConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now["aNrm"][which_agents] = Lognormal(
+        self.state_now["aNrm"][which_agents] = LogNormal(
             self.kLogInitMean,
             sigma=self.kLogInitStd,
             seed=self.RNG.integers(0, 2**31 - 1),

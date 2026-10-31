@@ -12,7 +12,7 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
 from HARK.distributions import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
-    MeanOneLogNormal,
+    LogNormalMeanOne,
     combine_indep_dstns,
 )
 
@@ -211,11 +211,11 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
     def main_test(self):
         Markov_vFuncBool_example = MarkovConsumerType(**Markov_Dict)
 
-        TranShkDstn_e = MeanOneLogNormal(
+        TranShkDstn_e = LogNormalMeanOne(
             Markov_vFuncBool_example.TranShkStd[0], 123
         ).discretize(Markov_vFuncBool_example.TranShkCount, method="equiprobable")
         TranShkDstn_u = DiscreteDistribution(np.ones(1), np.ones(1) * 0.2)
-        PermShkDstn = MeanOneLogNormal(
+        PermShkDstn = LogNormalMeanOne(
             Markov_vFuncBool_example.PermShkStd[0], 123
         ).discretize(Markov_vFuncBool_example.PermShkCount, method="equiprobable")
 

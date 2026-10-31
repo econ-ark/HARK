@@ -6,14 +6,14 @@ import unittest
 
 import numpy as np
 
-from HARK.distributions import Bernoulli, IndexDistribution, MeanOneLogNormal
+from HARK.distributions import Bernoulli, IndexDistribution, LogNormalMeanOne
 from HARK.model import Aggregate, Control, DBlock
 from HARK.simulation.monte_carlo import *
 
 cons_shocks = {
-    "agg_gro": Aggregate(MeanOneLogNormal(1)),
-    "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
-    "theta": MeanOneLogNormal(1),
+    "agg_gro": Aggregate(LogNormalMeanOne(1)),
+    "psi": IndexDistribution(LogNormalMeanOne, {"sigma": [1.0, 1.1]}),
+    "theta": LogNormalMeanOne(1),
     "live": Bernoulli(p=1.0),
 }
 
@@ -61,8 +61,8 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
         self.block = DBlock(
             **{
                 "shocks": {
-                    "theta": MeanOneLogNormal(1, seed=303030),
-                    "agg_R": Aggregate(MeanOneLogNormal(1, seed=202020)),
+                    "theta": LogNormalMeanOne(1, seed=303030),
+                    "agg_R": Aggregate(LogNormalMeanOne(1, seed=202020)),
                     "live": Bernoulli(p=1.0, seed=101010),
                 },
                 "dynamics": {
@@ -74,7 +74,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
             }
         )
 
-        self.initial = {"a": MeanOneLogNormal(1), "live": 1}
+        self.initial = {"a": LogNormalMeanOne(1), "live": 1}
 
         self.dr = {"c": lambda m: m / 2}
 
@@ -128,10 +128,10 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
         self.block = DBlock(
             **{
                 "shocks": {
-                    "theta": MeanOneLogNormal(1),
-                    "agg_R": Aggregate(MeanOneLogNormal(1)),
+                    "theta": LogNormalMeanOne(1),
+                    "agg_R": Aggregate(LogNormalMeanOne(1)),
                     "live": Bernoulli(p=1.0),
-                    "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
+                    "psi": IndexDistribution(LogNormalMeanOne, {"sigma": [1.0, 1.1]}),
                 },
                 "dynamics": {
                     "b": lambda agg_R, G, a: agg_R * G * a,
@@ -142,7 +142,7 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
             }
         )
 
-        self.initial = {"a": MeanOneLogNormal(1), "live": 1}
+        self.initial = {"a": LogNormalMeanOne(1), "live": 1}
         self.dr = {"c": [lambda m: m * 0.5, lambda m: m * 0.9]}
 
     def test_simulate(self):
@@ -171,8 +171,8 @@ class test_MonteCarloSimulator(unittest.TestCase):
         self.block = DBlock(
             **{
                 "shocks": {
-                    "theta": MeanOneLogNormal(1),
-                    "agg_R": Aggregate(MeanOneLogNormal(1)),
+                    "theta": LogNormalMeanOne(1),
+                    "agg_R": Aggregate(LogNormalMeanOne(1)),
                 },
                 "dynamics": {
                     "b": lambda agg_R, G, a: agg_R * G * a,
@@ -183,7 +183,7 @@ class test_MonteCarloSimulator(unittest.TestCase):
             }
         )
 
-        self.initial = {"a": MeanOneLogNormal(1)}
+        self.initial = {"a": LogNormalMeanOne(1)}
 
         self.dr = {"c": lambda m: m / 2}
 

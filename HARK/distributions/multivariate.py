@@ -7,7 +7,7 @@ from scipy import special
 from scipy.stats._multivariate import multi_rv_frozen, multivariate_normal_frozen
 
 from HARK.distributions.base import Distribution
-from HARK.distributions.continuous import Lognormal, Normal
+from HARK.distributions.continuous import LogNormal, Normal
 from HARK.distributions.discrete import DiscreteDistribution
 
 # MULTIVARIATE DISTRIBUTIONS
@@ -96,7 +96,7 @@ class MultivariateNormal(multivariate_normal_frozen, Distribution):
 
 class MultivariateLogNormal(multi_rv_frozen, Distribution):
     """
-    A Multivariate Lognormal distribution.
+    A Multivariate LogNormal distribution.
 
     Parameters
     ----------
@@ -218,7 +218,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
 
         x = np.asarray(x)
-        x_dim = Lognormal(mu=self.mu[dim], sigma=np.sqrt(self.Sigma[dim, dim]))
+        x_dim = LogNormal(mu=self.mu[dim], sigma=np.sqrt(self.Sigma[dim, dim]))
         return x_dim.pdf(x)
 
     def _marginal_cdf(self, x: Union[np.ndarray, float, list], dim: int):
@@ -239,7 +239,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
 
         x = np.asarray(x)
-        x_dim = Lognormal(mu=self.mu[dim], sigma=np.sqrt(self.Sigma[dim, dim]))
+        x_dim = LogNormal(mu=self.mu[dim], sigma=np.sqrt(self.Sigma[dim, dim]))
         return x_dim.cdf(x)
 
     def rvs(self, size: int = 1, random_state=None):
@@ -289,7 +289,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
                 ind_atoms[i] = np.repeat(np.exp(self.mu[i]), N + 2 * tail_N)
             else:
                 ind_atoms[i] = (
-                    Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
+                    LogNormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
                     ._approx_equiprobable(
                         N, tail_N=tail_N, tail_bound=tail_bound, endpoints=endpoints
                     )
