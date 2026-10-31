@@ -1,4 +1,4 @@
-from HARK.distributions import Lognormal
+from HARK.distributions import LogNormal
 import HARK.models.consumer as cons
 import HARK.models.perfect_foresight as pfm
 import HARK.models.perfect_foresight_normalized as pfnm
@@ -35,7 +35,7 @@ class test_pfm(unittest.TestCase):
             {"c": lambda m: PFexample.solution[0].cFunc(m)},
             # danger: normalized decision rule for unnormalized problem
             {  # initial states
-                "a": Lognormal(-6, 0),
+                "a": LogNormal(-6, 0),
                 #'live' : 1,
                 "p": 1.0,
             },
@@ -56,7 +56,7 @@ class test_pfnm(unittest.TestCase):
             pfnm.block,
             {"c_nrm": lambda m_nrm: PFexample.solution[0].cFunc(m_nrm)},
             {  # initial states
-                "a_nrm": Lognormal(-6, 0),
+                "a_nrm": LogNormal(-6, 0),
                 #'live' : 1,
                 "p": 1.0,
             },
@@ -80,7 +80,7 @@ class test_consumer_models(unittest.TestCase):
                 # danger: normalized decision rule for unnormalized problem
             },
             {  # initial states
-                "k": Lognormal(-6, 0),
+                "k": LogNormal(-6, 0),
                 #'live' : 1,
                 "p": 1.0,
             },
@@ -98,7 +98,7 @@ class test_consumer_models(unittest.TestCase):
                 # just a dummy share func
             },
             {  # initial states
-                "k": Lognormal(-6, 0),
+                "k": LogNormal(-6, 0),
                 #'live' : 1,
                 "p": 1.0,
                 "R": 1.03,

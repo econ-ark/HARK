@@ -20,7 +20,7 @@ blocks:
         shocks:
             live: !Bernoulli
                 p: LivPrb
-            theta: !MeanOneLogNormal
+            theta: !LogNormalMeanOne
                 sigma: TranShkStd
         dynamics:
             b: k * R / PermGroFac
@@ -34,7 +34,7 @@ blocks:
     - &portfolio_choice
         name: portfolio choice
         shocks:
-            risky_return: !Lognormal
+            risky_return: !LogNormal
                 mean: Rfree + EqP
                 std: RiskyStd
             dynamics:

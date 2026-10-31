@@ -23,7 +23,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     get_PermShkDstn_from_IncShkDstn,
     get_TranShkDstn_from_IncShkDstn,
 )
-from HARK.distributions import MeanOneLogNormal, expected
+from HARK.distributions import LogNormalMeanOne, expected
 from HARK.interpolation import (
     IdentityFunction,
     CubicInterp,
@@ -119,7 +119,7 @@ def make_lognormal_PrefShkDstn(
     PrefShkDstn = []  # discrete distributions of preference shocks
     for t in range(T_cycle):
         PrefShkStd = PrefShkStd[t]
-        new_dstn = MeanOneLogNormal(
+        new_dstn = LogNormalMeanOne(
             sigma=PrefShkStd, seed=RNG.integers(0, 2**31 - 1)
         ).discretize(
             N=PrefShkCount,
