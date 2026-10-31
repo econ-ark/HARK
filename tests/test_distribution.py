@@ -4,6 +4,10 @@ import warnings
 import numpy as np
 import xarray as xr
 
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    init_lifecycle,
+)
 from HARK.distributions import (
     Bernoulli,
     calc_expectation,
@@ -588,6 +592,17 @@ class LimitBoundsTests(unittest.TestCase):
         np.testing.assert_array_equal(univariate.limit["infimum"], [3.0])
         np.testing.assert_array_equal(univariate.limit["supremum"], [4.0])
         self.assertNotIn("dist", univariate.limit)
+
+    def test_degenerate_lognormal(self):
+        # A lognormal with sigma zero is the single point exp(mu), and its bounds
+        # say so: retirement's permanent shock in a life-cycle model is one
+        dstn = MeanOneLogNormal(0.0)
+        np.testing.assert_array_equal(dstn.infimum, [1.0])
+        np.testing.assert_array_equal(dstn.supremum, [1.0])
+        agent = IndShockConsumerType(**init_lifecycle)
+        retired = agent.IncShkDstn[agent.T_cycle - 1]
+        self.assertEqual(retired.limit["infimum"][0], 1.0)
+        self.assertEqual(retired.limit["supremum"][0], 1.0)
 
 
 class IndexDistributionClassTests(unittest.TestCase):
