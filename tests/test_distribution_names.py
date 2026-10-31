@@ -1,7 +1,8 @@
 """
-Tests for the lognormal classes' names: LogNormal and LogNormalMeanOne, and
-their earlier names, Lognormal and MeanOneLogNormal, which still work, as the
-classes under their new names, with a DeprecationWarning.
+Tests for the lognormal classes' names: LogNormal, LogNormalMeanOne,
+LogNormalTruncated and LogNormalTruncatedMeanOne, and their earlier names,
+which still work, as the classes under their new names, with a
+DeprecationWarning.
 """
 
 import io
@@ -20,8 +21,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.distributions import (
     LogNormal,
     LogNormalMeanOne,
+    LogNormalTruncated,
+    LogNormalTruncatedMeanOne,
     Lognormal,
     MeanOneLogNormal,
+    MeanOneTruncatedLogNormal,
+    TruncatedLognormal,
+    TruncatedLogNormal,
 )
 
 # The warning's message, for filters
@@ -306,6 +312,48 @@ class EarlierNamesTests(unittest.TestCase):
             self.assertIn(f"!{tag} is now !{cls.__name__}", str(found[0].message))
             self.assertIs(old["c"][0], cls)
             self.assertEqual(old["c"][1], {"sigma": 0.2})
+
+
+class TruncatedEarlierNamesTests(unittest.TestCase):
+    def test_each_earlier_name(self):
+        for old, new, args in (
+            (TruncatedLognormal, LogNormalTruncated, (0.1, 0.2)),
+            (TruncatedLogNormal, LogNormalTruncated, (0.1, 0.2)),
+            (MeanOneTruncatedLogNormal, LogNormalTruncatedMeanOne, (0.2,)),
+        ):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                dstn = old(*args, seed=4)
+                self.assertTrue(isinstance(new(*args), old))
+                self.assertTrue(issubclass(new, old))
+            found = renamed_warnings(caught)
+            self.assertEqual(len(found), 3)
+            self.assertIn(
+                f"{old.__name__} is now called {new.__name__}", str(found[0].message)
+            )
+            self.assertIs(type(dstn), new)
+            np.testing.assert_array_equal(dstn.draw(10), new(*args, seed=4).draw(10))
+            self.assertTrue(issubclass(old, new))
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            self.assertTrue(issubclass(LogNormalTruncatedMeanOne, TruncatedLognormal))
+
+    def test_pickled_under_an_earlier_name(self):
+        for new, old, args in (
+            (LogNormalTruncated, "TruncatedLognormal", (0.1, 0.2)),
+            (LogNormalTruncatedMeanOne, "MeanOneTruncatedLogNormal", (0.2,)),
+        ):
+            stored = pickle.dumps(new(*args, seed=6))
+            name = new.__name__.encode()
+            # the names have the same length, so the stream is otherwise unchanged
+            stored_old = stored.replace(
+                bytes([0x8C, len(name)]) + name,
+                bytes([0x8C, len(old)]) + old.encode(),
+            )
+            self.assertNotEqual(stored_old, stored)
+            loaded = pickle.loads(stored_old)
+            self.assertIs(type(loaded), new)
+            np.testing.assert_array_equal(loaded.draw(10), new(*args, seed=6).draw(10))
 
 
 class NoEarlierNamesInsideHARKTests(unittest.TestCase):
