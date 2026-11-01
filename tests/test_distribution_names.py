@@ -4,9 +4,11 @@ their earlier names, Lognormal and MeanOneLogNormal, which still work, as the
 classes under their new names, with a DeprecationWarning.
 """
 
+import io
 import pickle
 import unittest
 import warnings
+from pathlib import Path
 
 import numpy as np
 import yaml
@@ -34,6 +36,33 @@ def renamed_warnings(caught):
         if issubclass(w.category, DeprecationWarning)
         and "is now called" in str(w.message)
     ]
+
+
+# The default IndShockConsumerType's IncShkDstn[0], pickled on main at 4c285e86,
+# before the rename, by pickle.dump(..., protocol=4) under Python 3.12, numpy
+# 2.5.4, scipy 1.18.1 and xarray 2026.9.0. Its two continuous parents, kept in its
+# record of the law's bounds, are stored as
+# HARK.distributions.continuous.MeanOneLogNormal.
+PICKLED_BEFORE_RENAME = (
+    Path(__file__).parent / "data" / "income_distribution_before_rename.pkl"
+)
+
+
+class FixtureUnpickler(pickle.Unpickler):
+    """Unpickles a fixture, skipping the test when the fixture names a path
+    outside HARK that this environment lacks, such as an internal module of
+    numpy, scipy or xarray that has since moved, and failing when the path is in
+    HARK."""
+
+    def find_class(self, module, name):
+        try:
+            return super().find_class(module, name)
+        except (ImportError, AttributeError) as err:
+            if module.split(".")[0] == "HARK":
+                raise
+            raise unittest.SkipTest(
+                f"the fixture names {module}.{name}, which this environment lacks"
+            ) from err
 
 
 class EarlierNamesTests(unittest.TestCase):
@@ -199,6 +228,35 @@ class EarlierNamesTests(unittest.TestCase):
             np.testing.assert_array_equal(loaded.draw(10), new(*args, seed=5).draw(10))
         # the old name itself pickles as a reference to it
         self.assertIs(pickle.loads(pickle.dumps(Lognormal)), Lognormal)
+
+    def test_unpickling_an_income_distribution_pickled_before_the_rename(self):
+        stored = PICKLED_BEFORE_RENAME.read_bytes()
+        self.assertIn(b"MeanOneLogNormal", stored)
+        self.assertNotIn(b"LogNormalMeanOne", stored)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            loaded = FixtureUnpickler(io.BytesIO(stored)).load()
+        self.assertEqual(renamed_warnings(caught), [])
+
+        # Both continuous parents load as objects of the class under its new name
+        fresh = IndShockConsumerType().IncShkDstn[0]
+        self.assertIs(type(loaded), type(fresh))
+        for get_parent in (
+            lambda dstn: dstn.limit["dist"][0].limit["dist"],
+            lambda dstn: dstn.limit["dist"][1].limit["dist"].limit["dist"],
+        ):
+            parent, fresh_parent = get_parent(loaded), get_parent(fresh)
+            self.assertIs(type(parent), LogNormalMeanOne)
+            self.assertIs(type(fresh_parent), LogNormalMeanOne)
+            np.testing.assert_array_equal(parent.mu, fresh_parent.mu)
+            np.testing.assert_array_equal(parent.sigma, fresh_parent.sigma)
+
+        # and the distribution is the one a fresh build makes
+        np.testing.assert_array_equal(loaded.pmv, fresh.pmv)
+        np.testing.assert_array_equal(loaded.atoms, fresh.atoms)
+        for bound in ("infimum", "supremum"):
+            np.testing.assert_array_equal(loaded.limit[bound], fresh.limit[bound])
+        np.testing.assert_array_equal(loaded.draw(10), fresh.draw(10))
 
     def test_once_per_call_site(self):
         with warnings.catch_warnings(record=True) as caught:
