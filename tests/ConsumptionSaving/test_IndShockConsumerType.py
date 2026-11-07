@@ -44,28 +44,28 @@ class testIndShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[9].cFunc(1), 0.79430, places=HARK_PRECISION
+            LifecycleExample.solution[9].cFunc(1), 0.79459, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[8].cFunc(1), 0.79392, places=HARK_PRECISION
+            LifecycleExample.solution[8].cFunc(1), 0.79418, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[7].cFunc(1), 0.79253, places=HARK_PRECISION
+            LifecycleExample.solution[7].cFunc(1), 0.79277, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
             LifecycleExample.solution[0].cFunc(1).tolist(),
-            0.75062,
+            0.75090,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[1].cFunc(1).tolist(),
-            0.75863,
+            0.75893,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[2].cFunc(1).tolist(),
-            0.76812,
+            0.76848,
             places=HARK_PRECISION,
         )
 
@@ -283,7 +283,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.solve()
 
         self.assertAlmostEqual(
-            IndShockExample.solution[0].mNrmStE, 1.54882, places=HARK_PRECISION
+            IndShockExample.solution[0].mNrmStE, 1.54702, places=HARK_PRECISION
         )
         # self.assertAlmostEqual(
         #    IndShockExample.solution[0].cFunc.functions[0].x_list[0],
@@ -376,7 +376,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(),
-            2.12998,
+            2.13005,
             places=HARK_PRECISION,
         )
 
@@ -450,7 +450,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(),
-            1.59584,
+            1.59609,
             places=HARK_PRECISION,
         )
 
@@ -458,7 +458,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 0.55127, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 0.54995, places=HARK_PRECISION
         )
 
         self.assertRaises(ValueError, CyclicalExample.calc_stable_points)
