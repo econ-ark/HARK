@@ -234,8 +234,14 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         2. ``get_micro_markov_states()`` - draws idiosyncratic states
         3. Combines: ``shocks["Mrkv"] = num_micro_states * MacroMrkv + MicroMrkv``
 
-    When ``num_macro_states`` / ``num_micro_states`` are not set, the class
-    falls back to standard MarkovConsumerType behavior (pure clone).
+    The two counts are read from the arrays the agent holds whenever those
+    exist: N is the block size of ``CondMrkvArrays`` and M its length, or,
+    without conditional arrays, M is the size of ``MrkvArray`` over N.  A
+    count passed to the constructor (or assigned later) is kept only to be
+    checked against them, so a chain installed after construction changes
+    the counts with it, and a count that disagrees with the installed chain
+    raises.  When neither count is known, the class falls back to standard
+    MarkovConsumerType behavior (pure clone).
 
     Models that don't need MarkovConsumerType's income-shock / lifecycle
     infrastructure (e.g. Krusell-Smith) should pass ``construct=False`` and
@@ -252,11 +258,13 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         Parameters
         ----------
         num_macro_states : int or None
-            Number of aggregate (macro) Markov states M.  If None, the class
-            behaves as a plain MarkovConsumerType.
+            Number of aggregate (macro) Markov states M.  Optional: once
+            ``CondMrkvArrays`` or ``MrkvArray`` is installed the count is read
+            from it, and a value given here is only checked against it.
         num_micro_states : int or None
-            Number of idiosyncratic (micro) Markov states N.  If None, the
-            class behaves as a plain MarkovConsumerType.
+            Number of idiosyncratic (micro) Markov states N.  Optional in the
+            same way once ``CondMrkvArrays`` is installed.  When neither count
+            is known the class behaves as a plain MarkovConsumerType.
         **kwds
             All other keyword arguments are passed through to
             ``MarkovConsumerType.__init__``.
@@ -266,14 +274,106 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         if num_micro_states is not None:
             kwds["num_micro_states"] = num_micro_states
         MarkovConsumerType.__init__(self, **kwds)
-        if not hasattr(self, "num_macro_states"):
-            self.num_macro_states = None
-        if not hasattr(self, "num_micro_states"):
-            self.num_micro_states = None
+
+    # ----- The two state counts, read from the installed arrays -------------
+    #
+    # ``num_micro_states`` (N) is the block width of the combined index and
+    # ``num_macro_states`` (M) the number of blocks.  The agent holds the arrays
+    # these describe -- ``CondMrkvArrays`` for the micro draw, ``MrkvArray`` for
+    # the solver -- so the counts are read from them whenever they exist.  A
+    # count given to the constructor or assigned afterwards is stored on
+    # ``_num_*_given`` and compared with the installed arrays at every read and
+    # every assignment; the stored value is what the getter returns only while
+    # no array exists to read the count from.
+
+    def _installed_micro_count(self):
+        """N from ``CondMrkvArrays`` (either format), or None without them."""
+        cond = getattr(self, "CondMrkvArrays", None)
+        if cond is None or len(cond) == 0:
+            return None
+        first = cond[0][0] if _cond_mrkv_is_general(cond) else cond[0]
+        return int(np.asarray(first).shape[0])
+
+    def _installed_macro_count(self, n_micro):
+        """M from ``CondMrkvArrays`` (its length), else from ``MrkvArray`` (its
+        size over ``n_micro``), or None when neither is available."""
+        cond = getattr(self, "CondMrkvArrays", None)
+        if cond is not None and len(cond) > 0:
+            return len(cond)
+        arr = getattr(self, "MrkvArray", None)
+        if arr is None or n_micro is None:
+            return None
+        if isinstance(arr, (list, tuple)):  # time-varying: one array per period
+            arr = arr[0]
+        size = int(np.asarray(arr).shape[0])
+        if size % int(n_micro):
+            raise ValueError(
+                f"MrkvArray has {size} states, which is not a whole number of "
+                f"blocks of num_micro_states={n_micro}."
+            )
+        return size // int(n_micro)
+
+    @staticmethod
+    def _checked(name, given, installed, where):
+        if given is not None and installed is not None and int(given) != installed:
+            raise ValueError(
+                f"{name}={given} was given, but the installed {where} "
+                f"{'have' if where.endswith('s') else 'has'} {installed}."
+            )
+        return given if installed is None else installed
+
+    @property
+    def num_micro_states(self):
+        """Number of micro states N: the block size of the installed
+        ``CondMrkvArrays``, else the value given (None if none)."""
+        given = getattr(self, "_num_micro_states_given", None)
+        return self._checked(
+            "num_micro_states",
+            given,
+            self._installed_micro_count(),
+            "CondMrkvArrays",
+        )
+
+    @num_micro_states.setter
+    def num_micro_states(self, value):
+        if value is not None:
+            self._checked(
+                "num_micro_states",
+                value,
+                self._installed_micro_count(),
+                "CondMrkvArrays",
+            )
+            value = int(value)
+        self._num_micro_states_given = value
+
+    @property
+    def num_macro_states(self):
+        """Number of macro states M: the length of the installed
+        ``CondMrkvArrays``, else the size of ``MrkvArray`` over N, else the
+        value given (None if none)."""
+        given = getattr(self, "_num_macro_states_given", None)
+        return self._checked(
+            "num_macro_states",
+            given,
+            self._installed_macro_count(self.num_micro_states),
+            "chain",
+        )
+
+    @num_macro_states.setter
+    def num_macro_states(self, value):
+        if value is not None:
+            self._checked(
+                "num_macro_states",
+                value,
+                self._installed_macro_count(self.num_micro_states),
+                "chain",
+            )
+            value = int(value)
+        self._num_macro_states_given = value
 
     @property
     def _hierarchical(self):
-        """True when both ``num_macro_states`` and ``num_micro_states`` are set."""
+        """True when both ``num_macro_states`` and ``num_micro_states`` are known."""
         return self.num_micro_states is not None and self.num_macro_states is not None
 
     # ----- Simulation setup --------------------------------------------------
