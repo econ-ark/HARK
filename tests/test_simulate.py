@@ -850,3 +850,54 @@ class testsForLifeCycleWeightedMeasure(unittest.TestCase):
         self.assertTrue(np.all(np.isfinite(J_G)))
         self.assertFalse(np.allclose(J_G, J_P, rtol=1e-6, atol=1e-8))
         self.assertGreater(np.sum(J_G), np.sum(J_P))
+
+
+class testsForManualResponseDating(unittest.TestCase):
+    """
+    calc_impulse_response_manually reproduces the columns of make_basic_SSJ at
+    the early shock dates, offset and non-offset alike, and accepts scalar shocks.
+    """
+
+    def setUp(self):
+        self.agent = IndShockConsumerType(cycles=0, tolerance=1e-12)
+        self.agent.solve()
+        self.grid_specs = {
+            "kNrm": {"min": 0.0, "max": 60.0, "N": 201, "nest": 3},
+            "cNrm": {"min": 0.0, "max": 4.0, "N": 201},
+        }
+
+    def _compare(self, shock, offset, dates, construct=None, tol=1e-4):
+        kw = dict(T_max=100, norm="G", offset=offset, solved=True)
+        J = deepcopy(self.agent).make_basic_SSJ(shock, "cNrm", self.grid_specs, **kw)
+        for s in dates:
+            col = deepcopy(self.agent).calc_impulse_response_manually(
+                shock,
+                "cNrm",
+                self.grid_specs,
+                s=s,
+                construct=[] if construct is None else construct,
+                **kw,
+            )
+            gap = np.max(np.abs(col - J[:, s])) / np.max(np.abs(J[:, s]))
+            self.assertLess(gap, tol, msg=f"{shock} s={s}: {gap:.2e}")
+
+    def test_offset_shock_at_early_dates(self):
+        self._compare("Rfree", True, (0, 1, 2, 20))
+
+    def test_constructed_offset_shock_at_early_dates(self):
+        self._compare("PermShkStd", True, (0, 1), construct=["IncShkDstn"])
+
+    def test_non_offset_shock_at_early_dates(self):
+        self._compare("LivPrb", False, (0, 1, 20))
+
+    def test_scalar_shock(self):
+        # a scalar parameter (not a singleton list) used to raise TypeError
+        self._compare("CRRA", False, (0, 5))
+
+    def test_parameter_the_model_cannot_vary_raises_clearly(self):
+        # IndShockConsumerType keeps DiscFac a scalar (check_restrictions compares
+        # it to zero), so the per-period sequence the manual path needs is rejected
+        with self.assertRaises(ValueError):
+            deepcopy(self.agent).calc_impulse_response_manually(
+                "DiscFac", "cNrm", self.grid_specs, s=0, T_max=20, norm="G", solved=True
+            )
