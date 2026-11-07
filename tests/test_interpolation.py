@@ -402,6 +402,35 @@ class TestCurvilinear2DInterp(TestInterp2D):
         self.interpolant = self.interpolator_(values, xmesh, ymesh)
 
 
+class TestCurvilinear2DInterpSectorSearch(unittest.TestCase):
+    """A point's value does not depend on the other points in the call (issue #1864)."""
+
+    def test_nan_vertex_does_not_hold_later_points(self):
+        # a 5 by 3 grid whose corner sector has two nan vertices: the search for
+        # (0.1, 0.5) ends there, and a search for (0.9, 0.5) started from there
+        # would stop there too
+        x = np.tile(np.array([[0.0], [0.25], [0.5], [0.75], [1.0]]), (1, 3))
+        y = np.array(
+            [
+                [0.0, 0.6, 1.0],
+                [0.0, 0.6, 1.0],
+                [0.0, 0.6, 1.0],
+                [0.0, 0.4, 1.0],
+                [0.0, 0.4, 1.0],
+            ]
+        )
+        x[1, 0] = np.nan
+        y[1, 0] = np.nan
+        y[0, 0] = np.nan
+        interp = Curvilinear2DInterp(x + 2.0 * y, x, y)
+        xq = np.array([0.1, 0.9])
+        yq = np.array([0.5, 0.5])
+        together = interp(xq, yq)
+        alone = interp(xq[1:], yq[1:])
+        self.assertAlmostEqual(alone[0], 1.9)
+        self.assertAlmostEqual(together[1], alone[0])
+
+
 class TestLowerEnvelope2D(TestInterp2D):
     interpolator_ = LowerEnvelope2D
     tol = 2e-5
