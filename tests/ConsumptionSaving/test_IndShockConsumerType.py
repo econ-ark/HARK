@@ -1549,3 +1549,47 @@ class testMarkovShuffleEndToEnd(unittest.TestCase):
             f"the plain shuffle.",
         )
         self.assertLess(gaps["balanced"], 0.5 * gaps["shuffle_only"])
+
+
+class testAssetGridAtTheArtificialConstraint(unittest.TestCase):
+    """Where the artificial borrowing constraint binds, the end-of-period asset
+    grid starts at it, with the constraint itself as a gridpoint (#1871)."""
+
+    @staticmethod
+    def unconstrained_nodes(agent):
+        cFuncUnc = agent.solution[0].cFunc.functions[0]
+        return np.asarray(cFuncUnc.x_list), np.asarray(cFuncUnc.y_list)
+
+    def test_grid_starts_at_the_artificial_constraint(self):
+        agent = IndShockConsumerType(cycles=0)
+        agent.solve()
+        mNrm, cNrm = self.unconstrained_nodes(agent)
+        # The first node is the natural limit; the next is the endogenous
+        # gridpoint of end-of-period assets at the constraint.
+        self.assertAlmostEqual(mNrm[1] - cNrm[1], agent.BoroCnstArt, places=12)
+
+    def test_grid_unchanged_where_the_natural_limit_binds(self):
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        agent.solve()
+        mNrm, cNrm = self.unconstrained_nodes(agent)
+        self.assertAlmostEqual(
+            mNrm[1] - cNrm[1], mNrm[0] + agent.aXtraGrid[0], places=12
+        )
+
+    def test_consumption_is_the_constraint_line_below_the_kink(self):
+        for CubicBool in (False, True):
+            for BoroCnstArt in (0.0, 0.5):
+                with self.subTest(CubicBool=CubicBool, BoroCnstArt=BoroCnstArt):
+                    agent = IndShockConsumerType(
+                        cycles=0, CubicBool=CubicBool, BoroCnstArt=BoroCnstArt
+                    )
+                    agent.solve()
+                    solution = agent.solution[0]
+                    mNrm, cNrm = self.unconstrained_nodes(agent)
+                    mNrmGrid = np.linspace(solution.mNrmMin, mNrm[1], 201)
+                    np.testing.assert_allclose(
+                        solution.cFunc(mNrmGrid),
+                        mNrmGrid - solution.mNrmMin,
+                        rtol=0.0,
+                        atol=1e-12,
+                    )
