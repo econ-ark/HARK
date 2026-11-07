@@ -441,6 +441,33 @@ class RepAgentConsumerType(IndShockConsumerType):
     def calc_limiting_values(self):
         raise NotImplementedError()  # pragma: nocover
 
+    def convergence_report_hook(self, solution_now, solution_last, info):
+        """
+        The convergence report does not compute the target for the
+        representative agent. A target exists here too, but the report's
+        comparison takes E[m' | a] at a given interest factor, while this agent's
+        factor is set by its own capital, and the target under that factor is not
+        yet worked out. The report keeps its global figures and carries a
+        target_note.
+
+        Parameters
+        ----------
+        solution_now : ConsumerSolution
+            The converged solution.
+        solution_last : ConsumerSolution
+            The iterate before it.
+        info : dict
+            The report so far (cycles, last_step, contraction_rate, ...).
+
+        Returns
+        -------
+        extra : dict
+        """
+        return {
+            "target_note": "not computed for the representative agent: a target "
+            "exists, but this report takes the interest factor as given"
+        }
+
 
 ###############################################################################
 

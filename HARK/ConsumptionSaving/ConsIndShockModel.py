@@ -68,6 +68,7 @@ from HARK import (
     _log,
     set_verbosity_level,
 )
+from HARK.core import _implied_distance
 
 __all__ = [
     "ConsumerSolution",
@@ -1925,6 +1926,143 @@ class PerfForesightConsumerType(AgentType):
         self.log_condition_result(None, None, GIC_message, verbose)
 
         self._emit_conditions_report()
+
+    def convergence_report_hook(self, solution_now, solution_last, info):
+        """
+        The target part of the convergence report (see AgentType.report_convergence):
+        the two target levels of market resources and where convergence stands at
+        the knots of the consumption function nearest them.
+
+        The knots of the consumption function are the endogenous gridpoints, pairs
+        (a_i, c_i) with m_i = a_i + c_i, and next period's ratio is
+        m' = R a / (G psi') + theta', so E[m' | a_i] = Rbar a_i + E[theta] exactly,
+        with Rbar = (R / G) E[1 / psi]. Comparing (m_i - E[theta]) / Rbar with a_i
+        therefore compares m_i with E[m' | m_i]: smaller means the household at
+        m_i expects its ratio to rise (it is building wealth), larger means it
+        expects it to fall, and the crossing is the individual target. Under
+        perpetual youth the dead are replaced by newborns with expected ratio
+        m_0 = Rbar E[kNrm_0] + E[theta], so the population's mean ratio is
+        stationary where m = LivPrb (Rbar a + E[theta]) + (1 - LivPrb) m_0: the
+        same comparison with the mortality-adjusted factor LivPrb Rbar (and the
+        newborn term, zero when newborns start with no capital). Both are one
+        vectorized sign test along the knots; the crossing is placed by linear
+        interpolation between the two flanking knots, which is exact because the
+        consumption function is linear between them. Under a kinked interest
+        rate each knot takes the factor that applies to its assets (Rsave on
+        saving, Rboro on borrowing); the solver puts a pair of knots at the kink,
+        so the factor is constant between knots and the test stays exact. When
+        every knot is on the building side the target lies above the grid, and
+        the report says so. For each target the report gives the flanking knots,
+        the change of consumption at them in the last cycle and the distance to
+        the fixed point that the contraction rate implies there. Not available
+        for state-dependent solutions (a list of consumption functions), for a
+        solution without a consumption function cFunc, nor without income shocks
+        (a perfect foresight agent). The types with a risky asset and the
+        representative agent have targets too, not yet worked out here; their
+        own hooks say so.
+
+        Parameters
+        ----------
+        solution_now : ConsumerSolution
+            The converged solution.
+        solution_last : ConsumerSolution
+            The iterate before it.
+        info : dict
+            The report so far (cycles, last_step, contraction_rate, ...).
+
+        Returns
+        -------
+        extra : dict
+        """
+        if not hasattr(self, "IncShkDstn"):
+            return {"target_note": "not available without income shocks"}
+        cFunc = getattr(solution_now, "cFunc", None)
+        if cFunc is None:
+            return {"target_note": "not available for a solution without cFunc"}
+        if isinstance(cFunc, list) or isinstance(solution_last.cFunc, list):
+            return {"target_note": "not available for state-dependent solutions"}
+        interp = cFunc.functions[0] if hasattr(cFunc, "functions") else cFunc
+        if not hasattr(interp, "x_list"):
+            return {"target_note": "not available for this consumption function"}
+        m_knots = np.asarray(interp.x_list, dtype=float)
+        c_knots = np.asarray(interp.y_list, dtype=float)
+        keep = m_knots >= solution_now.mNrmMin
+        m_knots, c_knots = m_knots[keep], c_knots[keep]
+        if m_knots.size < 2:
+            return {"target_note": "fewer than two knots above mNrmMin"}
+        a_knots = m_knots - c_knots
+
+        if hasattr(self, "Rboro") and hasattr(self, "Rsave"):
+            # a kinked interest rate: each knot takes the factor that applies to
+            # its assets (at a = 0 the two give the same m'), and newborns'
+            # capital earns Rsave
+            R_knots = np.where(a_knots > 0.0, self.Rsave, self.Rboro)
+            R_newborn = self.Rsave
+        else:
+            R_knots = float(np.asarray(self.Rfree).ravel()[0])
+            R_newborn = R_knots
+        PermGroFac = float(np.asarray(self.PermGroFac).ravel()[0])
+        LivPrb = float(np.asarray(self.LivPrb).ravel()[0])
+        dstn = self.IncShkDstn[0]
+        pmv = np.asarray(dstn.pmv, dtype=float)
+        PermShk = np.asarray(dstn.atoms[0], dtype=float)
+        TranShk = np.asarray(dstn.atoms[1], dtype=float)
+        Ex_PermShkInv = float(np.sum(pmv / PermShk))
+        Ex_TranShk = float(np.sum(pmv * TranShk))
+        kNrmInitDstn = getattr(self, "kNrmInitDstn", None)
+        if kNrmInitDstn is not None:
+            Ex_kNrmInit = float(
+                np.sum(
+                    np.asarray(kNrmInitDstn.pmv, dtype=float)
+                    * np.asarray(kNrmInitDstn.atoms, dtype=float).ravel()
+                )
+            )
+        else:
+            Ex_kNrmInit = 0.0
+        Rbar = R_knots / PermGroFac * Ex_PermShkInv
+        newborn_m = R_newborn / PermGroFac * Ex_PermShkInv * Ex_kNrmInit + Ex_TranShk
+
+        r = info.get("contraction_rate", np.nan)
+        extra = {"newborn_m": newborn_m}
+        # gap_i > 0 where the household at m_i expects its ratio to rise (building
+        # wealth), < 0 where it expects it to fall; the target is where it crosses
+        comparisons = {
+            "individual": (Rbar * a_knots + Ex_TranShk) - m_knots,
+            "population": (
+                LivPrb * (Rbar * a_knots + Ex_TranShk) + (1.0 - LivPrb) * newborn_m
+            )
+            - m_knots,
+        }
+        for name, gap in comparisons.items():
+            crossing = np.where((gap[:-1] > 0.0) & (gap[1:] <= 0.0))[0]
+            if crossing.size > 0:
+                i0 = int(crossing[0])
+                i1 = i0 + 1
+                weight = gap[i0] / (gap[i0] - gap[i1])
+                target = float(m_knots[i0] + weight * (m_knots[i1] - m_knots[i0]))
+                above = False
+            elif np.all(gap > 0.0):
+                # building wealth at every knot: the target lies above the grid
+                i0, i1 = m_knots.size - 2, m_knots.size - 1
+                target, above = np.inf, True
+            else:
+                extra["target_" + name] = None
+                extra["target_" + name + "_knots"] = None
+                extra["target_" + name + "_above_grid"] = False
+                extra["last_step_at_target_" + name] = None
+                extra["implied_distance_at_target_" + name] = None
+                continue
+            pair = (float(m_knots[i0]), float(m_knots[i1]))
+            step = max(
+                abs(float(cFunc(pair[0])) - float(solution_last.cFunc(pair[0]))),
+                abs(float(cFunc(pair[1])) - float(solution_last.cFunc(pair[1]))),
+            )
+            extra["target_" + name] = target
+            extra["target_" + name + "_knots"] = pair
+            extra["target_" + name + "_above_grid"] = above
+            extra["last_step_at_target_" + name] = step
+            extra["implied_distance_at_target_" + name] = _implied_distance(step, r)
+        return extra
 
     def calc_stable_points(self, force=False):
         """
