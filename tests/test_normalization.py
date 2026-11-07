@@ -20,12 +20,18 @@ Covers:
 6. Composition with DualMeasureMixin.
 """
 
+from copy import deepcopy
+
 import numpy as np
 import pytest
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
+)
+from HARK.ConsumptionSaving.ConsMarkovModel import (
+    MarkovConsumerType,
+    init_employment_markov,
 )
 from HARK.dual_measure import DualMeasureMixin
 from HARK.simulation.normalization import (
@@ -38,6 +44,10 @@ from HARK.simulation.normalization import (
 class NormalizedIndShock(
     ShockNormalizationMixin, PermanentIncomeNormalizationMixin, IndShockConsumerType
 ):
+    pass
+
+
+class NormalizedMarkov(ShockNormalizationMixin, MarkovConsumerType):
     pass
 
 
@@ -500,3 +510,28 @@ def test_refusal_names_the_other_flag_as_not_a_workaround():
         agent.solve()
         with pytest.raises(NotImplementedError, match="not a workaround"):
             agent.setup_Q_measure()
+
+
+def test_employment_states_hit_their_own_transitory_means(recwarn):
+    """With unemployment as a state, each state's TranShk mean is its own.
+
+    The employed state's transitory income has mean (1 - UnempPrb * IncUnemp)
+    / (1 - UnempPrb), not 1, and the unemployed all receive IncUnemp, here 0,
+    a group already at its target that must be left alone without a warning.
+    """
+    params = deepcopy(init_employment_markov)
+    params.update(cycles=0, IncUnemp=0.0, BoroCnstArt=None, AgentCount=4000, T_sim=6)
+    agent = NormalizedMarkov(**params)
+    agent.normalize_shocks = True
+    agent.track_vars = ["Mrkv", "TranShk", "t_age"]
+    agent.solve()
+    agent.initialize_sim()
+    agent.simulate()
+    scale = 1.0 / (1.0 - agent.UnempPrb)
+    for t in range(1, agent.T_sim):
+        state = agent.history["Mrkv"][t]
+        TranShk = agent.history["TranShk"][t]
+        employed = state == 0
+        assert np.isclose(np.mean(TranShk[employed]), scale, rtol=1e-12, atol=0)
+        np.testing.assert_array_equal(TranShk[~employed], 0.0)
+    assert not [w for w in recwarn if "ShockNormalizationMixin" in str(w.message)]

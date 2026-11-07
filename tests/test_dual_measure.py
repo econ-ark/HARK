@@ -34,6 +34,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
+    init_employment_markov,
     init_indshk_markov,
 )
 from HARK.ConsumptionSaving.ConsPrefShockModel import KinkyPrefConsumerType
@@ -377,6 +378,31 @@ def test_markov_newborn_q_shocks_are_redrawn_not_pinned_to_permgrofac():
         np.testing.assert_array_equal(
             agent.shocks_Q["TranShk"][these], np.ones(int(these.sum()))
         )
+
+
+def test_markov_q_newborns_get_their_state_mean_transitory_income():
+    """Q newborns without a transitory shock get their state's mean, as P's do."""
+    params = deepcopy(init_employment_markov)
+    params.update(
+        cycles=0,
+        NewbornTransShk=False,
+        MrkvPrbsInit=np.array([0.5, 0.5]),
+        AgentCount=2000,
+        T_sim=5,
+        seed=4,
+    )
+    agent = DualMarkov(**params)
+    agent.solve()
+    agent.setup_Q_measure()
+    agent.initialize_sim()
+    agent.simulate()
+    agent.t_age[:] = 0
+    agent._base_shock_draws = {}
+    agent._draw_Q_shocks_markov()
+    state = agent.shocks["Mrkv"]
+    scale = (1 - agent.UnempPrb * agent.IncUnemp) / (1 - agent.UnempPrb)
+    np.testing.assert_array_equal(agent.shocks_Q["TranShk"][state == 0], scale)
+    np.testing.assert_array_equal(agent.shocks_Q["TranShk"][state == 1], agent.IncUnemp)
 
 
 def test_markov_dual_mode_q_states_are_finite_and_consistent():

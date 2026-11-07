@@ -1467,6 +1467,12 @@ class AgentType(Model):
         Use the new simulator structure to build a simulator from the agents'
         attributes, storing it in a private attribute.
         """
+        # The model files draw a newborn's shocks like everyone else's
+        if not getattr(self, "NewbornPermShk", True):
+            raise NotImplementedError(
+                "The model-file simulator does not read NewbornPermShk, so it "
+                "cannot give newborns a permanent shock of 1. Use simulate() instead."
+            )
         self.reset_rng()  # ensure seeds are set identically each time
         self._simulator = make_simulator_from_agent(self, **kwargs)
         self._simulator.reset()
