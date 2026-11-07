@@ -922,6 +922,32 @@ class testsCubicHermiteUpperExtrapolation(testsCubicUpperExtrapolation):
     interp = CubicHermiteInterp
 
 
+class testsCubicHermiteExtrapolationHooks(unittest.TestCase):
+    """A subclass that overrides _eval_helper and _der_helper sets the
+    extrapolation for every evaluation, as HARK.tail_interpolation's do."""
+
+    def test_overridden_helpers_reach_every_evaluation(self):
+        class FlatAbove(CubicHermiteInterp):
+            def _eval_helper(self, x, out_bot, out_top):
+                y = super()._eval_helper(x, out_bot, out_top)
+                y[out_top] = -1.0
+                return y
+
+            def _der_helper(self, x, out_bot, out_top):
+                dydx = super()._der_helper(x, out_bot, out_top)
+                dydx[out_top] = 0.0
+                return dydx
+
+        x_list = np.array([0.0, 1.0, 2.0])
+        f = FlatAbove(x_list, x_list, np.ones(3), intercept_limit=1.5, slope_limit=0.5)
+        x = np.array([1.5, 3.0])
+        np.testing.assert_allclose(f(x), [1.5, -1.0])
+        np.testing.assert_allclose(f.derivative(x), [1.0, 0.0])
+        vals, ders = f.eval_with_derivative(x)
+        np.testing.assert_allclose(vals, [1.5, -1.0])
+        np.testing.assert_allclose(ders, [1.0, 0.0])
+
+
 class testsCubicInterpFast(unittest.TestCase):
     """numba_tools.cubic_interp_fast matches CubicInterp, extrapolation included."""
 
