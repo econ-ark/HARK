@@ -303,6 +303,20 @@ class TestCubicHermiteLinearSegment(unittest.TestCase):
         with self.assertRaises(IndexError):
             g.set_linear_segment(3)
 
+    def test_state_recorded_by_earlier_versions_loads(self):
+        """A pickle from a version that recorded the patched segments in
+        _linear_segments restores the chord from coeffs all the same."""
+        x = np.array([0.0, 1.0, 2.0, 3.0])
+        g = CubicHermiteInterp(x, x**2, 2.0 * x)
+        g.set_linear_segment(1)
+        state = g.__getstate__()
+        state["_linear_segments"] = [1]
+        h = CubicHermiteInterp.__new__(CubicHermiteInterp)
+        h.__setstate__(state)
+        t = np.linspace(0.0, 3.0, 31)
+        np.testing.assert_array_equal(h(t), g(t))
+        np.testing.assert_array_equal(h.derivative(t), g.derivative(t))
+
 
 class TestLowerEnvelope(TestInterp1D):
     interpolator_ = LowerEnvelope
@@ -786,6 +800,22 @@ class testsCubicInterpKnots(unittest.TestCase):
         cube = CubicInterp([0.0, 1.0, 2.0, 2.0], [0.0, 1.0, 2.0, 2.0], [1.0] * 4)
         np.testing.assert_allclose(cube(np.array([2.0])), [2.0])
         np.testing.assert_allclose(cube.derivative(np.array([2.0])), [1.0])
+
+    def test_matches_cubic_interp_fast_at_knots(self):
+        args = (self.x_list, self.y_list, self.dydx_list)
+        for limits in ({}, self.limits):
+            for lower_extrap in (False, True):
+                with self.subTest(limits=bool(limits), lower_extrap=lower_extrap):
+                    cube = CubicInterp(*args, lower_extrap=lower_extrap, **limits)
+                    vals, ders = cubic_interp_fast(
+                        self.x_list,
+                        *args,
+                        limits.get("intercept_limit"),
+                        limits.get("slope_limit"),
+                        lower_extrap,
+                    )
+                    np.testing.assert_allclose(vals, cube(self.x_list))
+                    np.testing.assert_allclose(ders, cube.derivative(self.x_list))
 
 
 class testsCubicUpperExtrapolation(unittest.TestCase):
