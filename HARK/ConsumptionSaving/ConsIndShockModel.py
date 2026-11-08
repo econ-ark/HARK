@@ -15,6 +15,7 @@ See HARK documentation for mathematical descriptions of the models being solved.
 
 import warnings
 from copy import copy
+from dataclasses import asdict, dataclass
 
 import numpy as np
 from HARK.Calibration.Income.IncomeTools import (
@@ -432,6 +433,211 @@ def calc_human_wealth_closed_form(perm_gro_fac, rfree, periods_left=np.inf):
     if fhw_fac == 1.0:
         return float(periods_left)
     return fhw_fac * (1.0 - fhw_fac**periods_left) / (1.0 - fhw_fac)
+
+
+@dataclass(frozen=True)
+class PerfForesightCondition:
+    """
+    The result of one perfect foresight condition.
+
+    Attributes
+    ----------
+    name : str
+        The condition's name, as a key of an agent's ``conditions``.
+    factor_name : str
+        The name of its factor, as a key of an agent's ``bilt``.
+    factor : float
+        The factor, which the condition compares with one.
+    rate : float
+        The log of the factor, negative when the condition holds.
+    holds : bool
+        Whether the condition holds.
+    meaning : str
+        What the result implies.
+    """
+
+    name: str
+    factor_name: str
+    factor: float
+    rate: float
+    holds: bool
+    meaning: str
+
+
+@dataclass(frozen=True)
+class PerfForesightConditions:
+    r"""
+    The perfect foresight conditions and what they imply, for an infinite horizon
+    with one repeated period. See :func:`calc_perf_foresight_conditions`.
+
+    Attributes
+    ----------
+    conditions : dict
+        A :class:`PerfForesightCondition` for each of AIC, RIC, GICRaw, FHWC and PFFVAC.
+    regime : str
+        The limit of the consumption function as the horizon extends to infinity:
+        ``"linear"`` (the unconstrained solution), ``"kinked"`` (piecewise linear, with
+        a binding constraint), ``"infinite"`` (consumption goes to infinity), ``"zero"``
+        (to zero), or ``"income"`` (the knife edge where the Growth Patience Factor is
+        exactly one and the RIC fails: consumption goes to one, where the constraint allows).
+    solution_exists : bool
+        Whether the limit is a non-degenerate solution.
+    constraint_binds : bool
+        Whether the borrowing constraint can bind in the limit.
+    MPCmin : float
+        The limiting MPC as market resources go to infinity.
+    MPCmax : float
+        The limiting MPC as market resources approach their minimum.
+    hNrm : float
+        Limiting human wealth excluding this period's income, as in a solution's ``hNrm``.
+    mNrmStable : float
+        The market resources ratio to which the consumer converges when a solution
+        exists and the GICRaw holds, and nan otherwise.
+    """
+
+    conditions: dict
+    regime: str
+    solution_exists: bool
+    constraint_binds: bool
+    MPCmin: float
+    MPCmax: float
+    hNrm: float
+    mNrmStable: float
+
+    def to_dict(self):
+        """Return the results as nested dictionaries of plain values."""
+        return asdict(self)
+
+
+def calc_perf_foresight_conditions(
+    Rfree, DiscFac, CRRA, PermGroFac, LivPrb=1.0, BoroCnstArt=None
+):
+    r"""Calculate all of the perfect foresight conditions and what they imply.
+
+    This is a standalone calculation for an infinite horizon with one repeated
+    period. It needs no agent, nothing in HARK calls it, and it changes nothing.
+
+    Parameters
+    ----------
+    Rfree : float
+        Risk free interest factor :math:`R`.
+    DiscFac : float
+        Intertemporal discount factor :math:`\beta`.
+    CRRA : float
+        Coefficient of relative risk aversion :math:`\rho`.
+    PermGroFac : float
+        Permanent income growth factor :math:`G`.
+    LivPrb : float, optional
+        Survival probability. Default 1.0.
+    BoroCnstArt : float or None, optional
+        Artificial borrowing constraint. Default None.
+
+    Returns
+    -------
+    results : PerfForesightConditions
+        The factors, rates and results of the conditions, and the limit of the solution.
+
+    Notes
+    -----
+    Without a binding constraint, a linear solution exists if and only if the RIC and
+    the FHWC both hold. Otherwise the Growth Patience Factor decides the limit:
+    consumption goes to infinity when it is below one and to zero when it is above one.
+    A constraint can bind if it is finite and above minus human wealth, and then a
+    solution exists if the RIC or the GICRaw holds.
+
+    References
+    ----------
+    https://intertemporal-choice.github.io/content/consumption/perfforesightcrra/
+    """
+    APFac = (Rfree * DiscFac * LivPrb) ** (1.0 / CRRA)
+    RPFac = APFac / Rfree
+    GPFacRaw = APFac / PermGroFac
+    FHWFac = PermGroFac / Rfree
+    PFVAFac = (DiscFac * LivPrb) * PermGroFac ** (1.0 - CRRA)
+
+    # name: factor name, factor, meaning if it holds, meaning if it fails
+    table = {
+        "AIC": (
+            "APFac",
+            APFac,
+            "The level of consumption falls over time.",
+            "The level of consumption does not fall over time.",
+        ),
+        "RIC": (
+            "RPFac",
+            RPFac,
+            "The limiting MPC is positive.",
+            "The limiting MPC is zero.",
+        ),
+        "GICRaw": (
+            "GPFacRaw",
+            GPFacRaw,
+            "Consumption grows more slowly than permanent income.",
+            "Consumption does not grow more slowly than permanent income.",
+        ),
+        "FHWC": (
+            "FHWFac",
+            FHWFac,
+            "Human wealth is finite.",
+            "Human wealth is infinite.",
+        ),
+        "PFFVAC": (
+            "PFVAFac",
+            PFVAFac,
+            "The value of autarky is finite.",
+            "The value of autarky is not finite.",
+        ),
+    }
+    conditions = {}
+    for name, (factor_name, factor, if_holds, if_fails) in table.items():
+        factor = float(factor)
+        holds = factor < 1.0
+        conditions[name] = PerfForesightCondition(
+            name=name,
+            factor_name=factor_name,
+            factor=factor,
+            rate=np.log(factor) if factor > 0.0 else -np.inf,
+            holds=holds,
+            meaning=if_holds if holds else if_fails,
+        )
+    RIC = conditions["RIC"].holds
+    FHWC = conditions["FHWC"].holds
+    GIC = conditions["GICRaw"].holds
+
+    hNrm = FHWFac / (1.0 - FHWFac) if FHWC else np.inf
+    MPCmin = 1.0 - RPFac if RIC else 0.0
+    a_min = -np.inf if BoroCnstArt is None else BoroCnstArt
+    constraint_binds = bool(a_min > -hNrm)
+
+    if constraint_binds and (RIC or GIC):
+        regime = "kinked"
+    elif not constraint_binds and RIC and FHWC:
+        regime = "linear"
+    elif GPFacRaw > 1.0:
+        regime = "zero"
+    elif GPFacRaw < 1.0:
+        regime = "infinite"
+    else:
+        regime = "income"
+    solution_exists = regime in ("linear", "kinked")
+
+    if not (solution_exists and GIC):
+        mNrmStable = np.nan
+    elif constraint_binds:
+        mNrmStable = 1.0 + a_min * Rfree / PermGroFac
+    else:
+        mNrmStable = -hNrm
+
+    return PerfForesightConditions(
+        conditions=conditions,
+        regime=regime,
+        solution_exists=solution_exists,
+        constraint_binds=constraint_binds,
+        MPCmin=float(MPCmin),
+        MPCmax=1.0 if constraint_binds else float(MPCmin),
+        hNrm=float(hNrm),
+        mNrmStable=float(mNrmStable),
+    )
 
 
 def solve_one_period_ConsPF(
@@ -2135,6 +2341,32 @@ class PerfForesightConsumerType(AgentType):
         self.log_condition_result(None, None, GIC_message, verbose)
 
         self._emit_conditions_report(verbose)
+
+    def get_perf_foresight_conditions(self):
+        """
+        Return all of the perfect foresight conditions and what they imply for this
+        agent's parameters, using :func:`calc_perf_foresight_conditions`. This is optional:
+        solve does not call it, and calling it changes nothing on the agent.
+
+        Returns
+        -------
+        results : PerfForesightConditions or None
+            None where ``check_conditions`` gives no report (anything but an infinite
+            horizon with one repeated period), and for types with income risk, whose
+            conditions differ.
+        """
+        if isinstance(self, IndShockConsumerType):
+            return None
+        if self.cycles != 0 or self.T_cycle > 1:
+            return None
+        return calc_perf_foresight_conditions(
+            self.Rfree[0],
+            self.DiscFac,
+            self.CRRA,
+            self.PermGroFac[0],
+            self.LivPrb[0],
+            getattr(self, "BoroCnstArt", None),
+        )
 
     def calc_stable_points(self, force=False):
         """
