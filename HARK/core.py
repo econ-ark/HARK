@@ -2366,6 +2366,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
     go = True  # NOQA
     completed_cycles = 0  # NOQA
     max_cycles = 5000  # NOQA  - escape clause
+    warned_nan = False  # warn once per solve about a nan distance
     if verbose:
         t_last = time()
     while go:
@@ -2386,10 +2387,21 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                 agent.completed_cycles = (
                     completed_cycles  # query them to see if solution is ready
                 )
+                # A distance that is not finite is not convergence. An inf one
+                # already kept the loop going; a nan one (as when the solution
+                # holds nans) stopped it, since nan > tolerance is False, so it
+                # is warned about.
+                finite = np.isfinite(solution_distance)
+                if np.isnan(solution_distance) and not warned_nan:
+                    warn(
+                        f"The distance between iterates is nan after cycle "
+                        f"{completed_cycles}; solve_agent treats it as not "
+                        "converged."
+                    )
+                    warned_nan = True
                 go = (
-                    solution_distance > agent.tolerance
-                    and completed_cycles < max_cycles
-                )
+                    not finite or solution_distance > agent.tolerance
+                ) and completed_cycles < max_cycles
             else:  # Assume solution does not converge after only one cycle
                 solution_distance = 100.0
                 go = True

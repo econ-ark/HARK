@@ -114,6 +114,10 @@ Next, install `econ-ark` into your new virtual environment via pip:
 pip install econ-ark
 ```
 
+:::{note}
+If `import HARK` fails with `No module named 'sympy'`, run `pip install sympy`. (econ-ark 0.17.2 omits it on Python 3.12 and later.)
+:::
+
 ---
 ## Instructions for an advanced user/developer
 
@@ -255,6 +259,10 @@ With the virtual environment activated, install HARK using `pip`:
 ```
 pip install econ-ark
 ```
+
+:::{note}
+If `import HARK` fails with `No module named 'sympy'`, run `pip install sympy`. (econ-ark 0.17.2 omits it on Python 3.12 and later.)
+:::
 
 ### Step 4: Run a Simple Model
 
