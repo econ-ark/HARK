@@ -1,11 +1,16 @@
+import json
 import logging
 import unittest
 import warnings
+from dataclasses import FrozenInstanceError
+from unittest import mock
 
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
     PerfForesightConsumerType,
+    calc_perf_foresight_conditions,
     calc_human_wealth,
     calc_human_wealth_closed_form,
     calc_mpc_min,
@@ -483,3 +488,167 @@ class testPerfForesightConditionReport(unittest.TestCase):
         with self.assertWarns(UserWarning):
             agent.solve()
         self.assertTrue(agent.degenerate)
+
+
+class testPerfForesightConditionsFunction(unittest.TestCase):
+    """The optional function that returns all of the conditions."""
+
+    # Rfree, PermGroFac, DiscFac, regime without a constraint, regime with one
+    orderings = {
+        "Pat<G<R": (1.04, 1.01, 0.90, "linear", "kinked"),
+        "G<Pat<R": (1.04, 0.98, 0.96, "linear", "kinked"),
+        "Pat<R<G": (1.02, 1.05, 0.90, "infinite", "kinked"),
+        "G<R<Pat": (1.02, 1.00, 1.05, "zero", "zero"),
+        "R<Pat<G": (1.00, 1.05, 1.02, "infinite", "kinked"),
+        "R<G<Pat": (1.00, 1.01, 1.10, "zero", "zero"),
+    }
+
+    def make_agent(self, Rfree, PermGroFac, DiscFac, **kwds):
+        params = {"CRRA": 2.0, "LivPrb": [1.0], "verbose": 0, "cycles": 0}
+        params.update(kwds)
+        return PerfForesightConsumerType(
+            Rfree=[Rfree], PermGroFac=[PermGroFac], DiscFac=DiscFac, **params
+        )
+
+    def test_regimes(self):
+        for name, (R, G, b, free, bound) in self.orderings.items():
+            self.assertEqual(
+                calc_perf_foresight_conditions(R, b, 2.0, G).regime, free, name
+            )
+            for a_min in (0.0, -0.5):
+                result = calc_perf_foresight_conditions(R, b, 2.0, G, BoroCnstArt=a_min)
+                self.assertEqual(result.regime, bound, name)
+
+    def test_matches_the_agent(self):
+        for name, (R, G, b, _, _) in self.orderings.items():
+            for a_min in (None, 0.0, -0.5, -1000.0):
+                agent = self.make_agent(R, G, b, BoroCnstArt=a_min, LivPrb=[0.98])
+                agent.check_conditions()
+                result = agent.get_perf_foresight_conditions()
+                self.assertEqual(set(result.conditions), set(agent.conditions), name)
+                for key, condition in result.conditions.items():
+                    self.assertEqual(condition.holds, bool(agent.conditions[key]), name)
+                    self.assertEqual(
+                        condition.factor, agent.bilt[condition.factor_name], name
+                    )
+                self.assertEqual(result.solution_exists, not agent.degenerate, name)
+                self.assertEqual(result.MPCmin, agent.bilt["MPCmin"], name)
+                self.assertEqual(result.MPCmax, agent.bilt["MPCmax"], name)
+                if result.hNrm < np.inf:
+                    self.assertAlmostEqual(
+                        result.hNrm + 1.0, agent.bilt["hNrm"], places=9
+                    )
+
+    def test_matches_the_agent_on_random_parameters(self):
+        rng = np.random.default_rng(20261108)
+        for _ in range(300):
+            R, G = rng.uniform(0.95, 1.15, 2)
+            b = rng.uniform(0.80, 1.20)
+            rho = rng.uniform(0.3, 8.0)
+            a_min = rng.choice([None, 0.0, -0.5])
+            agent = self.make_agent(R, G, b, CRRA=rho, BoroCnstArt=a_min)
+            agent.check_conditions()
+            result = agent.get_perf_foresight_conditions()
+            self.assertEqual(result.solution_exists, not agent.degenerate)
+
+    def test_rate_is_the_log_of_the_factor(self):
+        result = calc_perf_foresight_conditions(1.04, 0.90, 2.0, 1.01)
+        for condition in result.conditions.values():
+            self.assertEqual(condition.rate, np.log(condition.factor))
+            self.assertEqual(condition.rate < 0.0, condition.holds)
+
+    def test_limits_match_the_solver(self):
+        R, G, b, _, _ = self.orderings["Pat<G<R"]
+        agent = self.make_agent(R, G, b, tolerance=1e-10)
+        agent.solve()
+        result = agent.get_perf_foresight_conditions()
+        self.assertAlmostEqual(result.hNrm, agent.solution[0].hNrm, places=5)
+        self.assertAlmostEqual(result.MPCmin, agent.solution[0].MPCmin, places=9)
+        self.assertAlmostEqual(result.mNrmStable, agent.bilt["mNrmStE"], places=5)
+        for a_min in (0.0, -0.5):
+            agent = self.make_agent(R, G, b, BoroCnstArt=a_min)
+            agent.solve()
+            result = agent.get_perf_foresight_conditions()
+            self.assertAlmostEqual(result.mNrmStable, agent.bilt["mNrmStE"], places=6)
+
+    def test_stable_point_only_when_a_solution_exists_under_the_gic(self):
+        for name in ("G<Pat<R", "Pat<R<G", "R<Pat<G"):
+            R, G, b, _, _ = self.orderings[name]
+            self.assertTrue(
+                np.isnan(calc_perf_foresight_conditions(R, b, 2.0, G).mNrmStable)
+            )
+
+    def test_knife_edges(self):
+        result = calc_perf_foresight_conditions(1.0, 1.1, 2.0, 1.1**0.5)
+        self.assertEqual(result.regime, "income")
+        self.assertFalse(result.solution_exists)
+        result = calc_perf_foresight_conditions(1.0, 1.0, 2.0, 0.99)
+        self.assertFalse(result.conditions["RIC"].holds)
+        self.assertEqual(result.conditions["RIC"].rate, 0.0)
+        self.assertEqual(result.regime, "zero")
+        self.assertEqual(
+            calc_perf_foresight_conditions(1.03, 0.9, 2.0, 1.03).hNrm, np.inf
+        )
+
+    def test_log_utility(self):
+        result = calc_perf_foresight_conditions(1.04, 0.90, 1.0, 1.01)
+        self.assertEqual(result.regime, "linear")
+        self.assertEqual(result.conditions["PFFVAC"].factor, 0.90)
+
+    def test_constraint_that_cannot_bind(self):
+        result = calc_perf_foresight_conditions(
+            1.04, 0.90, 2.0, 1.01, BoroCnstArt=-1000.0
+        )
+        self.assertFalse(result.constraint_binds)
+        self.assertEqual(result.regime, "linear")
+        self.assertEqual(result.MPCmax, result.MPCmin)
+
+    def test_to_dict_is_plain(self):
+        result = calc_perf_foresight_conditions(1.02, 0.90, 2.0, 1.05, BoroCnstArt=0.0)
+        as_dict = result.to_dict()
+        self.assertEqual(as_dict["conditions"]["FHWC"]["holds"], False)
+        json.dumps(as_dict)
+
+    def test_result_cannot_be_changed(self):
+        result = calc_perf_foresight_conditions(1.04, 0.90, 2.0, 1.01)
+        with self.assertRaises(FrozenInstanceError):
+            result.regime = "zero"
+
+    def test_returns_nothing_where_there_is_no_report(self):
+        self.assertIsNone(
+            self.make_agent(1.04, 1.01, 0.90, cycles=1).get_perf_foresight_conditions()
+        )
+        agent = PerfForesightConsumerType(
+            cycles=0,
+            T_cycle=2,
+            Rfree=[1.03, 1.03],
+            PermGroFac=[1.0, 1.0],
+            LivPrb=[1.0, 1.0],
+        )
+        self.assertIsNone(agent.get_perf_foresight_conditions())
+        self.assertIsNone(
+            IndShockConsumerType(cycles=0).get_perf_foresight_conditions()
+        )
+
+    def test_is_optional(self):
+        # Nothing on the default path uses it
+        R, G, b, _, _ = self.orderings["Pat<G<R"]
+        target = (
+            "HARK.ConsumptionSaving.ConsIndShockModel.calc_perf_foresight_conditions"
+        )
+        with mock.patch(target, side_effect=AssertionError("called")):
+            agent = self.make_agent(R, G, b)
+            agent.check_conditions()
+            agent.solve()
+
+    def test_changes_nothing_on_the_agent(self):
+        R, G, b, _, _ = self.orderings["Pat<G<R"]
+        agent = self.make_agent(R, G, b)
+        agent.check_conditions()
+        logger = logging.getLogger("HARK")
+        level = logger.level
+        conditions, bilt = dict(agent.conditions), dict(agent.bilt)
+        agent.get_perf_foresight_conditions()
+        self.assertEqual(agent.conditions, conditions)
+        self.assertEqual(agent.bilt, bilt)
+        self.assertEqual(logger.level, level)
