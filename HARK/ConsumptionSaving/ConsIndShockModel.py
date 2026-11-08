@@ -1902,15 +1902,13 @@ class PerfForesightConsumerType(AgentType):
         aux_dict["PFVAFac"] = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0] ** (
             1.0 - self.CRRA
         )
-        aux_dict["cNrmPDV"] = 1.0 / (1.0 - aux_dict["RPFac"])
+        if aux_dict["RPFac"] < 1.0:
+            aux_dict["cNrmPDV"] = 1.0 / (1.0 - aux_dict["RPFac"])
+        else:
+            aux_dict["cNrmPDV"] = np.inf
         aux_dict["MPCmin"] = np.maximum(1.0 - aux_dict["RPFac"], 0.0)
-        constrained = (
-            hasattr(self, "BoroCnstArt")
-            and (self.BoroCnstArt is not None)
-            and (self.BoroCnstArt > -np.inf)
-        )
 
-        if constrained:
+        if self._constraint_can_bind():
             aux_dict["MPCmax"] = 1.0
         else:
             aux_dict["MPCmax"] = aux_dict["MPCmin"]
@@ -1919,17 +1917,112 @@ class PerfForesightConsumerType(AgentType):
         else:
             aux_dict["hNrm"] = np.inf
 
-        # Generate the "Delta m = 0" function, which is used to find target market resources
-        Ex_Rnrm = self.Rfree[0] / self.PermGroFac[0]
-        aux_dict["Delta_mNrm_ZeroFunc"] = lambda m: (
-            (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
-        )
-
         # Generate the "E[M_tp1 / M_t] = G" function, which is used to find balanced growth market resources
         PF_Rnrm = self.Rfree[0] / self.PermGroFac[0]
         aux_dict["BalGroFunc"] = lambda m: (1.0 - 1.0 / PF_Rnrm) * m + 1.0 / PF_Rnrm
 
+        # The "Delta m = 0" function, which is used to find target market resources,
+        # is the same function under perfect foresight
+        aux_dict["Delta_mNrm_ZeroFunc"] = aux_dict["BalGroFunc"]
+
         self.bilt = aux_dict
+
+    def _constraint_can_bind(self):
+        """
+        Whether the artificial borrowing constraint can bind in the infinite horizon
+        limit. A finite constraint cannot bind if it lies at or below the natural
+        borrowing constraint, which is minus human wealth excluding this period's
+        income. If human wealth is infinite, every finite constraint can bind.
+
+        Returns
+        -------
+        bool
+        """
+        BoroCnstArt = getattr(self, "BoroCnstArt", None)
+        if BoroCnstArt is None or BoroCnstArt <= -np.inf:
+            return False
+        FHWFac = self.bilt["FHWFac"]
+        if FHWFac >= 1.0:
+            return True
+        return BoroCnstArt > -FHWFac / (1.0 - FHWFac)
+
+    def _describe_limiting_solution(self):
+        """
+        State the limit of the consumption function as the horizon extends to infinity,
+        given the results of the conditions. Without a binding constraint a linear
+        solution exists if and only if the RIC and the FHWC both hold; otherwise the
+        Growth Patience Factor decides whether consumption goes to infinity or to zero.
+        With a binding constraint, a solution exists if the RIC or the GICRaw holds.
+
+        Returns
+        -------
+        message : str
+            A statement of the limit and of the conditions that determine it.
+        degenerate : bool
+            Whether the limit is degenerate, so that no solution exists.
+        """
+        RIC = self.conditions["RIC"]
+        FHWC = self.conditions["FHWC"]
+        GIC = self.conditions["GICRaw"]
+        GPFacRaw = self.bilt["GPFacRaw"]
+
+        if self._constraint_can_bind():
+            if RIC and GIC:
+                message = "Because the RIC is satisfied and the consumer is constrained, the solution is not c(m)=0 for all m. Because the GICRaw is also satisfied, the solution is non-degenerate. It is piecewise linear with an infinite number of kinks"
+                if FHWC:
+                    message += ", approaching the unconstrained solution as m goes to infinity."
+                else:
+                    message += "."
+                return message, False
+            if RIC:
+                return (
+                    "Because the RIC is satisfied and the consumer is constrained, the solution is not c(m)=0 for all m. Because the GICRaw is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it.",
+                    False,
+                )
+            if GIC:
+                return (
+                    "Because the RIC is violated but the GIC is satisfied, the FHWC is necessarily also violated. In this case, the consumer's pathological patience is offset by his infinite human wealth, against which he cannot borrow arbitrarily; a non-degenerate solution exists.",
+                    False,
+                )
+            if GPFacRaw > 1.0:
+                return (
+                    "Because the RIC and the GICRaw are both violated, the solution is degenerate at c(m)=0 for all m.",
+                    True,
+                )
+            return (
+                "Because the RIC is violated and the Growth Patience Factor is exactly one, the solution is degenerate at c(m)=min(m-BoroCnstArt,1).",
+                True,
+            )
+
+        if RIC and FHWC:
+            return (
+                "Because the FHWC is satisfied, the solution is not c(m)=Infinity. Because the RIC is also satisfied, the solution is also not c(m)=0 for all m, so a non-degenerate linear solution exists.",
+                False,
+            )
+        if FHWC:
+            return (
+                "Because the FHWC is satisfied, the solution is not c(m)=Infinity. However, because the RIC is violated, the solution is degenerate at c(m) = 0 for all m.",
+                True,
+            )
+        if RIC:
+            return (
+                "Because the FHWC condition is violated, the RIC is satisfied, and the consumer is not constrained, the solution is degenerate at c(m)=Infinity.",
+                True,
+            )
+        if GPFacRaw < 1.0:
+            return (
+                "Because the FHWC and the RIC are both violated, the GICRaw decides the limit. Because the GICRaw is satisfied and the consumer is not constrained, the solution is degenerate at c(m)=Infinity.",
+                True,
+            )
+        if GPFacRaw > 1.0:
+            return (
+                "Because the FHWC and the RIC are both violated, the GICRaw decides the limit. Because the GICRaw is also violated, the solution is degenerate at c(m)=0 for all m.",
+                True,
+            )
+        return (
+            "Because the FHWC and the RIC are both violated, the GICRaw decides the limit. Because the Growth Patience Factor is exactly one, the solution is degenerate at c(m)=1 for all m.",
+            True,
+        )
 
     def check_conditions(self, verbose=None):
         """
@@ -1965,11 +2058,6 @@ class PerfForesightConsumerType(AgentType):
         self.check_GICRaw(verbose)
         self.check_FVAC(verbose)
         self.check_FHWC(verbose)
-        constrained = (
-            hasattr(self, "BoroCnstArt")
-            and (self.BoroCnstArt is not None)
-            and (self.BoroCnstArt > -np.inf)
-        )
 
         # Exit now if verbose output was not requested.
         if not verbose:
@@ -1977,34 +2065,8 @@ class PerfForesightConsumerType(AgentType):
             return
 
         # Report on the degeneracy of the consumption function solution
-        if not constrained:
-            if self.conditions["FHWC"]:
-                RIC_message = "\nBecause the FHWC is satisfied, the solution is not c(m)=Infinity."
-                if self.conditions["RIC"]:
-                    RIC_message += " Because the RIC is also satisfied, the solution is also not c(m)=0 for all m, so a non-degenerate linear solution exists."
-                    degenerate = False
-                else:
-                    RIC_message += " However, because the RIC is violated, the solution is degenerate at c(m) = 0 for all m."
-                    degenerate = True
-            else:
-                RIC_message = "\nBecause the FHWC condition is violated and the consumer is not constrained, the solution is degenerate at c(m)=Infinity."
-                degenerate = True
-        else:
-            if self.conditions["RIC"]:
-                RIC_message = "\nBecause the RIC is satisfied and the consumer is constrained, the solution is not c(m)=0 for all m."
-                if self.conditions["GICRaw"]:
-                    RIC_message += " Because the GICRaw is also satisfied, the solution is non-degenerate. It is piecewise linear with an infinite number of kinks, approaching the unconstrained solution as m goes to infinity."
-                    degenerate = False
-                else:
-                    RIC_message += " Because the GICRaw is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it."
-                    degenerate = False
-            else:
-                if self.conditions["GICRaw"]:
-                    RIC_message = "\nBecause the RIC is violated but the GIC is satisfied, the FHWC is necessarily also violated. In this case, the consumer's pathological patience is offset by his infinite human wealth, against which he cannot borrow arbitrarily; a non-degenerate solution exists."
-                    degenerate = False
-                else:
-                    RIC_message = "\nBecause the RIC is violated but the FHWC is satisfied, the solution is degenerate at c(m)=0 for all m."
-                    degenerate = True
+        RIC_message, degenerate = self._describe_limiting_solution()
+        RIC_message = "\n" + RIC_message
         self.log_condition_result(None, None, RIC_message, verbose)
 
         if (
@@ -2021,8 +2083,10 @@ class PerfForesightConsumerType(AgentType):
         self.log_condition_result(None, None, AIC_message, verbose)
 
         # Report on the consequences of the Growth Impatience Condition
-        if self.conditions["GICRaw"]:
-            GIC_message = "\nBecause the GICRaw is satisfed, the ratio of individual wealth to permanent income is expected to fall indefinitely."
+        if self.conditions["GICRaw"] and self._constraint_can_bind():
+            GIC_message = "\nBecause the GICRaw is satisfied, the ratio of individual wealth to permanent income is expected to fall until the borrowing constraint binds."
+        elif self.conditions["GICRaw"]:
+            GIC_message = "\nBecause the GICRaw is satisfied, the ratio of individual wealth to permanent income is expected to fall toward minus human wealth, the natural borrowing constraint."
         elif self.conditions["FHWC"]:
             GIC_message = "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
         else:
@@ -2087,13 +2151,17 @@ class PerfForesightConsumerType(AgentType):
             except:
                 mNrmStE = np.nan
 
-            # A target level of assets *might* exist even if the GICMod fails, so check no matter what
-            func_to_zero = lambda m: Delta_mNrm_ZeroFunc(m) - cFunc(m)
-            m0 = 1.0 if np.isnan(mNrmStE) else mNrmStE
-            try:
-                mNrmTrg = newton(func_to_zero, m0, maxiter=200)
-            except:
-                mNrmTrg = np.nan
+            if Delta_mNrm_ZeroFunc is BalGroFunc:
+                # Under perfect foresight the two loci are the same function
+                mNrmTrg = mNrmStE
+            else:
+                # A target level of assets *might* exist even if the GICMod fails, so check no matter what
+                func_to_zero = lambda m: Delta_mNrm_ZeroFunc(m) - cFunc(m)
+                m0 = 1.0 if np.isnan(mNrmStE) else mNrmStE
+                try:
+                    mNrmTrg = newton(func_to_zero, m0, maxiter=200)
+                except:
+                    mNrmTrg = np.nan
         else:
             mNrmStE = np.nan
             mNrmTrg = np.nan

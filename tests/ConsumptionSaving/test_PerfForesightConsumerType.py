@@ -1,3 +1,4 @@
+import logging
 import unittest
 
 import numpy as np
@@ -243,3 +244,143 @@ class testClosedFormPerfForesight(unittest.TestCase):
         # FHWC fails: infinite human wealth
         self.assertEqual(calc_human_wealth_closed_form(1.03, 1.03), np.inf)
         self.assertEqual(calc_human_wealth_closed_form(1.05, 1.03), np.inf)
+
+
+class testPerfForesightConditionReport(unittest.TestCase):
+    """The conditions and the verdict for every ordering of the absolute patience
+    factor, R and G, with and without a borrowing constraint."""
+
+    # name: Rfree, PermGroFac, DiscFac, RIC, FHWC, GICRaw, the limit without a
+    # constraint, the limit with a binding one
+    orderings = {
+        "Pat<G<R": (1.04, 1.01, 0.90, True, True, True, "linear", "kinked"),
+        "G<Pat<R": (1.04, 0.98, 0.96, True, True, False, "linear", "kinked"),
+        "Pat<R<G": (1.02, 1.05, 0.90, True, False, True, "c(m)=Infinity", "kinked"),
+        "G<R<Pat": (1.02, 1.00, 1.05, False, True, False, "c(m) = 0", "c(m)=0"),
+        "R<Pat<G": (1.00, 1.05, 1.02, False, False, True, "c(m)=Infinity", "kinked"),
+        "R<G<Pat": (1.00, 1.01, 1.10, False, False, False, "c(m)=0", "c(m)=0"),
+    }
+
+    def make_agent(self, Rfree, PermGroFac, DiscFac, **kwds):
+        return PerfForesightConsumerType(
+            cycles=0,
+            CRRA=2.0,
+            Rfree=[Rfree],
+            PermGroFac=[PermGroFac],
+            DiscFac=DiscFac,
+            LivPrb=[1.0],
+            **kwds,
+        )
+
+    def verdict(self, agent):
+        """The sentence of the report that states the limit of the solution."""
+        logger = logging.getLogger("HARK")
+        level = logger.level
+        agent.check_conditions(verbose=3)
+        logger.setLevel(level)
+        report = agent.bilt["conditions_report"]
+        return [x for x in report.splitlines() if x.startswith("Because")][0]
+
+    def check_limit(self, name, limit, verdict):
+        if limit == "linear":
+            self.assertIn("non-degenerate linear solution exists", verdict, name)
+        elif limit == "kinked":
+            self.assertNotIn("degenerate at", verdict, name)
+            self.assertIn("non-degenerate", verdict, name)
+        else:
+            self.assertIn("degenerate at " + limit, verdict, name)
+
+    def test_conditions_and_verdict_unconstrained(self):
+        for name, case in self.orderings.items():
+            R, G, b, RIC, FHWC, GIC, limit, _ = case
+            agent = self.make_agent(R, G, b)
+            verdict = self.verdict(agent)
+            self.assertEqual(bool(agent.conditions["RIC"]), RIC, name)
+            self.assertEqual(bool(agent.conditions["FHWC"]), FHWC, name)
+            self.assertEqual(bool(agent.conditions["GICRaw"]), GIC, name)
+            self.check_limit(name, limit, verdict)
+
+    def test_verdict_constrained(self):
+        for BoroCnstArt in (0.0, -0.5):
+            for name, case in self.orderings.items():
+                R, G, b, _, _, _, _, limit = case
+                agent = self.make_agent(R, G, b, BoroCnstArt=BoroCnstArt)
+                self.check_limit(name, limit, self.verdict(agent))
+
+    def test_limit_of_closed_form_when_all_three_fail(self):
+        # Consumption at m = 1 with n periods left is kappa_n * (1 + h_n)
+        pat_fac = calc_patience_factor(1.00, 1.10, 2.0)
+        c = [
+            calc_mpc_min_closed_form(pat_fac, n)
+            * (1.0 + calc_human_wealth_closed_form(1.01, 1.00, n))
+            for n in (10, 100, 1000)
+        ]
+        self.assertGreater(c[0], c[1])
+        self.assertGreater(c[1], c[2])
+        self.assertLess(c[2], 1e-12)
+
+    def test_verdict_names_only_conditions_that_hold(self):
+        # All three fail: the report must not say that the FHWC is satisfied
+        R, G, b = self.orderings["R<G<Pat"][:3]
+        verdict = self.verdict(self.make_agent(R, G, b, BoroCnstArt=0.0))
+        self.assertNotIn("FHWC is satisfied", verdict)
+        # The FHWC fails: there is no unconstrained solution to approach
+        R, G, b = self.orderings["Pat<R<G"][:3]
+        verdict = self.verdict(self.make_agent(R, G, b, BoroCnstArt=0.0))
+        self.assertNotIn("approaching the unconstrained solution", verdict)
+        # The FHWC holds: there is one
+        R, G, b = self.orderings["Pat<G<R"][:3]
+        verdict = self.verdict(self.make_agent(R, G, b, BoroCnstArt=0.0))
+        self.assertIn("approaching the unconstrained solution", verdict)
+
+    def test_growth_patience_factor_of_exactly_one(self):
+        G = 1.1**0.5
+        agent = self.make_agent(1.0, G, 1.1)
+        verdict = self.verdict(agent)
+        self.assertEqual(agent.bilt["GPFacRaw"], 1.0)
+        self.assertIn("degenerate at c(m)=1", verdict)
+        verdict = self.verdict(self.make_agent(1.0, G, 1.1, BoroCnstArt=0.0))
+        self.assertIn("degenerate at c(m)=min(m-BoroCnstArt,1)", verdict)
+
+    def test_constraint_that_cannot_bind(self):
+        R, G, b = self.orderings["Pat<G<R"][:3]
+        agent = self.make_agent(R, G, b, BoroCnstArt=-1000.0, MaxKinks=100)
+        self.check_limit("not binding", "linear", self.verdict(agent))
+        self.assertAlmostEqual(agent.bilt["MPCmax"], agent.bilt["MPCmin"], places=12)
+        # A constraint above minus human wealth can bind
+        agent = self.make_agent(R, G, b, BoroCnstArt=-20.0)
+        self.check_limit("binding", "kinked", self.verdict(agent))
+        self.assertEqual(agent.bilt["MPCmax"], 1.0)
+        # With infinite human wealth, every finite constraint can bind
+        R, G, b = self.orderings["Pat<R<G"][:3]
+        agent = self.make_agent(R, G, b, BoroCnstArt=-1000.0)
+        self.check_limit("infinite h", "kinked", self.verdict(agent))
+
+    def test_cNrmPDV(self):
+        R, G, b = self.orderings["G<R<Pat"][:3]
+        agent = self.make_agent(R, G, b, verbose=0)
+        agent.check_conditions()
+        self.assertEqual(agent.bilt["cNrmPDV"], np.inf)
+        # A Return Patience Factor of exactly one no longer divides by zero
+        agent = self.make_agent(1.0, 0.99, 1.0, verbose=0)
+        agent.check_conditions()
+        self.assertEqual(agent.bilt["RPFac"], 1.0)
+        self.assertEqual(agent.bilt["cNrmPDV"], np.inf)
+        self.assertFalse(agent.conditions["RIC"])
+
+    def test_stable_point_unconstrained(self):
+        R, G, b = self.orderings["Pat<G<R"][:3]
+        agent = self.make_agent(R, G, b, verbose=0)
+        agent.solve()
+        hNrm = agent.solution[0].hNrm
+        self.assertAlmostEqual(agent.bilt["mNrmStE"], -hNrm, places=3)
+        self.assertEqual(agent.bilt["mNrmTrg"], agent.bilt["mNrmStE"])
+
+    def test_stable_point_constrained(self):
+        R, G, b = self.orderings["Pat<G<R"][:3]
+        for BoroCnstArt in (0.0, -0.5):
+            agent = self.make_agent(R, G, b, BoroCnstArt=BoroCnstArt, verbose=0)
+            agent.solve()
+            target = 1.0 + BoroCnstArt * R / G
+            self.assertAlmostEqual(agent.bilt["mNrmStE"], target, places=6)
+            self.assertEqual(agent.bilt["mNrmTrg"], agent.bilt["mNrmStE"])
