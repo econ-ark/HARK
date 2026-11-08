@@ -1,5 +1,6 @@
 import logging
 import unittest
+import warnings
 
 import numpy as np
 
@@ -384,3 +385,101 @@ class testPerfForesightConditionReport(unittest.TestCase):
             target = 1.0 + BoroCnstArt * R / G
             self.assertAlmostEqual(agent.bilt["mNrmStE"], target, places=6)
             self.assertEqual(agent.bilt["mNrmTrg"], agent.bilt["mNrmStE"])
+
+    def test_degenerate_at_every_verbosity(self):
+        for name, case in self.orderings.items():
+            R, G, b, _, _, _, limit, _ = case
+            reports = []
+            for verbose in (0, 1, 2):
+                agent = self.make_agent(R, G, b, verbose=0)
+                logger = logging.getLogger("HARK")
+                level = logger.level
+                logger.disabled = True
+                agent.check_conditions(verbose=verbose)
+                logger.disabled = False
+                logger.setLevel(level)
+                self.assertEqual(agent.degenerate, limit != "linear", name)
+                reports.append(agent.bilt["conditions_report"])
+            self.assertEqual(reports[0], reports[1], name)
+            self.assertEqual(reports[0], reports[2], name)
+
+    def test_shared_logger_is_left_alone(self):
+        logger = logging.getLogger("HARK")
+        level = logger.level
+        try:
+            logger.setLevel(logging.ERROR)
+            R, G, b = self.orderings["Pat<G<R"][:3]
+            for verbose in (0, 1, 2, 3):
+                agent = self.make_agent(R, G, b)
+                records = []
+                handler = logging.Handler()
+                handler.emit = records.append
+                logger.addHandler(handler)
+                agent.check_conditions(verbose=verbose)
+                logger.removeHandler(handler)
+                self.assertEqual(logger.level, logging.ERROR)
+                self.assertEqual(len(records) > 0, verbose >= 2)
+        finally:
+            logger.setLevel(level)
+
+    def test_warns_when_there_is_no_solution(self):
+        R, G, b = self.orderings["G<R<Pat"][:3]
+        agent = self.make_agent(R, G, b, verbose=0)
+        with self.assertWarns(UserWarning) as caught:
+            agent.solve()
+        message = str(caught.warning)
+        self.assertIn("RIC (RPFac=", message)
+        self.assertIn("c(m) = 0", message)
+        self.assertTrue(agent.degenerate)
+
+    def test_raises_when_asked(self):
+        R, G, b = self.orderings["Pat<R<G"][:3]
+        agent = self.make_agent(R, G, b, verbose=0, on_no_solution="raise")
+        with self.assertRaises(ValueError) as caught:
+            agent.solve()
+        self.assertIn("FHWC (FHWFac=", str(caught.exception))
+        # quiet silences the warning, not a requested error
+        agent = self.make_agent(R, G, b, quiet=True, on_no_solution="raise")
+        with self.assertRaises(ValueError):
+            agent.solve()
+
+    def test_unknown_option_refused(self):
+        agent = self.make_agent(1.04, 1.01, 0.90, on_no_solution="ignore")
+        with self.assertRaises(ValueError):
+            agent.solve()
+
+    def assertNoWarning(self, agent):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            agent.solve()
+
+    def test_quiet_silences_the_warning(self):
+        R, G, b = self.orderings["G<R<Pat"][:3]
+        agent = self.make_agent(R, G, b, quiet=True)
+        self.assertNoWarning(agent)
+        self.assertTrue(agent.degenerate)
+
+    def test_no_warning_when_a_solution_exists(self):
+        for name, case in self.orderings.items():
+            R, G, b, _, _, _, unconstrained, constrained = case
+            if unconstrained == "linear":
+                self.assertNoWarning(self.make_agent(R, G, b, verbose=0))
+            if constrained == "kinked":
+                self.assertNoWarning(
+                    self.make_agent(R, G, b, verbose=0, BoroCnstArt=0.0, MaxKinks=50)
+                )
+
+    def test_finite_horizon_is_not_checked(self):
+        # A finite horizon always has a solution
+        R, G, b = self.orderings["R<G<Pat"][:3]
+        agent = PerfForesightConsumerType(
+            cycles=3, CRRA=2.0, Rfree=[R], PermGroFac=[G], DiscFac=b, LivPrb=[1.0]
+        )
+        self.assertNoWarning(agent)
+        self.assertFalse(agent.degenerate)
+
+    def test_return_patience_factor_of_exactly_one_solves(self):
+        agent = self.make_agent(1.0, 0.99, 1.0, verbose=0)
+        with self.assertWarns(UserWarning):
+            agent.solve()
+        self.assertTrue(agent.degenerate)
