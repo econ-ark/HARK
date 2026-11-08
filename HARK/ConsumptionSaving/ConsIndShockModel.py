@@ -1357,6 +1357,10 @@ class PerfForesightConsumerType(AgentType):
         The minimum Asset/Perminant Income ratio, None to ignore.
     MaxKinks: int
         Maximum number of gridpoints to allow in cFunc.
+    on_no_solution: str
+        What solve does when an infinite horizon problem with one repeated period has
+        no non-degenerate solution: "warn" (the default) or "raise". quiet=True
+        silences the warning.
 
     Simulation Parameters
     ---------------------
@@ -1426,6 +1430,7 @@ class PerfForesightConsumerType(AgentType):
     state_vars = ["kNrm", "pLvl", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
     distributions = ["kNrmInitDstn", "pLvlInitDstn"]
+    on_no_solution = "warn"
 
     def pre_solve(self):
         """
@@ -1437,6 +1442,35 @@ class PerfForesightConsumerType(AgentType):
         self.check_restrictions()
         self.construct("solution_terminal")  # Solve the terminal period problem
         self.check_conditions(verbose=self.verbose)
+        self._respond_to_no_solution()
+
+    def _respond_to_no_solution(self):
+        """
+        If check_conditions found that the infinite horizon problem has no solution,
+        warn, or raise an error if on_no_solution is "raise". quiet=True silences the
+        warning, but not the error.
+        """
+        if not self.degenerate:
+            return
+        violated = ", ".join(
+            f"{name} ({factor}={self.bilt[factor]:.5f})"
+            for name, factor in (
+                ("RIC", "RPFac"),
+                ("FHWC", "FHWFac"),
+                ("GICRaw", "GPFacRaw"),
+            )
+            if not self.conditions[name]
+        )
+        message = (
+            "This infinite horizon problem has no non-degenerate solution. Violated: "
+            + violated
+            + ". "
+            + self.bilt["solution_verdict"]
+        )
+        if self.on_no_solution == "raise":
+            raise ValueError(message)
+        if not self.quiet:
+            warnings.warn(message)
 
     def post_solve(self):
         """
@@ -1461,6 +1495,11 @@ class PerfForesightConsumerType(AgentType):
         """
         if self.DiscFac < 0:
             raise ValueError("DiscFac is below zero with value: " + str(self.DiscFac))
+        if self.on_no_solution not in ("warn", "raise"):
+            raise ValueError(
+                'on_no_solution must be "warn" or "raise", not '
+                + repr(self.on_no_solution)
+            )
 
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
@@ -1714,14 +1753,20 @@ class PerfForesightConsumerType(AgentType):
         """
         if name is not None:
             self.conditions[name] = result
-        set_verbosity_level((4 - verbose) * 10)
-        _log.info(message)
+        self._log_at_verbosity(message, verbose)
         self.bilt["conditions_report"] += message + "\n"
 
-    def _emit_conditions_report(self):
+    def _log_at_verbosity(self, message, verbose):
+        """Log a message at the level ``verbose`` selects, leaving HARK's logger as it was."""
+        level = _log.level
+        set_verbosity_level((4 - verbose) * 10)
+        _log.info(message)
+        set_verbosity_level(level)
+
+    def _emit_conditions_report(self, verbose):
         """Emit the accumulated conditions report unless ``self.quiet`` is set."""
         if not self.quiet:
-            _log.info(self.bilt["conditions_report"])
+            self._log_at_verbosity(self.bilt["conditions_report"], verbose)
 
     def _setup_condition_check(self, verbose):
         """Initialize the conditions report and run the supported-cycle gate.
@@ -1745,7 +1790,7 @@ class PerfForesightConsumerType(AgentType):
                 " length of 1.",
                 verbose,
             )
-            self._emit_conditions_report()
+            self._emit_conditions_report(verbose)
             return verbose, False
         self.calc_limiting_values()
         self.log_condition_result(None, None, self.describe_parameters(), verbose)
@@ -2038,11 +2083,10 @@ class PerfForesightConsumerType(AgentType):
 
         Parameters
         ----------
-        verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it
-            only reports whether the instance's type fails to satisfy a particular
-            condition. When True, it reports all results, i.e. the factor values
-            for all conditions.
+        verbose : int
+            Which results are logged: none below 2, all of them at 2 or more.
+            The conditions, the attribute ``degenerate``, and the full report in
+            ``bilt["conditions_report"]`` are the same at every level.
 
         Returns
         -------
@@ -2059,20 +2103,16 @@ class PerfForesightConsumerType(AgentType):
         self.check_FVAC(verbose)
         self.check_FHWC(verbose)
 
-        # Exit now if verbose output was not requested.
-        if not verbose:
-            self._emit_conditions_report()
-            return
-
         # Report on the degeneracy of the consumption function solution
-        RIC_message, degenerate = self._describe_limiting_solution()
-        RIC_message = "\n" + RIC_message
-        self.log_condition_result(None, None, RIC_message, verbose)
+        verdict, degenerate = self._describe_limiting_solution()
+        self.degenerate = degenerate
+        self.bilt["solution_verdict"] = verdict
+        self.log_condition_result(None, None, "\n" + verdict, verbose)
 
         if (
             degenerate
         ):  # All of the other checks are meaningless if the solution is degenerate
-            self._emit_conditions_report()
+            self._emit_conditions_report(verbose)
             return
 
         # Report on the consequences of the Absolute Impatience Condition
@@ -2094,7 +2134,7 @@ class PerfForesightConsumerType(AgentType):
             # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
         self.log_condition_result(None, None, GIC_message, verbose)
 
-        self._emit_conditions_report()
+        self._emit_conditions_report(verbose)
 
     def calc_stable_points(self, force=False):
         """
@@ -2912,7 +2952,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Exit now if verbose output was not requested.
         if not verbose:
-            self._emit_conditions_report()
+            self._emit_conditions_report(verbose)
             return
 
         # Report on the degeneracy of the consumption function solution
@@ -2930,7 +2970,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Stop here if the solution is degenerate
         if degenerate:
-            self._emit_conditions_report()
+            self._emit_conditions_report(verbose)
             return
 
         # Report on the limiting behavior of the consumption function as m goes to infinity
@@ -2978,7 +3018,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             GICHrm_message = "\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure."
         self.log_condition_result(None, None, GICHrm_message, verbose)
 
-        self._emit_conditions_report()
+        self._emit_conditions_report(verbose)
 
 
 ###############################################################################
