@@ -20,12 +20,14 @@ theorems conclude from them. The theorems are sufficiency results, and the
 report says so where it matters. The paper's text proves them for zero income
 in the zero-income event; its appendix on a positive minimum of income
 (sec:ApndxPositiveMinimumIncome) proves their counterparts for positive income
-there, when the permanent shock takes its lowest value with positive
-probability. With a positive ``IncUnemp`` the class therefore requires such a
-law, and by default builds one: the truncated lognormal with a point mass at
-its infimum (:class:`PointMassAtInfimum`). The lowest value is then the law's
-infimum at every number of points of the discretization, as the lowest
-transitory income is the zero-income event's.
+there. When the permanent shock takes its lowest value with positive
+probability, the consumer stays away from the borrowing limit and the MPC at
+the bottom is below one; without that point mass the limit can be reached and
+the MPC there is one (subsec:PositiveMinimumNoWorstEvent). With a positive
+``IncUnemp`` the class by default builds a law of the first kind: the truncated
+lognormal with a point mass at its infimum (:class:`PointMassAtInfimum`). The
+lowest value is then the law's infimum at every number of points of the
+discretization, as the lowest transitory income is the zero-income event's.
 
 Two borrowing constraints are distinguished, and everything that depends on
 which one is in force is written per scenario:
@@ -36,9 +38,12 @@ which one is in force is written per scenario:
   binds: end-of-period assets may not fall below ``BoroCnstArt``, which is at
   most zero. The worst income is then positive: either the zero-income event
   has probability zero, the paper's "liquidity constrained problem", or income
-  in it is positive. For this scenario the paper proves a result only under
-  perfect foresight (prop:PFCExist); under uncertainty the report claims
-  nothing on the paper's authority.
+  in it is positive. For this scenario the paper's results are for the
+  constraint at zero: under perfect foresight (prop:PFCExist), and under
+  uncertainty for the liquidity constrained consumer and for a consumer who may
+  not borrow while income in the zero-income event is positive
+  (thm:existenceNoWorst, prop:NoWorstTargets). For a constraint below zero the
+  report claims nothing on the paper's authority.
 
 References
 ----------
@@ -233,13 +238,14 @@ def make_PermShkLaw(
     PermShk_inf and PermShk_sup standard deviations of its log, whose log has
     standard deviation PermShkStd after the truncation.
 
-    With positive income in the zero-income event the results need the lowest
-    value of the permanent shock to have positive probability
-    (ass:shocksPositiveMinimum). The law is then that lognormal with a point
-    mass at its infimum (:class:`PointMassAtInfimum`), of probability
-    PermShkMinPrb; when that is None, the probability that a lognormal which is
-    not truncated puts below the bound, norm.cdf(PermShk_inf), so that the mass
-    the truncation removes at the bottom sits on the bound.
+    With positive income in the zero-income event the law is that lognormal
+    with a point mass at its infimum (:class:`PointMassAtInfimum`), so that the
+    lowest value of the permanent shock has positive probability
+    (ass:shocksPositiveMinimum), of probability PermShkMinPrb; when that is
+    None, the probability that a lognormal which is not truncated puts below
+    the bound, norm.cdf(PermShk_inf), so that the mass the truncation removes
+    at the bottom sits on the bound. PermShkMinPrb of zero gives the lognormal
+    itself, with which the borrowing limit can be reached (item:NoPointMass).
     """
     law = MeanOneTruncatedLogNormal.from_sd_log(
         PermShkStd, bot=PermShk_inf, top=PermShk_sup, seed=RNG.integers(0, 2**31 - 1)
@@ -483,31 +489,39 @@ class BufferStockConditions:
         "natural" or "artificial": see :func:`constraint_scenario`.
     existence : str
         What the paper establishes about a limiting solution. "established"
-        when its existence theorem applies and the theorem's hypotheses, the
-        WRIC and the FVAC, hold, so a non-degenerate limiting solution exists;
-        "fails" when the WRIC fails, so consumption goes to zero everywhere as
-        the horizon extends; "not established" where the paper proves nothing:
-        when the FVAC fails with the WRIC holding. With positive income in the
-        zero-income event the theorem is the appendix's
-        (thm:existencePositiveMinimum), which also needs the permanent shock to
-        take its lowest value with positive probability and minimum human
-        wealth to be finite. Where an
-        artificial constraint binds, the paper proves a result only under
-        perfect foresight with the constraint at zero (prop:PFCExist), which
-        gives "established" or "fails"; otherwise "not established".
+        when an existence theorem of the paper applies and its hypotheses hold,
+        so a non-degenerate limiting solution exists (thm:convgtobellman, under
+        the WRIC and the FVAC); "fails" when the paper shows that the limiting
+        solution is degenerate, as when the WRIC fails, so that consumption goes
+        to zero everywhere as the horizon extends; "not established" where the
+        paper proves nothing, as when the FVAC fails with the WRIC holding. With
+        positive income in the zero-income event the theorems are the
+        appendix's, and need minimum human wealth to be finite: when the
+        permanent shock takes its lowest value with positive probability,
+        thm:existencePositiveMinimum; when it does not, the borrowing limit can
+        be reached and thm:existenceNoWorst needs only the FVAC. Where minimum
+        human wealth is not finite, prop:InfiniteMinHumanWealth. Where an
+        artificial constraint binds, the paper's results are for the constraint
+        at zero: prop:PFCExist under perfect foresight; under uncertainty,
+        thm:existenceNoWorst, under the FVAC, for the liquidity constrained
+        consumer with no zero-income event (item:Restrained) and for a consumer
+        who may not borrow while income in that event is positive
+        (item:Artificial). Otherwise "not established".
     existence_basis : str
         The statement of the paper on which ``existence`` rests, or why the
         paper establishes nothing.
     target_guaranteed : bool
         Whether a theorem of the paper guarantees a unique buffer stock target:
-        no artificial constraint binds, a limiting solution is established,
-        and the GICMod holds (thm:target; with positive income in the
-        zero-income event, thm:targetPositiveMinimum).
+        a limiting solution is established under uncertainty, and the GICMod
+        holds (thm:target; with positive income in the zero-income event,
+        thm:targetPositiveMinimum; where the borrowing limit can be reached,
+        prop:NoWorstTargets).
     pseudo_target_guaranteed : bool
-        Whether a theorem of the paper guarantees a unique pseudo-target: no
-        artificial constraint binds, a limiting solution is established, and
-        the GICRaw holds (thm:MSSBalExists; with positive income in the
-        zero-income event, thm:pseudoTargetPositiveMinimum).
+        Whether a theorem of the paper guarantees a unique pseudo-target: a
+        limiting solution is established under uncertainty, and the GICRaw
+        holds (thm:MSSBalExists; with positive income in the zero-income event,
+        thm:pseudoTargetPositiveMinimum; where the borrowing limit can be
+        reached, prop:NoWorstTargets).
     notes : tuple
         Further statements: about the solution above the asset grid, and about
         what the class computes where the paper states nothing.
@@ -671,6 +685,78 @@ _MEANINGS_ARTIFICIAL = {
         None,
     ),
 }
+# With positive income in the zero-income event and a point mass at the
+# permanent shock's lowest value, the FVAC and finite minimum human wealth
+# imply the WRIC
+_MEANINGS_POSITIVE_MINIMUM = {
+    "WRIC": (
+        (
+            "With the FVAC, a non-degenerate limiting solution exists. With IncUnemp above "
+            "zero, the FVAC and finite minimum human wealth imply it "
+            "(remark:WRICWorstImplied)."
+        ),
+        (
+            "Consumption goes to zero at every m as the horizon extends: the limiting "
+            "solution is degenerate. With IncUnemp above zero this happens only when the "
+            "FVAC fails (remark:WRICWorstImplied)."
+        ),
+    ),
+}
+# Where the borrowing limit can be reached: no point mass at the permanent
+# shock's lowest value (item:NoPointMass), or a constraint at zero that binds
+# (item:Restrained, item:Artificial)
+_WRIC_LIMIT_REACHABLE = (
+    "Not needed: the borrowing limit can be reached, and the MPC at the bottom is one "
+    "(subsec:PositiveMinimumNoWorstEvent)."
+)
+_MEANINGS_LIMIT_REACHABLE = {
+    "WRIC": (_WRIC_LIMIT_REACHABLE, _WRIC_LIMIT_REACHABLE),
+    "FVAC": ("A non-degenerate limiting solution exists (thm:existenceNoWorst).", None),
+    "GICRaw": (
+        "With the FVAC, a unique pseudo-target exists (prop:NoWorstTargets).",
+        None,
+    ),
+    "GICMod": (
+        "With the FVAC, a unique buffer stock target exists (prop:NoWorstTargets).",
+        None,
+    ),
+}
+_MEANINGS_ARTIFICIAL_PROVED = dict(_MEANINGS_LIMIT_REACHABLE)
+_MEANINGS_ARTIFICIAL_PROVED["WRIC"] = (_WRIC_WHERE_IT_BINDS, _WRIC_WHERE_IT_BINDS)
+# Where minimum human wealth is not finite (prop:InfiniteMinHumanWealth)
+_NEEDS_FINITE_MIN_HUMAN_WEALTH = (
+    "which also needs minimum human wealth to be finite (eq:FiniteMinHumanWealth)."
+)
+_MEANINGS_INFINITE_MIN_HUMAN_WEALTH = {
+    "WRIC": (
+        "A hypothesis of the paper's existence theorem, "
+        + _NEEDS_FINITE_MIN_HUMAN_WEALTH,
+        (
+            "With minimum human wealth not finite the paper's conclusion from its failure "
+            "does not apply; prop:InfiniteMinHumanWealth says where consumption goes."
+        ),
+    ),
+    "FVAC": (
+        (
+            "With minimum human wealth not finite, the problem has no non-degenerate "
+            "limiting solution (prop:InfiniteMinHumanWealth)."
+        ),
+        (
+            "With minimum human wealth not finite, the paper says where consumption goes "
+            "only in some cases (prop:InfiniteMinHumanWealth)."
+        ),
+    ),
+    "GICRaw": (
+        "A hypothesis of the paper's theorem on the pseudo-target, "
+        + _NEEDS_FINITE_MIN_HUMAN_WEALTH,
+        None,
+    ),
+    "GICMod": (
+        "A hypothesis of the paper's theorem on the buffer stock target, "
+        + _NEEDS_FINITE_MIN_HUMAN_WEALTH,
+        None,
+    ),
+}
 # Under perfect foresight the paper says when the liquidity constraint matters
 _MEANINGS_ARTIFICIAL_PERFECT_FORESIGHT = dict(_MEANINGS_ARTIFICIAL)
 _MEANINGS_ARTIFICIAL_PERFECT_FORESIGHT["GICRaw"] = (
@@ -691,6 +777,7 @@ class _Model(NamedTuple):
     PerfectForesight: bool  # no zero-income event, and both shocks always one
     PermShkMinPrb: float  # the probability of the permanent shock's lowest value
     BoroCnstNat: float  # the natural borrowing constraint
+    WorstGroFac: float  # PermGroFac times the permanent shock's lowest value
 
 
 class _Verdict(NamedTuple):
@@ -733,6 +820,62 @@ def constraint_scenario(BoroCnstArt, BoroCnstNat):
     return ARTIFICIAL
 
 
+def _verdict_infinite_min_human_wealth(factors, holds, model):
+    """
+    prop:InfiniteMinHumanWealth, for positive income in the zero-income event
+    with PermGroFac times the permanent shock's lowest value not below Rfree.
+    Under the FVAC the problem has no non-degenerate limiting solution.
+    Consumption goes to infinity at every m if Þ is below PermGroFac times that
+    lowest value (part i); with a point mass there, it goes to zero if
+    WorstPrb^(1/ρ) Þ is above that product or Þ is above PermGroFac (part ii).
+    Without the point mass the paper states only the first statement and part
+    (i). Elsewhere, with the FVAC failing, it does not say where consumption
+    goes.
+
+    Returns
+    -------
+    existence, basis : str
+    """
+    APFac = factors["AIC"]
+    WorstAPFac = factors["WRIC"] * APFac / factors["RIC"]  # WorstPrb^(1/ρ) Þ
+    lead = (
+        "Because PermGroFac times the permanent shock's lowest value is not below "
+        "Rfree, minimum human wealth is not finite (eq:FiniteMinHumanWealth)"
+    )
+    where = "(prop:InfiniteMinHumanWealth)"
+    if APFac < model.WorstGroFac:
+        direction = (
+            "consumption grows without bound at every m as the horizon extends, because "
+            "Þ is below PermGroFac times that lowest value"
+        )
+    elif model.PermShkMinPrb > 0.0 and WorstAPFac > model.WorstGroFac:
+        direction = (
+            "consumption goes to zero at every m as the horizon extends, because "
+            "WorstPrb^(1/ρ) Þ is above PermGroFac times that lowest value"
+        )
+    elif model.PermShkMinPrb > 0.0 and factors["GICRaw"] > 1.0:
+        direction = (
+            "consumption goes to zero at every m as the horizon extends, because Þ is "
+            "above PermGroFac"
+        )
+    else:
+        direction = None
+    if direction is not None:
+        return (
+            "fails",
+            f"{lead}, and {direction}: the limiting solution is degenerate {where}.",
+        )
+    if holds["FVAC"]:
+        return "fails", (
+            f"{lead}, and under the FVAC the problem has no non-degenerate limiting "
+            f"solution {where}."
+        )
+    return "not established", (
+        f"{lead}. The FVAC fails, and the paper does not say whether consumption at a "
+        f"given m goes to zero, goes to infinity or fails to converge {where}."
+    )
+
+
 def _verdict_natural(factors, holds, model):
     """
     What the paper's theorems establish under the natural constraint, and
@@ -743,14 +886,20 @@ def _verdict_natural(factors, holds, model):
     nothing is proved when the FVAC fails; a target is guaranteed by the GICMod
     as well (thm:target), a pseudo-target by the GICRaw (thm:MSSBalExists).
 
-    With positive income there, its appendix on a positive minimum of income,
-    which assumes that the permanent shock takes its lowest value with positive
-    probability (ass:shocksPositiveMinimum): the same conclusions, with the
-    WRIC using the probability of the worst event (eq:WRICWorst) and minimum
-    human wealth finite (eq:FiniteMinHumanWealth), from
-    thm:existencePositiveMinimum, thm:targetPositiveMinimum and
-    thm:pseudoTargetPositiveMinimum. For a permanent shock without such a point
-    mass the paper proves nothing.
+    With positive income there, its appendix on a positive minimum of income.
+    When the permanent shock takes its lowest value with positive probability
+    (ass:shocksPositiveMinimum): the same conclusions, with the WRIC using the
+    probability of the worst event (eq:WRICWorst) and minimum human wealth
+    finite (eq:FiniteMinHumanWealth), from thm:existencePositiveMinimum,
+    thm:targetPositiveMinimum and thm:pseudoTargetPositiveMinimum; the FVAC and
+    finite minimum human wealth imply that WRIC (remark:WRICWorstImplied). When
+    it does not (item:NoPointMass), the borrowing limit can be reached and the
+    MPC at the bottom is one: a limiting solution exists under the FVAC and
+    finite minimum human wealth (thm:existenceNoWorst), with the target and the
+    pseudo-target as before (prop:NoWorstTargets). When minimum human wealth is
+    not finite, the problem has no non-degenerate limiting solution under the
+    FVAC, and the patience factors say in some cases where consumption goes
+    (prop:InfiniteMinHumanWealth).
 
     When the WRIC fails the limiting solution is degenerate.
 
@@ -800,39 +949,31 @@ def _verdict_natural(factors, holds, model):
                 "Because the WRIC and the FVAC hold, a non-degenerate limiting solution "
                 "exists (thm:convgtobellman)."
             )
-    elif model.PermShkMinPrb == 0.0:
-        # Not admitted by the class, which requires the point mass
-        existence = "not established"
-        basis = (
-            "With positive income in the zero-income event the paper's results assume "
-            "that the permanent shock takes its lowest value with positive probability "
-            "(ass:shocksPositiveMinimum). For a law without such a point mass the paper "
-            "establishes neither a limiting solution nor a target or pseudo-target, "
-            "whatever the conditions."
-        )
-        if not FVAC:
-            basis += " The FVAC, a hypothesis of its existence theorem, fails as well."
-        meanings = _MEANINGS_UNPROVED
     elif not np.isfinite(model.BoroCnstNat):
         # Not admitted by the class under the natural constraint
-        if holds["RIC"]:
-            existence = "fails"
+        existence, basis = _verdict_infinite_min_human_wealth(factors, holds, model)
+        meanings = _MEANINGS_INFINITE_MIN_HUMAN_WEALTH
+    elif model.PermShkMinPrb == 0.0:
+        # The borrowing limit can be reached (item:NoPointMass)
+        meanings = _MEANINGS_LIMIT_REACHABLE
+        reachable = (
+            "With no point mass at the permanent shock's lowest value, the borrowing "
+            "limit can be reached and the MPC at the bottom is one (item:NoPointMass)."
+        )
+        if FVAC:
+            existence = "established"
             basis = (
-                "Because PermGroFac times the permanent shock's lowest value is not below "
-                "Rfree, minimum human wealth is not finite (eq:FiniteMinHumanWealth), and "
-                "under the RIC consumption grows without bound at every m as the horizon "
-                "extends: the limiting solution is degenerate "
-                "(subsec:PositiveMinimumFailures)."
+                f"{reachable} Because the FVAC holds and minimum human wealth is finite "
+                "(eq:FiniteMinHumanWealth), a non-degenerate limiting solution exists "
+                "(thm:existenceNoWorst)."
             )
         else:
             existence = "not established"
             basis = (
-                "Because PermGroFac times the permanent shock's lowest value is not below "
-                "Rfree, minimum human wealth is not finite (eq:FiniteMinHumanWealth). The "
-                "paper does not characterize this case when the RIC fails, whether or not "
-                "the WRIC holds (subsec:PositiveMinimumFailures)."
+                f"{reachable} Because the FVAC fails, the paper does not establish a "
+                "limiting solution; its existence theorem for this case is sufficiency "
+                "only (thm:existenceNoWorst)."
             )
-            meanings = _MEANINGS_UNPROVED
     elif not WRIC:
         existence = "fails"
         basis = (
@@ -840,8 +981,10 @@ def _verdict_natural(factors, holds, model):
             "(eq:WRICWorst) while minimum human wealth is finite "
             "(eq:FiniteMinHumanWealth), the upper bound on consumption goes to zero at "
             "every m as the horizon extends (lemma:MPCPositiveMinimum): the limiting "
-            "solution is degenerate (subsec:PositiveMinimumFailures)."
+            "solution is degenerate (subsec:PositiveMinimumFailures). With IncUnemp above "
+            "zero this happens only when the FVAC fails (remark:WRICWorstImplied)."
         )
+        meanings = _MEANINGS_POSITIVE_MINIMUM
     elif not FVAC:
         existence = "not established"
         basis = (
@@ -850,14 +993,16 @@ def _verdict_natural(factors, holds, model):
             "(eq:WRICWorst); its existence theorem for positive income in the "
             "zero-income event is sufficiency only (thm:existencePositiveMinimum)."
         )
+        meanings = _MEANINGS_POSITIVE_MINIMUM
     else:
         existence = "established"
         basis = (
-            "Because the WRIC holds with the probability of the worst event "
-            "(eq:WRICWorst), the FVAC holds, and minimum human wealth is finite "
-            "(eq:FiniteMinHumanWealth), a non-degenerate limiting solution exists "
-            "(thm:existencePositiveMinimum)."
+            "Because the FVAC holds and minimum human wealth is finite "
+            "(eq:FiniteMinHumanWealth), which imply the WRIC with the probability of the "
+            "worst event (eq:WRICWorst, remark:WRICWorstImplied), a non-degenerate "
+            "limiting solution exists (thm:existencePositiveMinimum)."
         )
+        meanings = _MEANINGS_POSITIVE_MINIMUM
     established = existence == "established"
     return _Verdict(
         existence=existence,
@@ -872,17 +1017,31 @@ def _verdict_natural(factors, holds, model):
 def _verdict_artificial(factors, holds, model):
     """
     What the paper establishes where an artificial constraint binds, and nothing
-    beyond it. Its one result there is for perfect foresight with the constraint
-    that assets not be negative: a non-degenerate limiting solution exists if
-    the RIC holds, and, if it fails, if and only if the GICRaw holds
-    (prop:PFCExist). Under uncertainty the paper proves no existence theorem and
-    no theorem on a target or pseudo-target with such a constraint, and it
-    treats no borrowing limit other than zero. The MPC at the bottom is one.
+    beyond it. Its results are for the constraint that assets not be negative.
+
+    Under perfect foresight: a non-degenerate limiting solution exists if the
+    RIC holds, and, if it fails, if and only if the GICRaw holds
+    (prop:PFCExist).
+
+    Under uncertainty, its appendix on a positive minimum of income treats two
+    such problems: the restrained consumer with no zero-income event, which
+    with the constraint at zero is the text's liquidity constrained consumer
+    (item:Restrained), and a consumer who may not borrow while income in the
+    zero-income event is positive and the permanent shock takes its lowest
+    value with positive probability (item:Artificial). In both a limiting
+    solution exists under the FVAC (thm:existenceNoWorst), with a target under
+    the GICMod and a pseudo-target under the GICRaw (prop:NoWorstTargets).
+
+    The restrained consumer's borrowing limit below zero changes with the
+    horizon, so a constant constraint below zero is not that problem. For it,
+    and for any constraint below zero when the zero-income event can happen,
+    the paper establishes nothing. The MPC at the bottom is one.
 
     Parameters and returns are those of :func:`_verdict_natural`.
     """
     at_zero = model.BoroCnstArt == 0.0
     meanings = _MEANINGS_ARTIFICIAL
+    targets = False  # whether the theorems on the targets apply
     if model.PerfectForesight and at_zero:
         meanings = _MEANINGS_ARTIFICIAL_PERFECT_FORESIGHT
         problem = "the perfect foresight problem with a liquidity constraint"
@@ -904,32 +1063,66 @@ def _verdict_artificial(factors, holds, model):
                 f"Because the RIC and the GICRaw both fail, the limiting solution of "
                 f"{problem} is degenerate (prop:PFCExist)."
             )
+    elif at_zero and (model.UnempPrb == 0.0 or model.PermShkMinPrb > 0.0):
+        # With a zero-income event, a constraint at zero binds only when income
+        # in the event is positive
+        meanings = _MEANINGS_ARTIFICIAL_PROVED
+        targets = True
+        if model.UnempPrb == 0.0:
+            problem = (
+                "the liquidity constrained problem, with no zero-income event and no "
+                "borrowing (item:Restrained with zero minimum income"
+            )
+        else:
+            problem = (
+                "the problem of a consumer who may not borrow, with positive income in the "
+                "zero-income event (item:Artificial"
+            )
+        if holds["FVAC"]:
+            existence = "established"
+            basis = (
+                f"Because the FVAC holds, a non-degenerate limiting solution exists for "
+                f"{problem}; thm:existenceNoWorst)."
+            )
+        else:
+            existence = "not established"
+            basis = (
+                f"Because the FVAC fails, the paper does not establish a limiting solution "
+                f"for {problem}): its existence theorem is sufficiency only "
+                "(thm:existenceNoWorst)."
+            )
     else:
         existence = "not established"
-        if not at_zero:
+        if at_zero:
             basis = (
-                "The paper treats no borrowing limit other than zero. For an artificial "
-                "borrowing constraint elsewhere it establishes neither a limiting solution "
-                "nor a target or pseudo-target."
+                "With positive income in the zero-income event, the paper's result for a "
+                "consumer who may not borrow assumes that the permanent shock takes its "
+                "lowest value with positive probability (item:Artificial, "
+                "ass:shocksPositiveMinimum). For a law without that point mass it "
+                "establishes neither a limiting solution nor a target or pseudo-target."
+            )
+        elif model.UnempPrb == 0.0 and not model.PerfectForesight:
+            basis = (
+                "The paper's restrained consumer may borrow up to the minimum human wealth "
+                "that an income in a zero-income event would support, a limit that changes "
+                "with the horizon (item:Restrained). A constant artificial borrowing "
+                "constraint below zero is not that problem, and for it the paper "
+                "establishes neither a limiting solution nor a target or pseudo-target."
             )
         else:
             basis = (
-                "Under uncertainty the paper proves no existence theorem, and no theorem on "
-                "a target or pseudo-target, where a liquidity constraint binds."
+                "The paper treats no artificial borrowing limit other than zero here. For "
+                "an artificial borrowing constraint elsewhere it establishes neither a "
+                "limiting solution nor a target or pseudo-target."
             )
-            if model.UnempPrb == 0.0:
-                basis += (
-                    " It remarks that without the zero-income event the problem is a "
-                    "special case of the one in Ma, Stachurski and Toda (2020) "
-                    "(remark:stochdiscMST)."
-                )
         if not holds["FVAC"]:
             basis += " The FVAC fails: the value of autarky is not finite."
+    established = targets and existence == "established"
     return _Verdict(
         existence=existence,
         existence_basis=basis,
-        target_guaranteed=False,
-        pseudo_target_guaranteed=False,
+        target_guaranteed=established and holds["GICMod"],
+        pseudo_target_guaranteed=established and holds["GICRaw"],
         MPCmax=1.0,
         meanings=meanings,
     )
@@ -1031,6 +1224,7 @@ def calc_buffer_stock_conditions(
         PerfectForesight,
         PermShkMinPrb,
         float(BoroCnstNat),
+        G * float(PermShkMin),
     )
     verdict = _VERDICTS[scenario](factors, holds, model)
     existence = verdict.existence
@@ -1078,11 +1272,15 @@ def calc_buffer_stock_conditions(
             )
         else:
             notes.append(
-                "With IncUnemp > 0 the worst event is the zero-income event together with "
-                "the permanent shock at its infimum. Its probability, WorstPrb, is zero "
-                "for a law without a point mass there; the limiting MPC at the bottom is "
-                "then one and the WRIC holds trivially, a case the paper does not treat "
-                "(subsec:PositiveMinimumFailures)."
+                "With IncUnemp > 0 and no point mass at the permanent shock's lowest value, "
+                "the worst event has probability zero (WorstPrb). The consumer may borrow up "
+                "to minimum human wealth, -BoroCnstNat, and can reach that limit: the MPC at "
+                "the bottom is one (subsec:PositiveMinimumNoWorstEvent). The consumer "
+                "chooses the limit itself at low enough resources if E[(ψ - ψ_min)^(-ρ)] is "
+                "finite, and otherwise approaches it with a slope that tends to one; the "
+                "solver's discretized law, whose lowest point lies above the infimum, has a "
+                "segment at the limit, which narrows as the number of points grows. The "
+                "target and the pseudo-target can be negative (prop:NoWorstTargets)."
             )
 
     return BufferStockConditions(
@@ -1224,19 +1422,22 @@ class BufferStockConsumerType(IndShockConsumerType):
     IncUnemp : float, :math:`\mu`
         Income in that event, zero in the paper's text; it must be at least
         zero and below the worst employed income. With a positive value and no
-        artificial constraint that binds, PermShkLaw must put positive
-        probability on its lowest value, and PermGroFac times that value must be
-        below Rfree.
+        artificial constraint that binds, PermGroFac times the permanent
+        shock's lowest value must be below Rfree.
     PermShkLaw, TranShkLaw : distribution
         The laws of the permanent shock and of the transitory draw. By default
         mean-one truncated lognormals built from PermShkStd, PermShk_inf,
         PermShk_sup and their transitory counterparts; with IncUnemp above zero
         the permanent shock's default law is that lognormal with a point mass
-        at its infimum (:class:`PointMassAtInfimum`). To use another law, assign
-        it to the attribute and call update_income_process().
+        at its infimum (:class:`PointMassAtInfimum`), unless PermShkMinPrb is
+        zero. To use another law, assign it to the attribute and call
+        update_income_process().
     PermShkMinPrb : float or None
         With IncUnemp above zero, the probability of the permanent shock's
-        lowest value in its default law. None (the default) for the
+        lowest value in its default law: at least zero and below one. With a
+        positive value the consumer stays away from the borrowing limit; zero
+        gives the lognormal itself, with which the limit can be reached and the
+        MPC at the bottom is one (item:NoPointMass). None (the default) for the
         probability that a lognormal which is not truncated puts below the
         bound, norm.cdf(PermShk_inf).
     PermShkCount, TranShkCount : int
@@ -1378,10 +1579,10 @@ class BufferStockConsumerType(IndShockConsumerType):
                 f"IncUnemp must not be negative, not {float(self.IncUnemp)}."
             )
         PermShkMinPrb = getattr(self, "PermShkMinPrb", None)
-        if PermShkMinPrb is not None and not 0.0 < PermShkMinPrb < 1.0:
+        if PermShkMinPrb is not None and not 0.0 <= PermShkMinPrb < 1.0:
             problems.append(
                 f"PermShkMinPrb, the probability of the permanent shock's lowest value, "
-                f"must be strictly between zero and one, or None, not {PermShkMinPrb}."
+                f"must be at least zero and below one, or None, not {PermShkMinPrb}."
             )
 
         restrictions = {
@@ -1416,10 +1617,13 @@ class BufferStockConsumerType(IndShockConsumerType):
         The restrictions under the natural constraint, the paper's problem: the
         zero-income event has a probability strictly between zero and one
         (eq:TranShkDef); income in it is strictly below the worst employed
-        income; and, if that income is positive, the permanent shock takes its
-        lowest value with positive probability (ass:shocksPositiveMinimum) and
-        the natural constraint has a finite value, which needs PermGroFac times
-        that lowest value to be below Rfree (eq:FiniteMinHumanWealth).
+        income; and, if that income is positive, the natural constraint has a
+        finite value, which needs PermGroFac times the permanent shock's lowest
+        value to be below Rfree (eq:FiniteMinHumanWealth). Without it, the
+        problem has no non-degenerate limiting solution under the FVAC
+        (prop:InfiniteMinHumanWealth). The permanent shock may or may not take
+        its lowest value with positive probability (ass:shocksPositiveMinimum,
+        item:NoPointMass).
         """
         UnempPrb, IncUnemp = float(self.UnempPrb), float(self.IncUnemp)
         if not 0.0 < UnempPrb < 1.0:
@@ -1437,14 +1641,6 @@ class BufferStockConsumerType(IndShockConsumerType):
         self._restrict_income_in_the_event(problems)
         if not IncUnemp > 0.0:
             return
-        if not _law_mass_at_infimum(self.PermShkLaw) > 0.0:
-            problems.append(
-                "With IncUnemp above zero and no artificial constraint that binds, "
-                "PermShkLaw must put positive probability on its lowest value "
-                "(ass:shocksPositiveMinimum). The default law built with IncUnemp above "
-                'zero does, and construct("PermShkLaw") rebuilds it; a law assigned to '
-                "the attribute must, as PointMassAtInfimum(law, prb) does."
-            )
         PermShkMin, _ = _law_bounds(self.PermShkLaw)
         if not self.PermGroFac[0] * PermShkMin < self.Rfree[0]:
             problems.append(
@@ -1452,8 +1648,9 @@ class BufferStockConsumerType(IndShockConsumerType):
                 f"permanent shock ({self.PermGroFac[0] * PermShkMin:.6f}) must be below "
                 f"Rfree ({self.Rfree[0]}): otherwise minimum human wealth, and so the "
                 f"natural borrowing constraint, has no finite value "
-                f"(eq:FiniteMinHumanWealth). An artificial constraint at or below zero is "
-                f"then needed (BoroCnstArt)."
+                f"(eq:FiniteMinHumanWealth), and under the FVAC there is no "
+                f"non-degenerate limiting solution (prop:InfiniteMinHumanWealth). An "
+                f"artificial constraint at or below zero is then needed (BoroCnstArt)."
             )
 
     def _restrictions_artificial(self, problems):
