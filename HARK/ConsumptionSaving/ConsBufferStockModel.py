@@ -17,9 +17,15 @@ labor income subject to independent and identically distributed shocks:
 The conditions on the parameters are computed from the true laws of the shocks,
 never from their discretization, and are reported with what the paper's
 theorems conclude from them. The theorems are sufficiency results, and the
-report says so where it matters. They are proved for zero income in the
-zero-income event: with a positive ``IncUnemp`` the report gives the conditions,
-but claims neither a limiting solution nor a target on the paper's authority.
+report says so where it matters. The paper's text proves them for zero income
+in the zero-income event; its appendix on a positive minimum of income
+(sec:ApndxPositiveMinimumIncome) proves their counterparts for positive income
+there, when the permanent shock takes its lowest value with positive
+probability. With a positive ``IncUnemp`` the class therefore requires such a
+law, and by default builds one: the truncated lognormal with a point mass at
+its infimum (:class:`PointMassAtInfimum`). The lowest value is then the law's
+infimum at every number of points of the discretization, as the lowest
+transitory income is the zero-income event's.
 
 Two borrowing constraints are distinguished, and everything that depends on
 which one is in force is written per scenario:
@@ -48,6 +54,7 @@ from typing import NamedTuple
 import numpy as np
 from scipy.integrate import quad
 from scipy.optimize import brentq
+from scipy.stats import norm
 
 from HARK import _log, set_verbosity_level
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -77,6 +84,7 @@ from HARK.distributions import (
 )
 
 __all__ = [
+    "PointMassAtInfimum",
     "BufferStockConsumerType",
     "BufferStockConditions",
     "calc_buffer_stock_conditions",
@@ -103,6 +111,8 @@ def _law_expect(law, func):
     """The expectation of func under a shock law, by quadrature of its quantile function."""
     if isinstance(law, DiscreteDistribution):
         return float(np.dot(law.pmv, func(np.ravel(law.atoms))))
+    if isinstance(law, PointMassAtInfimum):
+        return law.expect(func)
     value, _ = quad(
         lambda q: func(law.ppf(q)), 0.0, 1.0, limit=200, epsabs=1e-14, epsrel=1e-12
     )
@@ -110,11 +120,89 @@ def _law_expect(law, func):
 
 
 def _law_mass_at_infimum(law):
-    """The probability that a shock law puts on its infimum: zero for a continuous law."""
+    """
+    The probability that a shock law puts on its infimum: read from the atoms
+    of a discrete law, from infimum_prb where a law records one, and zero for a
+    continuous law.
+    """
     if isinstance(law, DiscreteDistribution):
         atoms = np.ravel(law.atoms)
         return float(np.sum(np.asarray(law.pmv)[atoms == atoms.min()]))
-    return 0.0
+    return float(getattr(law, "infimum_prb", 0.0))
+
+
+class PointMassAtInfimum:
+    """
+    A shock law that takes its lowest value with positive probability.
+
+    With probability ``prb`` the shock is the infimum of a base law. Otherwise it
+    is a draw from the base law times (1 - prb * infimum) / (1 - prb), which
+    keeps the mean at one when the base law's mean is one, as the draws of the
+    transitory shock outside the zero-income event are scaled. The lowest value
+    is the base law's infimum, whatever the number of points of a
+    discretization, and the scaled draws are bounded away from it
+    (ass:shocksPositiveMinimum).
+
+    Parameters
+    ----------
+    base : distribution
+        A continuous law with mean one, a positive infimum below one and a
+        finite supremum, such as a MeanOneTruncatedLogNormal.
+    prb : float
+        The probability of the lowest value, strictly between zero and one.
+
+    Attributes
+    ----------
+    infimum, supremum : np.array
+        The bounds of the law: the base law's infimum, and its supremum scaled.
+    infimum_prb : float
+        The probability of the infimum.
+    """
+
+    def __init__(self, base, prb):
+        inf = float(np.ravel(base.infimum)[0])
+        sup = float(np.ravel(base.supremum)[0])
+        self.base = base
+        self.infimum_prb = float(prb)
+        self.scale = (1.0 - self.infimum_prb * inf) / (1.0 - self.infimum_prb)
+        self.infimum = np.array([inf])
+        self.supremum = np.array([self.scale * sup])
+
+    def ppf(self, q):
+        """The quantile function."""
+        q = np.asarray(q, dtype=float)
+        above = np.clip((q - self.infimum_prb) / (1.0 - self.infimum_prb), 0.0, 1.0)
+        return np.where(
+            q <= self.infimum_prb, self.infimum[0], self.scale * self.base.ppf(above)
+        )
+
+    def expect(self, func):
+        """The expectation of func under the law."""
+        rest = _law_expect(self.base, lambda x: func(self.scale * x))
+        return float(
+            self.infimum_prb * func(self.infimum[0]) + (1.0 - self.infimum_prb) * rest
+        )
+
+    def discretize(self, N, method="equiprobable", **kwds):
+        """
+        The lowest value with its probability, and N points for the rest of the
+        law: the base law's discretization, scaled.
+        """
+        rest = self.base.discretize(N, method=method, **kwds)
+        atoms = np.concatenate((self.infimum, self.scale * np.ravel(rest.atoms)))
+        pmv = np.concatenate(
+            ([self.infimum_prb], (1.0 - self.infimum_prb) * np.asarray(rest.pmv))
+        )
+        limit = {
+            "dist": self,
+            "method": method,
+            "N": N,
+            "infimum": self.infimum,
+            "supremum": self.supremum,
+        }
+        return DiscreteDistribution(
+            pmv, atoms, seed=self.base.random_seed(), limit=limit
+        )
 
 
 def _worst_income(UnempPrb, IncUnemp, TranShkLaw):
@@ -137,15 +225,31 @@ def _is_point_at_one(law):
 ###############################################################################
 
 
-def make_PermShkLaw(PermShkStd, PermShk_inf, PermShk_sup, RNG):
+def make_PermShkLaw(
+    PermShkStd, PermShk_inf, PermShk_sup, PermShkMinPrb, UnempPrb, IncUnemp, RNG
+):
     """
     The default law of the permanent shock: a mean-one lognormal truncated at
     PermShk_inf and PermShk_sup standard deviations of its log, whose log has
     standard deviation PermShkStd after the truncation.
+
+    With positive income in the zero-income event the results need the lowest
+    value of the permanent shock to have positive probability
+    (ass:shocksPositiveMinimum). The law is then that lognormal with a point
+    mass at its infimum (:class:`PointMassAtInfimum`), of probability
+    PermShkMinPrb; when that is None, the probability that a lognormal which is
+    not truncated puts below the bound, norm.cdf(PermShk_inf), so that the mass
+    the truncation removes at the bottom sits on the bound.
     """
-    return MeanOneTruncatedLogNormal.from_sd_log(
+    law = MeanOneTruncatedLogNormal.from_sd_log(
         PermShkStd, bot=PermShk_inf, top=PermShk_sup, seed=RNG.integers(0, 2**31 - 1)
     )
+    positive_minimum = UnempPrb > 0.0 and IncUnemp > 0.0
+    if positive_minimum and not isinstance(law, DiscreteDistribution):
+        prb = norm.cdf(PermShk_inf) if PermShkMinPrb is None else PermShkMinPrb
+        if 0.0 < prb < 1.0:  # anything else is reported by check_restrictions
+            return PointMassAtInfimum(law, prb)
+    return law
 
 
 def make_TranShkLaw(TranShkStd, TranShk_inf, TranShk_sup, RNG):
@@ -383,8 +487,11 @@ class BufferStockConditions:
         WRIC and the FVAC, hold, so a non-degenerate limiting solution exists;
         "fails" when the WRIC fails, so consumption goes to zero everywhere as
         the horizon extends; "not established" where the paper proves nothing:
-        when the FVAC fails with the WRIC holding, and whenever income in the
-        zero-income event is positive, whatever the conditions. Where an
+        when the FVAC fails with the WRIC holding. With positive income in the
+        zero-income event the theorem is the appendix's
+        (thm:existencePositiveMinimum), which also needs the permanent shock to
+        take its lowest value with positive probability and minimum human
+        wealth to be finite. Where an
         artificial constraint binds, the paper proves a result only under
         perfect foresight with the constraint at zero (prop:PFCExist), which
         gives "established" or "fails"; otherwise "not established".
@@ -393,12 +500,14 @@ class BufferStockConditions:
         paper establishes nothing.
     target_guaranteed : bool
         Whether a theorem of the paper guarantees a unique buffer stock target:
-        no artificial constraint binds, income in the zero-income event is zero,
-        and the WRIC, the FVAC and the GICMod hold (thm:target).
+        no artificial constraint binds, a limiting solution is established,
+        and the GICMod holds (thm:target; with positive income in the
+        zero-income event, thm:targetPositiveMinimum).
     pseudo_target_guaranteed : bool
         Whether a theorem of the paper guarantees a unique pseudo-target: no
-        artificial constraint binds, income in the zero-income event is zero,
-        and the WRIC, the FVAC and the GICRaw hold (thm:MSSBalExists).
+        artificial constraint binds, a limiting solution is established, and
+        the GICRaw holds (thm:MSSBalExists; with positive income in the
+        zero-income event, thm:pseudoTargetPositiveMinimum).
     notes : tuple
         Further statements: about the solution above the asset grid, and about
         what the class computes where the paper states nothing.
@@ -513,26 +622,26 @@ _CONDITIONS = {
 # as their hypothesis, not as what they conclude:
 # name -> (the meaning when the condition holds, the meaning when it fails), with
 # None for the paper's own
-_ONLY_FOR_ZERO_INCOME = "which is proved only for zero income in the zero-income event."
-_MEANINGS_POSITIVE_INCOME = {
+_NOT_FOR_THIS_PROCESS = "which is not proved for this income process."
+_MEANINGS_UNPROVED = {
     "WRIC": (
         "With the FVAC, a hypothesis of the paper's existence theorem, "
-        + _ONLY_FOR_ZERO_INCOME,
+        + _NOT_FOR_THIS_PROCESS,
         None,
     ),
     "FVAC": (
         "With the WRIC, a hypothesis of the paper's existence theorem, "
-        + _ONLY_FOR_ZERO_INCOME,
+        + _NOT_FOR_THIS_PROCESS,
         None,
     ),
     "GICRaw": (
         "With the WRIC and the FVAC, a hypothesis of the paper's theorem on the "
-        "pseudo-target, " + _ONLY_FOR_ZERO_INCOME,
+        "pseudo-target, " + _NOT_FOR_THIS_PROCESS,
         None,
     ),
     "GICMod": (
         "With the WRIC and the FVAC, a hypothesis of the paper's theorem on the "
-        "buffer stock target, " + _ONLY_FOR_ZERO_INCOME,
+        "buffer stock target, " + _NOT_FOR_THIS_PROCESS,
         None,
     ),
 }
@@ -580,6 +689,8 @@ class _Model(NamedTuple):
     IncUnemp: float
     BoroCnstArt: object
     PerfectForesight: bool  # no zero-income event, and both shocks always one
+    PermShkMinPrb: float  # the probability of the permanent shock's lowest value
+    BoroCnstNat: float  # the natural borrowing constraint
 
 
 class _Verdict(NamedTuple):
@@ -625,13 +736,23 @@ def constraint_scenario(BoroCnstArt, BoroCnstNat):
 def _verdict_natural(factors, holds, model):
     """
     What the paper's theorems establish under the natural constraint, and
-    nothing beyond them. They are proved for zero income in the zero-income
-    event. There, a limiting solution exists under the WRIC and the FVAC
-    (thm:convgtobellman), and the paper proves nothing when the FVAC fails; a
-    target is guaranteed by the GICMod as well (thm:target), a pseudo-target by
-    the GICRaw (thm:MSSBalExists). With positive income in the event the paper
-    proves none of these, so nothing is established or guaranteed, whatever the
-    conditions. When the WRIC fails the limiting solution is degenerate.
+    nothing beyond them.
+
+    With zero income in the zero-income event, the paper's text: a limiting
+    solution exists under the WRIC and the FVAC (thm:convgtobellman), and
+    nothing is proved when the FVAC fails; a target is guaranteed by the GICMod
+    as well (thm:target), a pseudo-target by the GICRaw (thm:MSSBalExists).
+
+    With positive income there, its appendix on a positive minimum of income,
+    which assumes that the permanent shock takes its lowest value with positive
+    probability (ass:shocksPositiveMinimum): the same conclusions, with the
+    WRIC using the probability of the worst event (eq:WRICWorst) and minimum
+    human wealth finite (eq:FiniteMinHumanWealth), from
+    thm:existencePositiveMinimum, thm:targetPositiveMinimum and
+    thm:pseudoTargetPositiveMinimum. For a permanent shock without such a point
+    mass the paper proves nothing.
+
+    When the WRIC fails the limiting solution is degenerate.
 
     Parameters
     ----------
@@ -640,14 +761,14 @@ def _verdict_natural(factors, holds, model):
     holds : dict
         Whether each condition holds.
     model : _Model
-        The zero-income event and the artificial constraint.
+        The zero-income event, the artificial constraint, and what the verdict
+        needs of the laws.
 
     Returns
     -------
     verdict : _Verdict
     """
     WRIC, FVAC = holds["WRIC"], holds["FVAC"]
-    papers_model = model.UnempPrb > 0.0 and model.IncUnemp == 0.0
     meanings = {}
     if model.UnempPrb == 0.0:
         # Not admitted by the class, which requires an artificial constraint
@@ -658,42 +779,84 @@ def _verdict_natural(factors, holds, model):
             "event of positive probability (ass:shocks). Without one, and with no "
             "artificial borrowing constraint that binds, they establish nothing."
         )
-        meanings = _MEANINGS_POSITIVE_INCOME
-    elif not WRIC:
-        existence = "fails"
-        basis = (
-            "Because the WRIC fails, consumption goes to zero at every m as the horizon "
-            "extends: the limiting solution is degenerate."
-        )
-        if not papers_model:
-            basis += (
-                " With IncUnemp > 0 the WRIC uses the probability of the zero-income event "
-                "together with the permanent shock at its infimum, which the paper does "
-                "not treat."
+        meanings = _MEANINGS_UNPROVED
+    elif model.IncUnemp == 0.0:
+        # The paper's own model
+        if not WRIC:
+            existence = "fails"
+            basis = (
+                "Because the WRIC fails, consumption goes to zero at every m as the "
+                "horizon extends: the limiting solution is degenerate."
             )
-    elif not papers_model:
+        elif not FVAC:
+            existence = "not established"
+            basis = (
+                "Because the FVAC fails, the paper does not establish a limiting solution, "
+                "though the WRIC holds; its existence theorem is sufficiency only."
+            )
+        else:
+            existence = "established"
+            basis = (
+                "Because the WRIC and the FVAC hold, a non-degenerate limiting solution "
+                "exists (thm:convgtobellman)."
+            )
+    elif model.PermShkMinPrb == 0.0:
+        # Not admitted by the class, which requires the point mass
         existence = "not established"
         basis = (
-            "The paper proves its theorems for zero income in the zero-income event; of "
-            "positive income there it says only that such a model could be transformed "
-            "into its own (subsec:Setup). With IncUnemp > 0 it therefore establishes "
-            "neither a limiting solution nor a target or pseudo-target, whatever the "
-            "conditions."
+            "With positive income in the zero-income event the paper's results assume "
+            "that the permanent shock takes its lowest value with positive probability "
+            "(ass:shocksPositiveMinimum). For a law without such a point mass the paper "
+            "establishes neither a limiting solution nor a target or pseudo-target, "
+            "whatever the conditions."
         )
         if not FVAC:
             basis += " The FVAC, a hypothesis of its existence theorem, fails as well."
-        meanings = _MEANINGS_POSITIVE_INCOME
+        meanings = _MEANINGS_UNPROVED
+    elif not np.isfinite(model.BoroCnstNat):
+        # Not admitted by the class under the natural constraint
+        if holds["RIC"]:
+            existence = "fails"
+            basis = (
+                "Because PermGroFac times the permanent shock's lowest value is not below "
+                "Rfree, minimum human wealth is not finite (eq:FiniteMinHumanWealth), and "
+                "under the RIC consumption grows without bound at every m as the horizon "
+                "extends: the limiting solution is degenerate "
+                "(subsec:PositiveMinimumFailures)."
+            )
+        else:
+            existence = "not established"
+            basis = (
+                "Because PermGroFac times the permanent shock's lowest value is not below "
+                "Rfree, minimum human wealth is not finite (eq:FiniteMinHumanWealth). The "
+                "paper does not characterize this case when the RIC fails, whether or not "
+                "the WRIC holds (subsec:PositiveMinimumFailures)."
+            )
+            meanings = _MEANINGS_UNPROVED
+    elif not WRIC:
+        existence = "fails"
+        basis = (
+            "Because the WRIC fails with the probability of the worst event "
+            "(eq:WRICWorst) while minimum human wealth is finite "
+            "(eq:FiniteMinHumanWealth), the upper bound on consumption goes to zero at "
+            "every m as the horizon extends (lemma:MPCPositiveMinimum): the limiting "
+            "solution is degenerate (subsec:PositiveMinimumFailures)."
+        )
     elif not FVAC:
         existence = "not established"
         basis = (
             "Because the FVAC fails, the paper does not establish a limiting solution, "
-            "though the WRIC holds; its existence theorem is sufficiency only."
+            "though the WRIC holds with the probability of the worst event "
+            "(eq:WRICWorst); its existence theorem for positive income in the "
+            "zero-income event is sufficiency only (thm:existencePositiveMinimum)."
         )
     else:
         existence = "established"
         basis = (
-            "Because the WRIC and the FVAC hold, a non-degenerate limiting solution exists "
-            "(thm:convgtobellman)."
+            "Because the WRIC holds with the probability of the worst event "
+            "(eq:WRICWorst), the FVAC holds, and minimum human wealth is finite "
+            "(eq:FiniteMinHumanWealth), a non-degenerate limiting solution exists "
+            "(thm:existencePositiveMinimum)."
         )
     established = existence == "established"
     return _Verdict(
@@ -824,8 +987,9 @@ def calc_buffer_stock_conditions(
     # permanent shock; when the worst transitory income is positive, that income
     # together with the permanent shock at its infimum.
     WorstInc, WorstPrb = _worst_income(float(UnempPrb), IncUnemp, TranShkLaw)
+    PermShkMinPrb = _law_mass_at_infimum(PermShkLaw)
     if WorstInc > 0.0:
-        WorstPrb *= _law_mass_at_infimum(PermShkLaw)
+        WorstPrb *= PermShkMinPrb
     PerfectForesight = (
         float(UnempPrb) == 0.0
         and _is_point_at_one(PermShkLaw)
@@ -860,7 +1024,14 @@ def calc_buffer_stock_conditions(
 
     BoroCnstNat = calc_natural_borrowing_constraint(R, G, WorstInc, PermShkMin)
     scenario = constraint_scenario(BoroCnstArt, BoroCnstNat)
-    model = _Model(float(UnempPrb), float(IncUnemp), BoroCnstArt, PerfectForesight)
+    model = _Model(
+        float(UnempPrb),
+        float(IncUnemp),
+        BoroCnstArt,
+        PerfectForesight,
+        PermShkMinPrb,
+        float(BoroCnstNat),
+    )
     verdict = _VERDICTS[scenario](factors, holds, model)
     existence = verdict.existence
 
@@ -896,13 +1067,23 @@ def calc_buffer_stock_conditions(
             "the MPC there is one; the Euler equation holds with inequality there."
         )
     elif float(UnempPrb) > 0.0 and IncUnemp > 0.0:
-        notes.append(
-            "With IncUnemp > 0 the worst event is the zero-income event together with the "
-            "permanent shock at its infimum. Its probability, WorstPrb, is zero for a "
-            "continuous law; the limiting MPC at the bottom is then one and the WRIC holds "
-            "trivially. The paper states that MPC and the WRIC for zero income in the "
-            "event only."
-        )
+        if PermShkMinPrb > 0.0:
+            notes.append(
+                "With IncUnemp > 0 the consumer may borrow, up to minimum human wealth, "
+                "-BoroCnstNat (lemma:NaturalBorrowingLimit). The worst event is the "
+                "zero-income event together with the permanent shock at its lowest value, "
+                "of probability WorstPrb (eq:pWorst). The target and the pseudo-target "
+                "can be negative, and the target lies below the pseudo-target where the "
+                "consumer borrows at them (lemma:orderingPositiveMinimum)."
+            )
+        else:
+            notes.append(
+                "With IncUnemp > 0 the worst event is the zero-income event together with "
+                "the permanent shock at its infimum. Its probability, WorstPrb, is zero "
+                "for a law without a point mass there; the limiting MPC at the bottom is "
+                "then one and the WRIC holds trivially, a case the paper does not treat "
+                "(subsec:PositiveMinimumFailures)."
+            )
 
     return BufferStockConditions(
         conditions=conditions,
@@ -947,6 +1128,9 @@ BufferStockConsumerType_IncShkDstn_default = {
     "PermShk_inf": -3.0,  # Lower bound of log permanent shocks, in its standard deviations
     "PermShk_sup": 3.0,  # Upper bound of log permanent shocks, in its standard deviations
     "PermShkCount": 7,  # Points in the discretization of the permanent shock
+    # With IncUnemp above zero, the probability of the permanent shock's lowest
+    # value, its law's infimum; None for the mass the truncation removes there
+    "PermShkMinPrb": None,
     "TranShkStd": 0.1,  # Standard deviation of log transitory draws, after truncation
     "TranShk_inf": -3.0,  # Lower bound of log transitory draws, in its standard deviations
     "TranShk_sup": 3.0,  # Upper bound of log transitory draws, in its standard deviations
@@ -973,10 +1157,20 @@ BufferStockConsumerType_defaults.update(BufferStockConsumerType_IncShkDstn_defau
 BufferStockConsumerType_defaults.update(IndShockConsumerType_kNrmInitDstn_default)
 BufferStockConsumerType_defaults.update(IndShockConsumerType_pLvlInitDstn_default)
 BufferStockConsumerType_defaults.update(IndShockConsumerType_aXtraGrid_default)
-# Consumption goes to zero at the natural constraint, where it curves sharply: 200
-# points keep the Euler error near the bottom below half a percent with linear
-# interpolation, against several percent at IndShockConsumerType's 48
-BufferStockConsumerType_defaults["aXtraCount"] = 200
+# Just above the natural constraint the consumer saves only the share 1 - MPCmax
+# of resources above it, and the Euler equation there is dominated by the worst
+# event, whose marginal utility depends on that saving. A small error in c is
+# then a large relative error in it, the larger the closer MPCmax is to one, as
+# it is with positive income in the zero-income event, where the worst event has
+# a small probability. The asset grid therefore has 300 points nested five times
+# toward the bottom, and 60 more spaced by a constant ratio from 1e-8 to 1e-2
+# above the constraint: they keep the Euler error on the grid at or below half a
+# percent with linear interpolation. IndShockConsumerType's 48 points nested
+# three times leave several percent in the paper's own model, and the points
+# close to the constraint matter where MPCmax is within a percent of one.
+BufferStockConsumerType_defaults["aXtraCount"] = 300
+BufferStockConsumerType_defaults["aXtraNestFac"] = 5
+BufferStockConsumerType_defaults["aXtraExtra"] = np.geomspace(1e-8, 1e-2, 60).tolist()
 BufferStockConsumerType_defaults.update(BufferStockConsumerType_solving_default)
 BufferStockConsumerType_defaults.update(IndShockConsumerType_simulation_default)
 init_buffer_stock = BufferStockConsumerType_defaults
@@ -1004,11 +1198,12 @@ class BufferStockConsumerType(IndShockConsumerType):
     The class refuses parameters outside the paper's model, computes the
     paper's conditions from the true laws, warns when a condition of the paper's
     existence theorem fails, and records the target and pseudo-target where the
-    paper's theorems guarantee them. The theorems are proved for zero income in
-    the zero-income event. With ``IncUnemp`` above zero the class solves the
-    model and reports the conditions, but records no limiting solution as
-    established and no target or pseudo-target as guaranteed; the stable points
-    it finds are listed in ``bilt`` as ``mNrmTrg_roots`` and ``mNrmStE_roots``.
+    paper's theorems guarantee them. With ``IncUnemp`` above zero the theorems
+    are those of the paper's appendix on a positive minimum of income, which
+    assume that the permanent shock takes its lowest value with positive
+    probability; the consumer may then borrow, up to minimum human wealth, and
+    the target and pseudo-target can be negative. Every stable point found is
+    listed in ``bilt`` as ``mNrmTrg_roots`` and ``mNrmStE_roots``.
 
     Solving Parameters
     ------------------
@@ -1027,16 +1222,27 @@ class BufferStockConsumerType(IndShockConsumerType):
         The probability of the zero-income event: strictly between zero and one,
         or zero with an artificial borrowing constraint that binds.
     IncUnemp : float, :math:`\mu`
-        Income in that event, zero in the paper; it must be at least zero and
-        below the worst employed income. The paper proves its theorems for zero
-        only.
+        Income in that event, zero in the paper's text; it must be at least
+        zero and below the worst employed income. With a positive value and no
+        artificial constraint that binds, PermShkLaw must put positive
+        probability on its lowest value, and PermGroFac times that value must be
+        below Rfree.
     PermShkLaw, TranShkLaw : distribution
         The laws of the permanent shock and of the transitory draw. By default
         mean-one truncated lognormals built from PermShkStd, PermShk_inf,
-        PermShk_sup and their transitory counterparts. To use another law,
-        assign it to the attribute and call update_income_process().
+        PermShk_sup and their transitory counterparts; with IncUnemp above zero
+        the permanent shock's default law is that lognormal with a point mass
+        at its infimum (:class:`PointMassAtInfimum`). To use another law, assign
+        it to the attribute and call update_income_process().
+    PermShkMinPrb : float or None
+        With IncUnemp above zero, the probability of the permanent shock's
+        lowest value in its default law. None (the default) for the
+        probability that a lognormal which is not truncated puts below the
+        bound, norm.cdf(PermShk_inf).
     PermShkCount, TranShkCount : int
-        The number of points in each law's equiprobable discretization.
+        The number of points in each law's equiprobable discretization. A point
+        mass of a law is a point of its own, so the lowest values and their
+        probabilities are the same at every number of points.
     BoroCnstArt : float or None
         An artificial borrowing constraint on end-of-period assets, at most
         zero. None (the default), or one at or below the natural constraint,
@@ -1171,6 +1377,12 @@ class BufferStockConsumerType(IndShockConsumerType):
             problems.append(
                 f"IncUnemp must not be negative, not {float(self.IncUnemp)}."
             )
+        PermShkMinPrb = getattr(self, "PermShkMinPrb", None)
+        if PermShkMinPrb is not None and not 0.0 < PermShkMinPrb < 1.0:
+            problems.append(
+                f"PermShkMinPrb, the probability of the permanent shock's lowest value, "
+                f"must be strictly between zero and one, or None, not {PermShkMinPrb}."
+            )
 
         restrictions = {
             NATURAL: self._restrictions_natural,
@@ -1204,9 +1416,10 @@ class BufferStockConsumerType(IndShockConsumerType):
         The restrictions under the natural constraint, the paper's problem: the
         zero-income event has a probability strictly between zero and one
         (eq:TranShkDef); income in it is strictly below the worst employed
-        income; and, if that income is positive, the natural constraint has a
-        finite value, which needs PermGroFac times the permanent shock's infimum
-        to be below Rfree.
+        income; and, if that income is positive, the permanent shock takes its
+        lowest value with positive probability (ass:shocksPositiveMinimum) and
+        the natural constraint has a finite value, which needs PermGroFac times
+        that lowest value to be below Rfree (eq:FiniteMinHumanWealth).
         """
         UnempPrb, IncUnemp = float(self.UnempPrb), float(self.IncUnemp)
         if not 0.0 < UnempPrb < 1.0:
@@ -1222,14 +1435,25 @@ class BufferStockConsumerType(IndShockConsumerType):
             problems.append(problem)
             return
         self._restrict_income_in_the_event(problems)
-        PermShkMin, _ = _law_bounds(self.PermShkLaw)
-        if IncUnemp > 0.0 and not self.PermGroFac[0] * PermShkMin < self.Rfree[0]:
+        if not IncUnemp > 0.0:
+            return
+        if not _law_mass_at_infimum(self.PermShkLaw) > 0.0:
             problems.append(
-                f"With IncUnemp above zero, PermGroFac times the infimum of the permanent "
-                f"shock ({self.PermGroFac[0] * PermShkMin:.6f}) must be below Rfree "
-                f"({self.Rfree[0]}): otherwise the natural borrowing constraint has no "
-                f"finite value. An artificial constraint at or below zero is then needed "
-                f"(BoroCnstArt)."
+                "With IncUnemp above zero and no artificial constraint that binds, "
+                "PermShkLaw must put positive probability on its lowest value "
+                "(ass:shocksPositiveMinimum). The default law built with IncUnemp above "
+                'zero does, and construct("PermShkLaw") rebuilds it; a law assigned to '
+                "the attribute must, as PointMassAtInfimum(law, prb) does."
+            )
+        PermShkMin, _ = _law_bounds(self.PermShkLaw)
+        if not self.PermGroFac[0] * PermShkMin < self.Rfree[0]:
+            problems.append(
+                f"With IncUnemp above zero, PermGroFac times the lowest value of the "
+                f"permanent shock ({self.PermGroFac[0] * PermShkMin:.6f}) must be below "
+                f"Rfree ({self.Rfree[0]}): otherwise minimum human wealth, and so the "
+                f"natural borrowing constraint, has no finite value "
+                f"(eq:FiniteMinHumanWealth). An artificial constraint at or below zero is "
+                f"then needed (BoroCnstArt)."
             )
 
     def _restrictions_artificial(self, problems):
@@ -1354,10 +1578,7 @@ class BufferStockConsumerType(IndShockConsumerType):
         above the grid the consumption function is built from them. Their limits
         are their fixed points, so started there they stay, and the consumption
         function above the grid is then the limit's. Done only where the limits
-        are finite, under the FHWC and the RIC, and for the MPC at the bottom only
-        where the discretization gives the law's: with zero income in the
-        zero-income event, whose probability is then the worst event's, or where
-        an artificial constraint binds, and that MPC is one.
+        are finite, under the FHWC and the RIC.
         """
         results = self.bilt["BufferStockConditions"]
         if not self.PFLimitFinite or results.existence == "fails":
@@ -1365,8 +1586,7 @@ class BufferStockConsumerType(IndShockConsumerType):
         start = deepcopy(self.solution[0])
         start.hNrm = results.hNrm
         start.MPCmin = results.MPCmin
-        if results.scenario == ARTIFICIAL or float(self.IncUnemp) == 0.0:
-            start.MPCmax = results.MPCmax
+        start.MPCmax = results.MPCmax
         cycles = self.completed_cycles
         self.solve(presolve=False, postsolve=False, from_solution=start)
         self.completed_cycles += cycles

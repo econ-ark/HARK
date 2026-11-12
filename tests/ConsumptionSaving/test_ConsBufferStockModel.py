@@ -6,10 +6,11 @@ import numpy as np
 
 from HARK.ConsumptionSaving.ConsBufferStockModel import (
     BufferStockConsumerType,
+    PointMassAtInfimum,
     calc_buffer_stock_conditions,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-from HARK.distributions import Lognormal, MeanOneLogNormal
+from HARK.distributions import DiscreteDistribution, Lognormal, MeanOneLogNormal
 
 
 def make_agent(**kwds):
@@ -214,6 +215,8 @@ class testBufferStockSolution(unittest.TestCase):
             TranShk_inf=-12.0,
             TranShk_sup=12.0,
             aXtraCount=400,
+            aXtraNestFac=3,
+            aXtraExtra=None,
             aXtraMax=100.0,
             CubicBool=True,
             tolerance=1e-10,
@@ -281,49 +284,156 @@ class testBufferStockSolution(unittest.TestCase):
             quiet._respond_to_conditions()
 
     def test_positive_income_in_the_zero_income_event(self):
+        # The permanent shock's default law then has a point mass at its infimum,
+        # so that its lowest value has positive probability
+        # (ass:shocksPositiveMinimum)
+        truncated = make_agent().PermShkLaw
+        self.assertNotIsInstance(truncated, PointMassAtInfimum)
         agent = make_agent(IncUnemp=0.3)
+        law = agent.PermShkLaw
+        self.assertIsInstance(law, PointMassAtInfimum)
+        # The lowest value is the truncated lognormal's infimum, with the mass
+        # the truncation removes below it; the mean is still one
+        self.assertEqual(law.infimum[0], truncated.infimum[0])
+        self.assertAlmostEqual(law.infimum_prb, 0.0013498980316301, places=12)
+        self.assertGreater(law.scale * truncated.infimum[0], law.infimum[0])
+        agent.check_restrictions()
         agent.check_conditions()
         results = agent.bilt["BufferStockConditions"]
-        self.assertEqual(results.WorstPrb, 0.0)
-        self.assertEqual(results.MPCmax, 1.0)
+        self.assertEqual(results.WorstInc, 0.3)
+        self.assertAlmostEqual(results.WorstPrb, 0.005 * law.infimum_prb, places=15)
+        self.assertAlmostEqual(
+            results.MPCmax,
+            1.0 - (0.005 * law.infimum_prb) ** 0.5 * agent.bilt["RPFac"],
+            places=12,
+        )
+        # Minimum human wealth (eq:FiniteMinHumanWealth)
+        x = 1.03 * law.infimum[0] / 1.04
+        self.assertAlmostEqual(results.BoroCnstNat, -0.3 * x / (1.0 - x), places=12)
         self.assertEqual(len(results.notes), 1)
-        self.assertLess(results.BoroCnstNat, 0.0)
+        self.assertIn("lemma:NaturalBorrowingLimit", results.notes[0])
 
-    def test_nothing_is_claimed_beyond_the_papers_theorems(self):
-        # The paper proves its theorems for zero income in the zero-income event.
-        # With positive income there, every condition holds at the calibration,
-        # and still nothing is established or guaranteed
+    def test_lowest_values_do_not_move_with_the_number_of_points(self):
+        # What belongs to the laws (the lowest values, their probabilities, the
+        # borrowing limit, the MPC at the bottom) is the same at every number of
+        # points of the discretization
+        records = []
+        for count in (3, 7, 15):
+            agent = make_agent(IncUnemp=0.3, PermShkCount=count, TranShkCount=count)
+            agent.check_conditions()
+            PermShkDstn = agent.PermShkDstn[0]
+            self.assertEqual(PermShkDstn.atoms.size, count + 1)
+            self.assertEqual(np.min(PermShkDstn.atoms), agent.PermShkLaw.infimum[0])
+            self.assertAlmostEqual(np.dot(PermShkDstn.pmv, PermShkDstn.atoms[0]), 1.0)
+            results = agent.bilt["BufferStockConditions"]
+            records.append(
+                (results.BoroCnstNat, results.WorstPrb, results.MPCmax, results.hNrm)
+            )
+        self.assertEqual(records[0], records[1])
+        self.assertEqual(records[1], records[2])
+        # The probability of the lowest value is a parameter
+        agent = make_agent(IncUnemp=0.3, PermShkMinPrb=0.1)
+        agent.check_restrictions()
+        self.assertEqual(agent.PermShkLaw.infimum_prb, 0.1)
+        self.assertAlmostEqual(agent.get_buffer_stock_conditions().WorstPrb, 0.0005)
+        with self.assertRaises(ValueError) as caught:
+            make_agent(IncUnemp=0.3, PermShkMinPrb=0.0).check_restrictions()
+        self.assertIn("PermShkMinPrb", str(caught.exception))
+
+    def test_the_appendix_on_a_positive_minimum_of_income(self):
+        # With positive income in the zero-income event the verdicts rest on the
+        # paper's appendix (sec:ApndxPositiveMinimumIncome)
         agent = make_agent(IncUnemp=0.3)
         agent.check_conditions()
         results = agent.bilt["BufferStockConditions"]
         self.assertTrue(all(agent.conditions.values()))
-        self.assertEqual(results.existence, "not established")
-        self.assertIn("zero income in the zero-income event", results.existence_basis)
-        self.assertFalse(results.target_guaranteed)
-        self.assertFalse(results.pseudo_target_guaranteed)
+        self.assertEqual(results.existence, "established")
+        self.assertIn("thm:existencePositiveMinimum", results.existence_basis)
+        self.assertTrue(results.target_guaranteed)
+        self.assertTrue(results.pseudo_target_guaranteed)
         self.assertFalse(agent.degenerate)
-        for name in ("WRIC", "FVAC", "GICRaw", "GICMod"):
-            self.assertIn("a hypothesis of", results.conditions[name].meaning)
         self.assertIn(results.existence_basis, agent.bilt["conditions_report"])
-        # Nothing fails, so there is no warning
         with warnings.catch_warnings():
             warnings.simplefilter("error", UserWarning)
             agent._respond_to_conditions()
-        # The same parameters with zero income there are the paper's model
+        # When the FVAC fails the theorem establishes nothing, and the class warns
+        agent = make_agent(IncUnemp=0.3, PermGroFac=[0.95])
+        agent.check_conditions()
+        results = agent.bilt["BufferStockConditions"]
+        self.assertFalse(results.conditions["FVAC"].holds)
+        self.assertEqual(results.existence, "not established")
+        self.assertIn("thm:existencePositiveMinimum", results.existence_basis)
+        self.assertFalse(results.target_guaranteed)
+        with self.assertWarns(UserWarning):
+            agent._respond_to_conditions()
+
+    def test_positive_income_when_the_hypotheses_fail(self):
+        # subsec:PositiveMinimumFailures, at extreme parameters and a permanent
+        # shock on two points
+        PermShkLaw = DiscreteDistribution(np.array([0.5, 0.5]), np.array([0.9, 1.1]))
+        TranShkLaw = DiscreteDistribution(np.array([1.0]), np.array([1.0]))
+
+        def verdict(PermGroFac):
+            return calc_buffer_stock_conditions(
+                0.05, 0.99, 2.0, PermGroFac, 0.9, 0.3, PermShkLaw, TranShkLaw
+            )
+
+        # The WRIC fails with the probability of the worst event, and minimum
+        # human wealth is finite: the limiting solution is degenerate
+        results = verdict(0.04)
+        self.assertAlmostEqual(results.WorstPrb, 0.45)
+        self.assertFalse(results.conditions["WRIC"].holds)
+        self.assertTrue(np.isfinite(results.BoroCnstNat))
+        self.assertEqual(results.existence, "fails")
+        self.assertIn("subsec:PositiveMinimumFailures", results.existence_basis)
+        self.assertEqual(results.MPCmax, 0.0)
+        # With minimum human wealth not finite as well, the bound that goes to
+        # zero multiplies one that goes to infinity: nothing is established
+        results = verdict(0.06)
+        self.assertFalse(results.conditions["WRIC"].holds)
+        self.assertEqual(results.BoroCnstNat, -np.inf)
+        self.assertEqual(results.existence, "not established")
+        self.assertFalse(results.target_guaranteed)
+        # Minimum human wealth not finite under the RIC: consumption grows
+        # without bound, so the limiting solution is degenerate
+        results = calc_buffer_stock_conditions(
+            1.04, 0.5, 2.0, 1.2, 0.005, 0.3, PermShkLaw, TranShkLaw
+        )
+        self.assertTrue(results.conditions["RIC"].holds)
+        self.assertEqual(results.BoroCnstNat, -np.inf)
+        self.assertEqual(results.existence, "fails")
+        self.assertIn("grows without bound", results.existence_basis)
+
+    def test_a_permanent_shock_without_a_point_mass_at_its_lowest_value(self):
+        # The appendix assumes one. Such a law is refused with positive income
+        # in the event, and nothing is claimed for it
+        agent = make_agent(IncUnemp=0.3)
+        agent.PermShkLaw = make_agent().PermShkLaw  # the truncated lognormal
+        agent.update_income_process()
+        with self.assertRaises(ValueError) as caught:
+            agent.check_restrictions()
+        self.assertIn("positive probability on its lowest value", str(caught.exception))
+        results = agent.get_buffer_stock_conditions()
+        self.assertEqual(results.WorstPrb, 0.0)
+        self.assertEqual(results.MPCmax, 1.0)
+        self.assertEqual(results.existence, "not established")
+        self.assertIn("ass:shocksPositiveMinimum", results.existence_basis)
+        self.assertFalse(results.target_guaranteed)
+        self.assertFalse(results.pseudo_target_guaranteed)
+        for name in ("WRIC", "FVAC", "GICRaw", "GICMod"):
+            self.assertIn("a hypothesis of", results.conditions[name].meaning)
+        # The default law is rebuilt with construct
+        agent.construct("PermShkLaw")
+        agent.update_income_process()
+        agent.check_restrictions()
+        # With zero income in the event the paper's text needs no point mass
         paper = make_agent()
+        paper.check_restrictions()
         paper.check_conditions()
         self.assertNotIn(
             "a hypothesis of",
             paper.bilt["BufferStockConditions"].conditions["GICMod"].meaning,
         )
-        # When the FVAC fails as well, the class warns
-        agent = make_agent(IncUnemp=0.3, PermGroFac=[0.95])
-        agent.check_conditions()
-        results = agent.bilt["BufferStockConditions"]
-        self.assertEqual(results.existence, "not established")
-        self.assertIn("The FVAC", results.existence_basis)
-        with self.assertWarns(UserWarning):
-            agent._respond_to_conditions()
 
     def test_a_constraint_that_cannot_bind(self):
         base = make_agent()
@@ -355,19 +465,54 @@ class testBufferStockSolution(unittest.TestCase):
             agent.solution[0].cFunc(m), tight.solution[0].cFunc(m), atol=1e-6
         )
 
-    def test_natural_constraint_of_the_laws(self):
+    def test_borrowing_against_minimum_income(self):
+        # With positive income in the event the consumer may borrow up to
+        # minimum human wealth, and here does so at the target and the
+        # pseudo-target, which are then negative and in reversed order
+        # (lemma:orderingPositiveMinimum)
         agent = make_agent(IncUnemp=0.3)
         agent.solve()
         results = agent.bilt["BufferStockConditions"]
-        self.assertAlmostEqual(agent.solution[0].mNrmMin, results.BoroCnstNat, places=8)
-        self.assertEqual(agent.solution[0].MPCmax, 1.0)
-        self.assertEqual(results.MPCmax, 1.0)
-        # No theorem of the paper guarantees a target here: the stable points
-        # found are listed, and none is recorded as the target
-        self.assertTrue(np.isnan(agent.bilt["mNrmTrg"]))
-        self.assertTrue(np.isnan(agent.bilt["mNrmStE"]))
-        self.assertEqual(len(agent.bilt["mNrmTrg_roots"]), 1)
-        self.assertEqual(len(agent.bilt["mNrmStE_roots"]), 1)
+        solution = agent.solution[0]
+        cFunc, bilt = solution.cFunc, agent.bilt
+        self.assertAlmostEqual(solution.mNrmMin, results.BoroCnstNat, places=8)
+        self.assertLess(results.MPCmax, 1.0)
+        self.assertAlmostEqual(solution.MPCmax, results.MPCmax, places=8)
+        m_trg, m_bal = bilt["mNrmTrg"], bilt["mNrmStE"]
+        self.assertEqual([m_trg], bilt["mNrmTrg_roots"])
+        self.assertEqual([m_bal], bilt["mNrmStE_roots"])
+        self.assertGreater(m_trg, results.BoroCnstNat)
+        signs = {
+            np.sign(1.0 - cFunc(1.0)),
+            np.sign(m_bal - 1.0),
+            np.sign(m_trg - 1.0),
+            np.sign(m_bal - cFunc(m_bal)),
+            np.sign(m_trg - cFunc(m_trg)),
+            np.sign(m_trg - m_bal),
+        }
+        self.assertEqual(signs, {-1.0})
+        # The bounds of lemma:MPCBoundsConvgPositiveMinimum
+        m = results.BoroCnstNat + np.geomspace(1e-4, 100.0, 500)
+        span = m - results.BoroCnstNat
+        c = cFunc(m)
+        self.assertTrue(np.all(c >= results.MPCmin * span - 1e-9))
+        self.assertTrue(np.all(c <= results.MPCmax * span + 1e-9))
+
+    def test_natural_constraint_of_the_laws(self):
+        # A period's natural constraint comes from the laws' infima, not from the
+        # discretization's lowest points. One period from the end, with a law
+        # that has no point mass at its infimum and an artificial constraint
+        # that does not yet bind:
+        agent = make_agent(IncUnemp=0.3, BoroCnstArt=-0.3, cycles=1)
+        agent.PermShkLaw = make_agent().PermShkLaw  # the truncated lognormal
+        agent.update_income_process()
+        agent.solve()
+        infimum = agent.PermShkLaw.infimum[0]
+        lowest_point = np.min(agent.PermShkDstn[0].atoms)
+        self.assertLess(infimum, lowest_point)
+        self.assertAlmostEqual(
+            agent.solution[0].mNrmMin, -0.3 * 1.03 * infimum / 1.04, places=12
+        )
 
     def test_a_point_mass_at_the_worst_income(self):
         # With positive income in the event and laws whose infima are atoms, the
@@ -389,6 +534,7 @@ class testBufferStockSolution(unittest.TestCase):
         self.assertAlmostEqual(
             agent.solution[0].mNrmMin, results.BoroCnstNat, places=10
         )
+        self.assertEqual(results.existence, "established")
 
     def test_note_when_the_perfect_foresight_limit_is_not_finite(self):
         agent = make_agent(Rfree=[0.98], DiscFac=1.0, PermGroFac=[1.02])
