@@ -49,6 +49,7 @@ from HARK.rewards import (
     CRRAutilityP_invP,
     CRRAutilityPP,
 )
+from HARK.stationary import KnotProblem
 from HARK.utilities import make_assets_grid
 
 __all__ = ["MarkovConsumerType"]
@@ -826,6 +827,8 @@ init_indshk_markov = {
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    "stationary_method": "iterate",  # How to solve when cycles=0: "iterate" (backward induction) or "anderson" (accelerated stationary solve)
+    "stationary_options": {},  # Options of the stationary solve method (see HARK.stationary)
     # (Uses linear spline interpolation for cFunc when False)
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
@@ -847,6 +850,85 @@ init_indshk_markov.update(default_aXtraGrid_params)
 init_indshk_markov.update(default_MrkvArray_params)
 init_indshk_markov.update(default_kNrmInitDstn_params)
 init_indshk_markov.update(default_pLvlInitDstn_params)
+
+
+class ConsMarkovStationaryProblem(KnotProblem):
+    """The stationary ConsMarkov policy as a fixed point of ``solve_one_period_ConsMarkov``.
+
+    See :class:`HARK.stationary.KnotProblem`.  The iterate holds every
+    discrete state's consumption at the asset nodes; the scalars are arrays
+    over states, as the solver carries them.
+    """
+
+    def __init__(
+        self,
+        IncShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        MrkvArray,
+        BoroCnstArt,
+        aXtraGrid,
+        CubicBool,
+        seed_solution,
+    ):
+        self.args = (
+            IncShkDstn,
+            LivPrb,
+            DiscFac,
+            CRRA,
+            Rfree,
+            PermGroFac,
+            MrkvArray,
+            BoroCnstArt,
+        )
+        self.CRRA = CRRA
+        super().__init__(aXtraGrid, CubicBool, seed_solution)
+
+    def solve_one_period(self, solution_next, aXtraGrid, vFuncBool=False, cubic=None):
+        cubic = self.cubic if cubic is None else cubic
+        return solve_one_period_ConsMarkov(
+            solution_next, *self.args, aXtraGrid, vFuncBool, cubic
+        )
+
+    def cFuncs(self, solution):
+        return list(solution.cFunc)
+
+    def vFuncs(self, solution):
+        return list(solution.vFunc)
+
+    def make_cFunc(self, m, c, mpc, state):
+        MPCmin = self.scalars["MPCmin"][state]
+        hNrm = self.scalars["hNrm"][state]
+        mNrmMin = self.scalars["mNrmMin"][state]
+        if mpc is None:
+            cFuncUnc = LinearInterp(m, c, MPCmin * hNrm, MPCmin)
+        else:
+            cFuncUnc = CubicInterp(m, c, mpc, MPCmin * hNrm, MPCmin)
+        cFuncCnst = LinearInterp(
+            np.array([mNrmMin, mNrmMin + 1.0]), np.array([0.0, 1.0])
+        )
+        return LowerEnvelope(cFuncUnc, cFuncCnst)
+
+    def make_vFunc(self, m, vNvrs, c_on_m, state):
+        # As the solver builds it: a linear interpolant of the inverse value.
+        vNvrsFunc = LinearInterp(
+            np.insert(m, 0, self.scalars["mNrmMin"][state]), np.insert(vNvrs, 0, 0.0)
+        )
+        return ValueFuncCRRA(vNvrsFunc, self.CRRA)
+
+    def make_continuation(self, cFuncs, vFuncs=None):
+        return ConsumerSolution(
+            cFunc=list(cFuncs),
+            vFunc=[NullFunc() for _ in cFuncs] if vFuncs is None else list(vFuncs),
+            vPfunc=[MargValueFuncCRRA(f, self.CRRA) for f in cFuncs],
+            vPPfunc=[
+                MargMargValueFuncCRRA(f, self.CRRA) if self.cubic else NullFunc()
+                for f in cFuncs
+            ],
+        )
 
 
 class MarkovConsumerType(IndShockConsumerType):
@@ -876,6 +958,40 @@ class MarkovConsumerType(IndShockConsumerType):
         "pLvlInitDstn",
         "MrkvInitDstn",
     ]
+
+    def solve_stationary(self, verbose=False):
+        """Solve the infinite-horizon problem for its stationary solution directly.
+
+        As :meth:`IndShockConsumerType.solve_stationary`, with the problem posed
+        as :class:`ConsMarkovStationaryProblem`, whose map is this model's own
+        per-period solver.
+        """
+        if self.solve_one_period is not solve_one_period_ConsMarkov:
+            solver = getattr(
+                self.solve_one_period, "__name__", repr(self.solve_one_period)
+            )
+            raise NotImplementedError(
+                "The stationary solve is implemented for the ConsMarkov problem; "
+                f"{type(self).__name__} solves its periods with {solver}."
+            )
+        if self.T_cycle != 1:
+            raise NotImplementedError(
+                "The stationary solve requires a one-period cycle (T_cycle=1)."
+            )
+        problem = ConsMarkovStationaryProblem(
+            self._first("IncShkDstn"),
+            self._first("LivPrb"),
+            self._first("DiscFac"),
+            self.CRRA,
+            self._first("Rfree"),
+            self._first("PermGroFac"),
+            self._first("MrkvArray"),
+            self.BoroCnstArt,
+            self.aXtraGrid,
+            self.CubicBool,
+            self.solution_terminal,
+        )
+        return self._solve_stationary_problem(problem, verbose)
 
     def check_markov_inputs(self):
         """

@@ -1399,3 +1399,159 @@ def files_in_dir(mypath):
         for f in os.listdir(mypath)
         if os.path.isfile(os.path.join(mypath, f))
     ]
+
+
+def anderson_accelerate(
+    sweep,
+    x0,
+    depth=20,
+    tol=1e-10,
+    maxit=10000,
+    lo=None,
+    hi=None,
+    mix_cap=10.0,
+    verbose=False,
+):
+    """Find a fixed point of ``sweep`` by Anderson mixing of its iterates.
+
+    Plain iteration ``x <- sweep(x)`` of a contraction converges at the rate
+    of its modulus, which for the stationary consumption problem approaches
+    one at the growth impatience edge.  Anderson mixing extrapolates from the
+    last ``depth`` residuals ``f = sweep(x) - x``: the next iterate is
+    ``sweep(x) - dG @ gamma`` with ``gamma`` the least-squares solution of
+    ``dF @ gamma = f`` over the stored residual differences (type-II mixing
+    with mixing parameter one).  Each step costs one evaluation of ``sweep``.
+
+    The least squares is weighted by ``1 / (1 + |x|)`` entry by entry, so
+    that entries of different scale are fitted alike, and the mixing
+    coefficients are capped at ``mix_cap`` in absolute value, which stops the
+    first steps from extrapolating far beyond the history they rest on.
+    Convergence is confirmed by one plain step before returning, since a
+    mixed iterate can have a small residual without being near the fixed
+    point.  Two more cheap safeguards keep the mixing from wandering:
+    iterates are clipped to ``[lo, hi]`` when bounds are given, and when an
+    evaluation is not finite the history is dropped and the iteration restarts
+    from the last iterate with a finite image.
+
+    Parameters
+    ----------
+    sweep : callable
+        Maps a one-dimensional array to an array of the same shape.
+    x0 : array_like
+        Starting point.
+    depth : int
+        Number of past residual differences mixed; the vector's length caps
+        what is useful, and smooth maps reward a deeper memory.
+    tol : float
+        Convergence threshold on the move ``max |sweep(x) - x|``, the largest
+        change of any entry (the same measure as HARK's distance between
+        successive solutions of an infinite-horizon problem).
+    maxit : int
+        Maximum number of evaluations of ``sweep``.
+    lo, hi : float or array_like, optional
+        Bounds applied to every iterate.
+    mix_cap : float
+        Largest mixing coefficient allowed; a larger solution is scaled down.
+    verbose : bool
+        Print the move for the first three steps and every 25th step after.
+
+    Returns
+    -------
+    x : np.array
+        The last iterate; when ``converged``, the image of a plain step that
+        confirmed the threshold.
+    info : dict
+        ``sweeps`` (evaluations of ``sweep``), ``converged``, ``move`` (the
+        last move) and ``restarts`` (number of history resets).
+    """
+    x = np.array(x0, dtype=float).ravel()
+
+    def clip(v):
+        return v if lo is None and hi is None else np.clip(v, lo, hi)
+
+    def evaluate(v):
+        return np.asarray(sweep(v), dtype=float).ravel()
+
+    G_hist = []
+    F_hist = []
+    restarts = 0
+    move = np.inf
+    x_good = None
+    next_Gx = None
+    sweeps = 0
+    while sweeps < maxit:
+        if next_Gx is None:
+            sweeps += 1
+            Gx = evaluate(x)
+        else:
+            Gx, next_Gx = next_Gx, None
+        if not np.all(np.isfinite(Gx)):
+            if x_good is None:
+                break
+            # A mixed iterate left the map's domain: restart from the last
+            # iterate with a finite image, with a plain step.
+            G_hist, F_hist = [], []
+            restarts += 1
+            x, x_good = x_good, None
+            continue
+        f = Gx - x
+        move = float(np.max(np.abs(f)))
+        if verbose and (sweeps <= 3 or sweeps % 25 == 0):
+            print(f"anderson sweep {sweeps}: move {move:.3e}")
+        x_good = x
+        G_hist.append(Gx)
+        F_hist.append(f)
+        if len(F_hist) > depth + 1:
+            G_hist.pop(0)
+            F_hist.pop(0)
+        if move < tol:
+            # Confirm with one plain step before returning: a mixed iterate can
+            # have a small residual without being close to the fixed point.
+            x_c = clip(Gx)
+            sweeps += 1
+            G2 = evaluate(x_c)
+            if not np.all(np.isfinite(G2)):
+                return x_c, {
+                    "sweeps": sweeps,
+                    "converged": True,
+                    "move": move,
+                    "restarts": restarts,
+                }
+            move_c = float(np.max(np.abs(G2 - x_c)))
+            if move_c < tol:
+                return clip(G2), {
+                    "sweeps": sweeps,
+                    "converged": True,
+                    "move": move_c,
+                    "restarts": restarts,
+                }
+            # Not confirmed: carry on from the plain step, whose image is known.
+            x, next_Gx = x_c, G2
+            continue
+        if len(F_hist) == 1:
+            x = clip(Gx)
+            continue
+        dF = np.column_stack(
+            [F_hist[i + 1] - F_hist[i] for i in range(len(F_hist) - 1)]
+        )
+        dG = np.column_stack(
+            [G_hist[i + 1] - G_hist[i] for i in range(len(G_hist) - 1)]
+        )
+        weight = 1.0 / (1.0 + np.abs(x))
+        gamma = np.linalg.lstsq(dF * weight[:, None], f * weight, rcond=None)[0]
+        largest = float(np.max(np.abs(gamma)))
+        if largest > mix_cap:
+            gamma *= mix_cap / largest
+        x_new = Gx - dG @ gamma
+        if np.all(np.isfinite(x_new)):
+            x = clip(x_new)
+        else:
+            G_hist, F_hist = [], []
+            restarts += 1
+            x = clip(Gx)
+    return clip(x), {
+        "sweeps": sweeps,
+        "converged": False,
+        "move": move,
+        "restarts": restarts,
+    }
