@@ -350,6 +350,12 @@ def solve_one_period_ConsBufferStock(
     of the discretization, as for a discrete law: the two constraints are then
     the same number, and that solver's MPC at the bottom is the laws'.
 
+    Where a constraint binds as an artificial one, the user's or the laws',
+    that solver starts its asset grid at the constraint, with the constraint
+    itself as a gridpoint, so the kink where it stops binding is a node of the
+    solution and no gridpoints are spent below it, where the solution takes
+    the constraint line.
+
     Above its grid, that solver's consumption function approaches the perfect
     foresight solution of the current horizon. In the infinite horizon with the
     RIC or the FHWC failing, that solution does not converge as the horizon
@@ -1362,7 +1368,8 @@ BufferStockConsumerType_defaults.update(IndShockConsumerType_aXtraGrid_default)
 # it is with positive income in the zero-income event, where the worst event has
 # a small probability. The asset grid therefore has 300 points nested five times
 # toward the bottom, and 60 more spaced by a constant ratio from 1e-8 to 1e-2
-# above the constraint: they keep the Euler error on the grid at or below half a
+# above the constraint in force (the natural one, or a binding artificial one, at
+# which the grid then starts): they keep the Euler error on the grid at or below half a
 # percent with linear interpolation. IndShockConsumerType's 48 points nested
 # three times leave several percent in the paper's own model, and the points
 # close to the constraint matter where MPCmax is within a percent of one.
