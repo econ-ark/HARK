@@ -158,6 +158,17 @@ class ConsumerSolution(MetricObject):
     MPCmax : float
         Supremum of the marginal propensity to consume this period.
         MPC --> MPCmax as m --> mNrmMin.
+    mNrmKink : float or None
+        Where an artificial borrowing constraint binds, the normalized market
+        resources at the kink of the consumption function, below which the
+        consumer ends the period at the constraint. NaN where the natural
+        borrowing constraint binds, and None where the solver does not record it.
+    cNrmKink : float or None
+        Normalized consumption at the kink, mNrmKink minus the constraint on
+        end-of-period assets; NaN or None as for mNrmKink.
+    MPCaboveKink : float or None
+        The marginal propensity to consume just above the kink. Below it, on the
+        constraint, the MPC is one. NaN or None as for mNrmKink.
 
     """
 
@@ -173,6 +184,9 @@ class ConsumerSolution(MetricObject):
         hNrm=None,
         MPCmin=None,
         MPCmax=None,
+        mNrmKink=None,
+        cNrmKink=None,
+        MPCaboveKink=None,
     ):
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
@@ -184,6 +198,9 @@ class ConsumerSolution(MetricObject):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
+        self.mNrmKink = mNrmKink
+        self.cNrmKink = cNrmKink
+        self.MPCaboveKink = MPCaboveKink
 
     def append_solution(self, new_solution):
         """
@@ -221,6 +238,46 @@ class ConsumerSolution(MetricObject):
             self.vPfunc.append(new_solution.vPfunc)
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
+
+
+def find_kink(mNrm, cNrm, MPC, BoroCnstNat, mNrmMin):
+    """
+    Find the kink of a consumption function solved on an end-of-period asset
+    grid that starts at a binding artificial borrowing constraint, with the
+    constraint itself as a gridpoint. The unconstrained function's nodes are
+    then the natural borrowing constraint, with zero consumption, followed by
+    the endogenous gridpoints, the first of which is the kink: there the
+    consumer ends the period with assets exactly at the constraint.
+
+    Parameters
+    ----------
+    mNrm : np.array
+        Market resources at the unconstrained consumption function's nodes,
+        starting with the natural borrowing constraint.
+    cNrm : np.array
+        Consumption at those nodes.
+    MPC : np.array or None
+        The marginal propensity to consume at those nodes, for the cubic rule;
+        None for the linear rule, whose MPC just above the kink is the slope of
+        the segment that starts there.
+    BoroCnstNat : float
+        The natural borrowing constraint on end-of-period assets.
+    mNrmMin : float
+        The constraint in force, the larger of the natural and the artificial.
+
+    Returns
+    -------
+    mNrmKink, cNrmKink, MPCaboveKink : float
+        Market resources and consumption at the kink, and the MPC just above it;
+        each NaN where the natural borrowing constraint binds, so there is no kink.
+    """
+    if not BoroCnstNat < mNrmMin:
+        return np.nan, np.nan, np.nan
+    if MPC is None:
+        MPCaboveKink = (cNrm[2] - cNrm[1]) / (mNrm[2] - mNrm[1])
+    else:
+        MPCaboveKink = MPC[1]
+    return float(mNrm[1]), float(cNrm[1]), float(MPCaboveKink)
 
 
 # =====================================================================
@@ -896,6 +953,16 @@ def solve_one_period_ConsIndShock(
             cFuncLimitSlope,
         )
 
+    # Where the artificial constraint binds, the kink is the endogenous gridpoint
+    # of end-of-period assets at the constraint; record it, with the MPC above it
+    mNrmKink, cNrmKink, MPCaboveKink = find_kink(
+        m_for_interpolation,
+        c_for_interpolation,
+        MPC_for_interpolation if CubicBool else None,
+        BoroCnstNat,
+        mNrmMinNow,
+    )
+
     # Combine the constrained and unconstrained functions into the true
     # consumption function. The artificial constraint is applied here, as the
     # lower envelope of two smooth functions, rather than inside one
@@ -972,6 +1039,9 @@ def solve_one_period_ConsIndShock(
         hNrm=hNrmNow,
         MPCmin=MPCminNow,
         MPCmax=MPCmaxNow,
+        mNrmKink=mNrmKink,
+        cNrmKink=cNrmKink,
+        MPCaboveKink=MPCaboveKink,
     )
     return solution_now
 

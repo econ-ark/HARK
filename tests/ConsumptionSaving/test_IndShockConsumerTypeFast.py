@@ -671,3 +671,24 @@ class testCRRANearOneWarning(unittest.TestCase):
                     agent.solve()
                     # Check that no warning was issued
                     self.assertEqual(len(w), 0)
+
+
+class testKinkAttributesFast(unittest.TestCase):
+    """The fast solver records the same kink as the standard one."""
+
+    def test_same_kink_as_the_standard_solver(self):
+        for CubicBool in (False, True):
+            with self.subTest(CubicBool=CubicBool):
+                fast = IndShockConsumerTypeFast(cycles=0, CubicBool=CubicBool)
+                fast.solve()
+                standard = IndShockConsumerType(cycles=0, CubicBool=CubicBool)
+                standard.solve()
+                for name in ("mNrmKink", "cNrmKink", "MPCaboveKink"):
+                    self.assertAlmostEqual(
+                        getattr(fast.solution[0], name),
+                        getattr(standard.solution[0], name),
+                        places=8,
+                    )
+        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None)
+        fast.solve()
+        self.assertTrue(np.isnan(fast.solution[0].mNrmKink))
