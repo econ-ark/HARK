@@ -354,7 +354,8 @@ def solve_one_period_ConsBufferStock(
     that solver starts its asset grid at the constraint, with the constraint
     itself as a gridpoint, so the kink where it stops binding is a node of the
     solution and no gridpoints are spent below it, where the solution takes
-    the constraint line.
+    the constraint line. The solution records the kink, as that solver's does:
+    mNrmKink, cNrmKink and MPCaboveKink, NaN where the natural constraint binds.
 
     Above its grid, that solver's consumption function approaches the perfect
     foresight solution of the current horizon. In the infinite horizon with the

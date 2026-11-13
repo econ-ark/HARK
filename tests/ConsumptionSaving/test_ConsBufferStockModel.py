@@ -735,6 +735,30 @@ class testBufferStockArtificialConstraint(unittest.TestCase):
             else:
                 hi = mid
         self.assertAlmostEqual(lo, 0.9769, places=4)
+        # The solution records that kink, on the constraint line
+        solution = agent.solution[0]
+        self.assertAlmostEqual(solution.mNrmKink, lo, places=9)
+        self.assertAlmostEqual(
+            solution.mNrmKink - solution.cNrmKink, solution.mNrmMin, places=12
+        )
+
+    def test_the_kink_where_the_laws_limit_binds(self):
+        # Without a point mass at the permanent shock's lowest value, the laws'
+        # limit binds as an artificial constraint at that level does, and the
+        # solution records the kink there: 0.8840 above the limit at seven
+        # points, as in the check of the appendix's revision (item:NoPointMass)
+        agent = make_agent(IncUnemp=0.3, PermShkMinPrb=0.0, tolerance=1e-10)
+        agent.solve()
+        solution = agent.solution[0]
+        self.assertAlmostEqual(solution.mNrmKink - solution.mNrmMin, 0.8840, delta=5e-4)
+        self.assertAlmostEqual(
+            solution.mNrmKink - solution.cNrmKink, solution.mNrmMin, places=12
+        )
+        self.assertLess(solution.MPCaboveKink, 1.0)
+        # In the paper's own model the natural constraint binds: no kink
+        paper = make_agent()
+        paper.solve()
+        self.assertTrue(np.isnan(paper.solution[0].mNrmKink))
 
     def test_no_borrowing_with_positive_income_in_the_event(self):
         # The values of the check of the appendix's revision (item:Artificial),
