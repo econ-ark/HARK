@@ -25,6 +25,7 @@ from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    find_kink,
     PerfForesightConsumerType,
     init_perfect_foresight,
     init_idiosyncratic_shocks,
@@ -1441,6 +1442,16 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                 # Make the marginal value function and the marginal marginal value function
                 vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
 
+                # The kink where the artificial constraint binds: the node after the
+                # natural borrowing constraint, mNrm[0], as in the standard solver
+                mNrmKink, cNrmKink, MPCaboveKink = find_kink(
+                    solution.mNrm,
+                    solution.cNrm,
+                    solution.MPC if self.CubicBool else None,
+                    solution.mNrm[0],
+                    solution.mNrmMin,
+                )
+
                 # Pack up the solution and return it
                 consumer_solution = ConsumerSolution(
                     cFunc=cFuncNow,
@@ -1449,6 +1460,9 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                     hNrm=solution.hNrm,
                     MPCmin=solution.MPCmin,
                     MPCmax=solution.MPCmax,
+                    mNrmKink=mNrmKink,
+                    cNrmKink=cNrmKink,
+                    MPCaboveKink=MPCaboveKink,
                 )
 
                 if self.vFuncBool:
