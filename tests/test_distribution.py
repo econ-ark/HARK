@@ -1479,7 +1479,7 @@ class LogNormalTruncatedTests(unittest.TestCase):
             np.testing.assert_array_equal(trunc.supremum, [np.inf])
             np.testing.assert_allclose(
                 trunc.discretize(7).atoms,
-                MeanOneLogNormal(sigma).discretize(7, tail_N=0).atoms,
+                LogNormalMeanOne(sigma).discretize(7, tail_N=0).atoms,
                 rtol=1e-14,
             )
 
