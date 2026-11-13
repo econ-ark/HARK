@@ -3,6 +3,8 @@ from copy import deepcopy
 
 import numpy as np
 
+from HARK.Calibration.Income.IncomeProcesses import LognormPermIncShk
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
@@ -279,10 +281,109 @@ class testMarkovValueFunc(unittest.TestCase):
             np.testing.assert_allclose(solution.vFunc[i](m), v, rtol=0, atol=1e-2)
 
     def test_vFunc(self):
+        # With 400 or 1600 asset gridpoints these values are -18.14255 and -17.90644.
+        # Before expectations over Markov states were exact at the gridpoints they
+        # were -18.15152 and -17.91514 on the default grid.
         agent = MarkovConsumerType(cycles=0, vFuncBool=True)
         agent.solve()
-        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.15152, places=4)
-        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.91514, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.14233, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.90622, places=4)
+
+
+class testMarkovMatchesIndShock(unittest.TestCase):
+    """
+    Unemployment stated as a Markov state, employed or unemployed, entered with
+    the same probability whatever the current state, is the IndShockConsumerType
+    problem with unemployment folded into the transitory shock. The two solutions
+    must agree to rounding error.
+    """
+
+    UnempPrb = 0.05
+
+    def solve_both(self, IncUnemp, BoroCnstArt, CubicBool):
+        common = dict(
+            cycles=0,
+            CRRA=2.0,
+            DiscFac=0.96,
+            BoroCnstArt=BoroCnstArt,
+            CubicBool=CubicBool,
+            vFuncBool=True,
+        )
+        R, LivPrb, G, std, count = 1.03, 0.98, 1.01, 0.1, 7
+        p = self.UnempPrb
+        ind = IndShockConsumerType(
+            Rfree=[R],
+            LivPrb=[LivPrb],
+            PermGroFac=[G],
+            PermShkStd=[std],
+            TranShkStd=[std],
+            PermShkCount=count,
+            TranShkCount=count,
+            UnempPrb=p,
+            IncUnemp=IncUnemp,
+            **common,
+        )
+        mrkv = MarkovConsumerType(
+            Rfree=[np.array([R, R])],
+            LivPrb=[np.array([LivPrb, LivPrb])],
+            PermGroFac=[np.array([G, G])],
+            **common,
+        )
+
+        # Employed: permanent shock times the scaled transitory shock; unemployed:
+        # permanent shock times unemployment income
+        perm = LognormPermIncShk(sigma=std, n_approx=count)
+        tran = MeanOneLogNormal(std).discretize(count, method="equiprobable", tail_N=0)
+        scale = (1.0 - p * IncUnemp) / (1.0 - p)
+        employed = combine_indep_dstns(
+            perm, DiscreteDistribution(tran.pmv, tran.atoms * scale)
+        )
+        unemployed = combine_indep_dstns(
+            perm, DiscreteDistribution(np.ones(1), np.array([IncUnemp]))
+        )
+        mrkv.IncShkDstn = [
+            [
+                DiscreteDistributionLabeled(
+                    pmv=d.pmv, atoms=d.atoms, var_names=["PermShk", "TranShk"]
+                )
+                for d in (employed, unemployed)
+            ]
+        ]
+        mrkv.MrkvArray = [np.array([[1.0 - p, p], [1.0 - p, p]])]
+
+        ind.solve()
+        mrkv.solve()
+        return ind.solution[0], mrkv.solution[0], ind.aXtraGrid
+
+    def check(self, IncUnemp, BoroCnstArt, CubicBool):
+        sol_ind, sol_mrkv, aXtraGrid = self.solve_both(IncUnemp, BoroCnstArt, CubicBool)
+        m = np.linspace(sol_ind.mNrmMin + 1e-3, 20.0, 2001)
+        for i in range(2):
+            self.assertEqual(sol_mrkv.mNrmMin[i], sol_ind.mNrmMin)
+            np.testing.assert_allclose(
+                sol_mrkv.cFunc[i](m), sol_ind.cFunc(m), rtol=0, atol=1e-12
+            )
+            np.testing.assert_allclose(
+                sol_mrkv.vFunc[i](m), sol_ind.vFunc(m), rtol=1e-12, atol=0
+            )
+
+    def test_artificial_constraint(self):
+        # HARK's defaults: unemployment insurance, borrowing limited to zero
+        for CubicBool in (False, True):
+            self.check(IncUnemp=0.3, BoroCnstArt=0.0, CubicBool=CubicBool)
+
+    def test_natural_constraint_zero_income(self):
+        # Buffer stock theory: a zero-income event and no artificial constraint
+        for CubicBool in (False, True):
+            self.check(IncUnemp=0.0, BoroCnstArt=None, CubicBool=CubicBool)
+
+    def test_unconstrained_grid_increasing(self):
+        # Where the artificial constraint binds, the unconstrained consumption
+        # function still starts at the natural borrowing constraint
+        agent = MarkovConsumerType(cycles=1)
+        agent.solve()
+        for cFunc in agent.solution[0].cFunc:
+            self.assertTrue(np.all(np.diff(cFunc.functions[0].x_list) > 0))
 
 
 class testRatchet(unittest.TestCase):
@@ -524,3 +625,84 @@ class testNewbornMarkovStates(unittest.TestCase):
         newborn = agent.history["t_age"] == 1  # t_age is recorded after the increment
         self.assertTrue(newborn[1:].any())
         np.testing.assert_array_equal(Mrkv, newborn.astype(int))
+
+
+class testMarkovBoroCnstInfimum(unittest.TestCase):
+    """
+    BoroCnstInfimum in the Markov solver: each succeeding state's natural limit
+    comes from its recorded infima. Unemployment as a Markov state with identical
+    rows must then match IndShockConsumerType with the same infima.
+    """
+
+    def check_matches_indshock(self, cubic):
+        R, LivPrb, G, p, xi, std = 1.03, 0.98, 1.01, 0.05, 0.3, 0.1
+        inf = np.exp(-(std**2) / 2 - 3 * std)
+        scale = (1 - p * xi) / (1 - p)
+        common = dict(
+            cycles=0,
+            BoroCnstArt=None,
+            BoroCnstInfimum=True,
+            vFuncBool=True,
+            CubicBool=cubic,
+            tolerance=1e-12,
+        )
+        ind = IndShockConsumerType(
+            Rfree=[R],
+            LivPrb=[LivPrb],
+            PermGroFac=[G],
+            UnempPrb=p,
+            IncUnemp=xi,
+            **common,
+        )
+        psi, tran = ind.PermShkDstn[0], ind.TranShkDstn[0]
+
+        def labeled(dstn, tran_inf):
+            limit = {
+                "infimum": np.array([inf, tran_inf]),
+                "supremum": np.array([np.inf, np.inf]),
+            }
+            return DiscreteDistributionLabeled(
+                pmv=dstn.pmv,
+                atoms=dstn.atoms,
+                var_names=["PermShk", "TranShk"],
+                limit=limit,
+            )
+
+        ind.IncShkDstn = [labeled(ind.IncShkDstn[0], min(xi, scale * inf))]
+        theta = DiscreteDistribution(tran.pmv[1:] / (1 - p), tran.atoms[0][1:])
+        employed = labeled(combine_indep_dstns(psi, theta), scale * inf)
+        unemployed = labeled(
+            combine_indep_dstns(
+                psi, DiscreteDistribution(np.array([1.0]), np.array([xi]))
+            ),
+            xi,
+        )
+        mrkv = MarkovConsumerType(
+            Rfree=[np.array([R, R])],
+            LivPrb=[np.array([LivPrb, LivPrb])],
+            PermGroFac=[np.array([G, G])],
+            **common,
+        )
+        mrkv.IncShkDstn = [[employed, unemployed]]
+        mrkv.MrkvArray = [np.array([[1 - p, p], [1 - p, p]])]
+        ind.solve()
+        mrkv.solve()
+
+        kappa = G * inf / R
+        bound = -xi * kappa / (1 - kappa)
+        np.testing.assert_allclose(mrkv.solution[0].mNrmMin, [bound, bound], atol=1e-10)
+        np.testing.assert_allclose(mrkv.solution[0].MPCmax, [1.0, 1.0])
+        m = np.linspace(bound + 1e-9, 20.0, 1001)
+        for s in range(2):
+            np.testing.assert_allclose(
+                mrkv.solution[0].cFunc[s](m), ind.solution[0].cFunc(m), atol=1e-12
+            )
+            np.testing.assert_allclose(
+                mrkv.solution[0].vFunc[s](m), ind.solution[0].vFunc(m), rtol=1e-12
+            )
+
+    def test_matches_indshock(self):
+        self.check_matches_indshock(cubic=False)
+
+    def test_matches_indshock_cubic(self):
+        self.check_matches_indshock(cubic=True)

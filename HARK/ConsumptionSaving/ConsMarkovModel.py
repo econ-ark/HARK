@@ -286,6 +286,7 @@ def solve_one_period_ConsMarkov(
     aXtraGrid,
     vFuncBool,
     CubicBool,
+    BoroCnstInfimum=True,
 ):
     """
     Solves a single period consumption-saving problem with risky income and
@@ -334,6 +335,11 @@ def solve_one_period_ConsMarkov(
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
+    BoroCnstInfimum: boolean
+        Whether the natural borrowing constraint is computed from the infima of
+        the true shock distributions, recorded in each succeeding state's
+        IncShkDstn.limit["infimum"], rather than from the lowest discretized
+        atoms. Default True.
 
     Returns
     -------
@@ -361,6 +367,7 @@ def solve_one_period_ConsMarkov(
 
     # Initialize the natural borrowing constraint when entering each succeeding state
     BoroCnstNat_temp = np.zeros(StateCountNext) + np.nan
+    BoroCnstInf_temp = np.zeros(StateCountNext) - np.inf
 
     # Find the natural borrowing constraint conditional on next period's state
     for j in range(StateCountNext):
@@ -371,6 +378,14 @@ def solve_one_period_ConsMarkov(
             * (PermGroFac_list[j] * PermShkMinNext)
             / Rfree_list[j]
         )
+        # The same limit from the true distributions' infima, if requested
+        if BoroCnstInfimum:
+            PermShkInfNext, TranShkInfNext = IncShkDstn_list[j].limit["infimum"]
+            BoroCnstInf_temp[j] = (
+                (solution_next.mNrmMin[j] - TranShkInfNext)
+                * (PermGroFac_list[j] * PermShkInfNext)
+                / Rfree_list[j]
+            )
 
     # Initialize the natural borrowing constraint and minimum value of mNrm for
     # *this* period's Markov states, as well as a "dependency table"
@@ -390,42 +405,45 @@ def solve_one_period_ConsMarkov(
             mNrmMin_list[i] = BoroCnstNat_list[i]
         else:
             mNrmMin_list[i] = np.max([BoroCnstNat_list[i], BoroCnstArt])
+        # The infima's limit can be tighter than the atoms'. The atoms' limit still
+        # anchors the asset grid, so the infima's is imposed like BoroCnstArt; see
+        # the note in solve_one_period_ConsIndShock on why it is not the anchor.
+        mNrmMin_list[i] = np.max(
+            [mNrmMin_list[i], np.max(BoroCnstInf_temp[possible_next_states])]
+        )
         BoroCnstDependency[i, :] = BoroCnstNat_list[i] == BoroCnstNat_temp
     # Also creates a Boolean array indicating whether the natural borrowing
     # constraint *could* be hit when transitioning from i to j.
 
-    # Initialize end-of-period (marginal) value functions, expected income conditional
-    # on the next state, and probability of getting the worst income shock in each
-    # succeeding period state
-    BegOfPrd_vFunc_list = []
-    BegOfPrd_vPfunc_list = []
+    # Record expected income conditional on the next state, and probability of
+    # getting the worst income shock in each succeeding period state
     Ex_IncNextAll = np.zeros(StateCountNext) + np.nan
     WorstIncPrbAll = np.zeros(StateCountNext) + np.nan
-
-    # Loop through each next-period-state and calculate the beginning-of-period
-    # (marginal) value function
     for j in range(StateCountNext):
-        # Condition values on next period's state (and record a couple for later use)
-        Rfree = Rfree_list[j]
-        PermGroFac = PermGroFac_list[j]
-        LivPrb = LivPrb_list[j]
-        # mNrmMinNow = self.mNrmMin_list[state_index]
-        BoroCnstNat = BoroCnstNat_temp[j]
-
-        # Unpack the income distribution in next period's Markov state
-        IncShkDstn = IncShkDstn_list[j]
-        ShkPrbsNext = IncShkDstn.pmv
-        PermShkValsNext = IncShkDstn.atoms[0]
-        TranShkValsNext = IncShkDstn.atoms[1]
-        PermShkMinNext = np.min(PermShkValsNext)
-        TranShkMinNext = np.min(TranShkValsNext)
+        ShkPrbsNext = IncShkDstn_list[j].pmv
+        PermShkValsNext = IncShkDstn_list[j].atoms[0]
+        TranShkValsNext = IncShkDstn_list[j].atoms[1]
 
         # Calculate the probability that we get the worst possible income draw
         IncNext = PermShkValsNext * TranShkValsNext
-        WorstIncNext = PermShkMinNext * TranShkMinNext
-        WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+        WorstIncNext = np.min(PermShkValsNext) * np.min(TranShkValsNext)
+        WorstIncPrbAll[j] = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
         # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
 
+        # Compute expected income next period
+        Ex_IncNextAll[j] = np.dot(ShkPrbsNext, IncNext)
+
+    def calc_BegOfPrd_next(j, aNrm):
+        """
+        Beginning-of-period marginal value of assets in next period's state j,
+        and its marginal marginal value and value when they are needed, at each
+        end-of-period asset value in aNrm. These are evaluated at the current
+        states' own asset gridpoints rather than interpolated from a grid for
+        state j, so the expectation over Markov states is exact at the gridpoints.
+        """
+        Rfree = Rfree_list[j]
+        PermGroFac = PermGroFac_list[j]
+        IncShkDstn = IncShkDstn_list[j]
         DiscFacEff = DiscFac  # survival probability LivPrb represents probability
         # from *current* state, so DiscFacEff is just DiscFac for now
 
@@ -433,16 +451,6 @@ def solve_one_period_ConsMarkov(
         vFuncNext = solution_next.vFunc[j]  # This is None when vFuncBool is False
         vPfuncNext = solution_next.vPfunc[j]
         vPPfuncNext = solution_next.vPPfunc[j]  # This is None when CubicBool is False
-
-        # Compute expected income next period and record worst income probability
-        Ex_IncNextAll[j] = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
-        WorstIncPrbAll[j] = WorstIncPrb
-
-        # Construct the BEGINNING-of-period marginal value function conditional
-        # on next period's state and add it to the list of value functions
-
-        # Get data to construct the end-of-period marginal value function (conditional on next state)
-        aNrmNext = np.asarray(aXtraGrid) + BoroCnstNat
 
         # Define local functions for taking future expectations
         def calc_mNrmNext(S, a, R):
@@ -461,72 +469,24 @@ def solve_one_period_ConsMarkov(
 
         # Calculate beginning-of-period marginal value of assets at each gridpoint
         vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
-        BegOfPrd_vPnext = vPfacEff * expected(
-            calc_vPnext, IncShkDstn, args=(aNrmNext, Rfree)
-        )
+        BegOfPrd_vP = vPfacEff * expected(calc_vPnext, IncShkDstn, args=(aNrm, Rfree))
 
-        # "Decurved" marginal value
-        BegOfPrd_vPnvrsNext = uFunc.derinv(BegOfPrd_vPnext, order=(1, 0))
-
-        # Make the beginning-of-period pseudo-inverse marginal value of assets
-        # function conditionalon next period's state
+        # Calculate beginning-of-period marginal marginal value of assets, if needed
+        BegOfPrd_vPP = None
         if CubicBool:
-            # Calculate end-of-period marginal marginal value of assets at each gridpoint
             vPPfacEff = DiscFacEff * Rfree * Rfree * PermGroFac ** (-CRRA - 1.0)
-            BegOfPrd_vPPnext = vPPfacEff * expected(
-                calc_vPPnext, IncShkDstn, args=(aNrmNext, Rfree)
-            )
-            # "Decurved" marginal marginal value
-            BegOfPrd_vPnvrsPnext = BegOfPrd_vPPnext * uFunc.derinv(
-                BegOfPrd_vPnext, order=(1, 1)
+            BegOfPrd_vPP = vPPfacEff * expected(
+                calc_vPPnext, IncShkDstn, args=(aNrm, Rfree)
             )
 
-            # Construct the end-of-period marginal value function conditional on the next state.
-            BegOfPrd_vPnvrsFunc = CubicInterp(
-                aNrmNext,
-                BegOfPrd_vPnvrsNext,
-                BegOfPrd_vPnvrsPnext,
-                lower_extrap=True,
-            )
-            # TODO: Should not be lower extrap, add point at BoroCnstNat
-        else:
-            BegOfPrd_vPnvrsFunc = LinearInterp(
-                aNrmNext, BegOfPrd_vPnvrsNext, lower_extrap=True
-            )
-            # TODO: Should not be lower extrap, add point at BoroCnstNat
-
-        # "Recurve" the pseudo-inverse marginal value function
-        BegOfPrd_vPfunc = MargValueFuncCRRA(BegOfPrd_vPnvrsFunc, CRRA)
-        BegOfPrd_vPfunc_list.append(BegOfPrd_vPfunc)
-
-        # Construct the beginning-of-period value functional conditional on next
-        # period's state and add it to the list of value functions
+        # Calculate beginning-of-period value, if needed
+        BegOfPrd_v = None
         if vFuncBool:
-            # Calculate end-of-period value, its derivative, and their pseudo-inverse
-            BegOfPrd_vNext = DiscFacEff * expected(
-                calc_vNext, IncShkDstn, args=(aNrmNext, Rfree)
+            BegOfPrd_v = DiscFacEff * expected(
+                calc_vNext, IncShkDstn, args=(aNrm, Rfree)
             )
-            # value transformed through inverse utility
-            BegOfPrd_vNvrsNext = uFunc.inv(BegOfPrd_vNext)
-            BegOfPrd_vNvrsPnext = BegOfPrd_vPnext * uFunc.derinv(
-                BegOfPrd_vNext, order=(0, 1)
-            )
-            BegOfPrd_vNvrsNext = np.insert(BegOfPrd_vNvrsNext, 0, 0.0)
-            BegOfPrd_vNvrsPnext = np.insert(
-                BegOfPrd_vNvrsPnext, 0, BegOfPrd_vNvrsPnext[0]
-            )
-            # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        return BegOfPrd_vP, BegOfPrd_vPP, BegOfPrd_v
 
-            # Construct the end-of-period value function
-            aNrm_temp = np.insert(aNrmNext, 0, BoroCnstNat)
-            BegOfPrd_vNvrsFunc = LinearInterp(
-                aNrm_temp,
-                BegOfPrd_vNvrsNext,
-            )
-            BegOfPrd_vFunc = ValueFuncCRRA(BegOfPrd_vNvrsFunc, CRRA)
-            BegOfPrd_vFunc_list.append(BegOfPrd_vFunc)
-
-    # BegOfPrdvP is marginal value conditional on *next* period's state.
     # Take expectations over Markov transitions to get EndOfPrdvP conditional on
     # *this* period's Markov state.
 
@@ -535,13 +495,14 @@ def solve_one_period_ConsMarkov(
     aNrmMin_unique, Mrkv_inverse = np.unique(BoroCnstNat_list, return_inverse=True)
     possible_transitions = MrkvArray > 0
 
-    # Initialize end-of-period marginal value (and marg marg value) at each
-    # asset gridpoint for each current period state
+    # Initialize end-of-period marginal value (and marg marg value, and value)
+    # at each asset gridpoint for each current period state
     EndOfPrd_vP = np.zeros((StateCountNow, aXtraGrid.size))
     EndOfPrd_vPP = np.zeros((StateCountNow, aXtraGrid.size))
+    EndOfPrd_v = np.zeros((StateCountNow, aXtraGrid.size))
 
-    # Calculate end-of-period marginal value (and marg marg value) at each
-    # asset gridpoint for each current period state, grouping current states
+    # Calculate end-of-period marginal value (and marg marg value, and value) at
+    # each asset gridpoint for each current period state, grouping current states
     # by their natural borrowing constraint
     for k in range(aNrmMin_unique.size):
         # Get the states for which this minimum applies amd the aNrm grid for
@@ -551,9 +512,10 @@ def solve_one_period_ConsMarkov(
         aNrmNow = aNrmMin + aXtraGrid  # assets grid for this pass
 
         # Make arrays to hold successor period's beginning-of-period (marginal)
-        # marginal value if we transition to it
+        # marginal value, and value, if we transition to it
         BegOfPrd_vPnext = np.zeros((StateCountNext, aXtraGrid.size))
         BegOfPrd_vPPnext = np.zeros((StateCountNext, aXtraGrid.size))
+        BegOfPrd_vnext = np.zeros((StateCountNext, aXtraGrid.size))
 
         # Loop through future Markov states and fill in those values, but only
         # look at future states that can actually be reached from our current
@@ -561,11 +523,12 @@ def solve_one_period_ConsMarkov(
         for j in range(StateCountNext):
             if not np.any(np.logical_and(possible_transitions[:, j], which_states)):
                 continue
-
-            BegOfPrd_vPnext[j, :] = BegOfPrd_vPfunc_list[j](aNrmNow)
-            # Add conditional end-of-period (marginal) marginal value to the arrays
+            vP_j, vPP_j, v_j = calc_BegOfPrd_next(j, aNrmNow)
+            BegOfPrd_vPnext[j, :] = vP_j
             if CubicBool:
-                BegOfPrd_vPPnext[j, :] = BegOfPrd_vPfunc_list[j].derivativeX(aNrmNow)
+                BegOfPrd_vPPnext[j, :] = vPP_j
+            if vFuncBool:
+                BegOfPrd_vnext[j, :] = v_j
 
         # Weight conditional marginal values by transition probabilities
         # to get unconditional marginal (marginal) value at each gridpoint.
@@ -574,10 +537,13 @@ def solve_one_period_ConsMarkov(
         # Only take the states for which this asset minimum applies
         EndOfPrd_vP[which_states, :] = EndOfPrd_vP_temp[which_states, :]
 
-        # Do the same thing for marginal marginal value
+        # Do the same thing for marginal marginal value and value
         if CubicBool:
             EndOfPrd_vPP_temp = np.dot(MrkvArray, BegOfPrd_vPPnext)
             EndOfPrd_vPP[which_states, :] = EndOfPrd_vPP_temp[which_states, :]
+        if vFuncBool:
+            EndOfPrd_v_temp = np.dot(MrkvArray, BegOfPrd_vnext)
+            EndOfPrd_v[which_states, :] = EndOfPrd_v_temp[which_states, :]
 
     # Store the results as attributes of self, scaling end of period marginal value by survival probability from each current state
     LivPrb_tiled = np.tile(
@@ -586,6 +552,8 @@ def solve_one_period_ConsMarkov(
     EndOfPrd_vP = LivPrb_tiled * EndOfPrd_vP
     if CubicBool:
         EndOfPrd_vPP = LivPrb_tiled * EndOfPrd_vPP
+    if vFuncBool:
+        EndOfPrd_v = LivPrb_tiled * EndOfPrd_v
 
     # Calculate the bounding MPCs and PDV of human wealth for each state
 
@@ -635,7 +603,10 @@ def solve_one_period_ConsMarkov(
     cNrmNow = uFunc.derinv(EndOfPrd_vP, order=(1, 0))
     mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
     cNrmNow = np.hstack((np.zeros((StateCountNow, 1)), cNrmNow))
-    mNrmNow = np.hstack((np.reshape(mNrmMin_list, (StateCountNow, 1)), mNrmNow))
+    # The unconstrained consumption function starts at the natural borrowing
+    # constraint, below the first endogenous gridpoint, whether or not an
+    # artificial constraint binds; the lower envelope below applies the latter.
+    mNrmNow = np.hstack((np.reshape(BoroCnstNat_list, (StateCountNow, 1)), mNrmNow))
 
     # Calculate the MPC at each market resource gridpoint in each state (if desired)
     if CubicBool:
@@ -685,16 +656,22 @@ def solve_one_period_ConsMarkov(
             cNrm_for_vFunc = cFuncNow(mNrm_for_vFunc)
             aNrm_for_vFunc = mNrm_for_vFunc - cNrm_for_vFunc
 
-            # Calculate end-of-period value at each gridpoint
-            BegOfPrd_v_temp = np.zeros((StateCountNow, aXtraGrid.size))
-            for j in range(StateCountNext):
-                if possible_transitions[i, j]:
-                    BegOfPrd_v_temp[j, :] = BegOfPrd_vFunc_list[j](aNrm_for_vFunc)
-            # Survival is from the current state, as for EndOfPrd_vP above
-            EndOfPrd_v = LivPrb_list[i] * np.dot(MrkvArray[i, :], BegOfPrd_v_temp)
+            # Make the end-of-period value function from its values at this state's
+            # end-of-period asset gridpoints, which are exact there, adding the
+            # natural borrowing constraint as the lower bound
+            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v[i, :])
+            EndOfPrd_vNvrsP = EndOfPrd_vP[i, :] * uFunc.derinv(
+                EndOfPrd_v[i, :], order=(0, 1)
+            )
+            EndOfPrd_vNvrs = np.insert(EndOfPrd_vNvrs, 0, 0.0)
+            EndOfPrd_vNvrsP = np.insert(EndOfPrd_vNvrsP, 0, EndOfPrd_vNvrsP[0])
+            aNrm_temp = np.insert(aNrmNow[i, :], 0, BoroCnstNat_list[i])
+            EndOfPrd_vFunc = ValueFuncCRRA(
+                CubicInterp(aNrm_temp, EndOfPrd_vNvrs, EndOfPrd_vNvrsP), CRRA
+            )
 
             # Calculate (normalized) value and marginal value at each gridpoint
-            v_now = uFunc(cNrm_for_vFunc) + EndOfPrd_v
+            v_now = uFunc(cNrm_for_vFunc) + EndOfPrd_vFunc(aNrm_for_vFunc)
             vP_now = uFunc.der(cNrm_for_vFunc)
 
             # Make a "decurved" value function with the inverse utility function
@@ -706,14 +683,12 @@ def solve_one_period_ConsMarkov(
             vNvrsP_now = np.insert(
                 vNvrsP_now, 0, MPCmaxEff[i] ** (-CRRA / (1.0 - CRRA))
             )
-            # MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
-            vNvrsFuncNow = LinearInterp(
-                mNrm_temp,
-                vNvrs_now,
-                # vNvrsP_now,
-            )  # MPCminNvrs * hNrmNow_i, MPCminNvrs)
-            # The bounding function for the pseudo-inverse value function is incorrect.
-            # TODO: Resolve this strange issue; extrapolation is suppressed for now.
+            # Pseudo-inverse value approaches its limiting linear function above
+            # the grid, as in solve_one_period_ConsIndShock
+            MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
+            vNvrsFuncNow = CubicInterp(
+                mNrm_temp, vNvrs_now, vNvrsP_now, MPCminNvrs * hNrmNow_i, MPCminNvrs
+            )
 
             # "Recurve" the decurved value function and add it to the list
             vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
@@ -824,6 +799,7 @@ init_indshk_markov = {
     "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
     "PermGroFac": [np.array([0.99, 1.03])],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "BoroCnstInfimum": True,  # Whether the natural constraint uses the shocks' infima
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
