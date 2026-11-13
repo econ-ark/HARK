@@ -718,6 +718,24 @@ class testBufferStockArtificialConstraint(unittest.TestCase):
         basis = other.get_buffer_stock_conditions().existence_basis
         self.assertIn("no artificial borrowing limit other than zero", basis)
 
+    def test_the_grid_starts_at_the_binding_constraint(self):
+        # IndShockConsumerType's solver starts the asset grid at a binding
+        # artificial constraint, with the constraint as a gridpoint, so the kink
+        # where it stops binding is a node. For the liquidity constrained
+        # consumer, located by bisection, the kink is then the value of the
+        # check of the appendix's revision (item:Restrained), 0.9769
+        agent = make_agent(UnempPrb=0.0, BoroCnstArt=0.0, tolerance=1e-10)
+        agent.solve()
+        cFunc = agent.solution[0].cFunc
+        lo, hi = 0.9, 1.05
+        for _ in range(60):
+            mid = 0.5 * (lo + hi)
+            if abs(float(cFunc(mid)) - mid) < 1e-12:
+                lo = mid
+            else:
+                hi = mid
+        self.assertAlmostEqual(lo, 0.9769, places=4)
+
     def test_no_borrowing_with_positive_income_in_the_event(self):
         # The values of the check of the appendix's revision (item:Artificial),
         # with the default laws: the constraint binds below a positive level of
