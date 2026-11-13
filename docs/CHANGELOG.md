@@ -118,6 +118,7 @@ Work through this list when preparing the release, then delete it. The version l
 - future item
 - `AggIndMrkvConsumerType` reads `num_micro_states` and `num_macro_states` from the arrays it holds (the block size and length of `CondMrkvArrays`, else the size of `MrkvArray` over the micro count) instead of trusting the constructor's values, so a chain installed after construction changes the counts with it; a count that is passed is checked against the installed arrays and a disagreement raises. Both counts are now optional when `CondMrkvArrays` is installed. [#1854](https://github.com/econ-ark/HARK/pull/1854)
 - Fixes `IndShockConsumerType(cycles=0, quiet=True).solve()` raising `ValueError`: `pre_solve` skipped `check_conditions` under `quiet`, but `post_solve` needs the conditions for `calc_stable_points`. `quiet` now silences the conditions report and its per-condition log messages, and the conditions are still computed. [#1877](https://github.com/econ-ark/HARK/pull/1877)
+- Adds a `max_cycles` argument to `AgentType`, default 5000, for the cap on the cycles of an infinite-horizon solve, which was a fixed local variable in `solve_agent`. `solve_agent` now warns when the cap stops a solve that has not converged, instead of returning the unconverged solution silently. The cap counts cycles exactly, so an unconverged default solve now runs 5000 cycles rather than 5001. [#1876](https://github.com/econ-ark/HARK/pull/1876)
 
 
 ### 0.17.2
