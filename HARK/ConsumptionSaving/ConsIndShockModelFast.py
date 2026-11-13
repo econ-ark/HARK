@@ -559,12 +559,22 @@ def _prepare_to_solveConsIndShockNumba(
     experience next period.
     """
 
-    # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
-    # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
-    # function as the lower envelope of the (by the artificial borrowing con-
-    # straint) uconstrained consumption function, and the artificially con-
-    # strained consumption function.
-    aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    # Construct the end-of-period assets grid. Where the artificial borrowing
+    # constraint binds (BoroCnstNat < mNrmMinNow), the grid starts at that
+    # constraint, with the constraint itself as its first point. Gridpoints
+    # below it would build the unconstrained consumption function where the
+    # lower envelope below always takes the constraint line instead, so the
+    # expectations computed there would be wasted. At the constraint itself the
+    # end-of-period marginal value of assets is finite, so the first-order
+    # condition gives consumption there directly, and that point's endogenous
+    # gridpoint is the kink where the constraint stops binding: a node of the
+    # solution, not the crossing of two interpolants. Where the natural
+    # borrowing constraint binds, the grid stays above it, as marginal value
+    # is infinite at the natural limit itself.
+    if BoroCnstNat < mNrmMinNow:
+        aNrmNow = mNrmMinNow + _np_insert(np.asarray(aXtraGrid), 0, 0.0)
+    else:
+        aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
     ShkCount = TranShkValsNext.size
     aNrm_temp = _np_tile(aNrmNow, (ShkCount, 1))
 
@@ -640,7 +650,13 @@ def _solveConsIndShockLinearNumba(
     cNrmNow = utilityP_inv(EndOfPrdvP, CRRA)
     mNrmNow = cNrmNow + aNrmNow
 
-    # Limiting consumption is zero as m approaches mNrmMin
+    # The unconstrained consumption function starts at the natural borrowing
+    # constraint, where consumption is zero, whichever constraint binds. Where
+    # the artificial constraint binds, this is the one point below the grid:
+    # it keeps the interpolant defined down to mNrmMinNow, where the lower
+    # envelope takes the constraint line instead. The kink is a node of this
+    # function, which is smooth there, with a single slope (the unconstrained
+    # MPC), so no interpolation node has to carry the kink's two slopes.
     cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
     mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
 
@@ -800,7 +816,13 @@ def _solveConsIndShockCubicNumba(
     cNrmNow = EndOfPrdvP ** (-1.0 / CRRA)
     mNrmNow = cNrmNow + aNrmNow
 
-    # Limiting consumption is zero as m approaches mNrmMin
+    # The unconstrained consumption function starts at the natural borrowing
+    # constraint, where consumption is zero, whichever constraint binds. Where
+    # the artificial constraint binds, this is the one point below the grid:
+    # it keeps the interpolant defined down to mNrmMinNow, where the lower
+    # envelope takes the constraint line instead. The kink is a node of this
+    # function, which is smooth there, with a single slope (the unconstrained
+    # MPC), so no interpolation node has to carry the kink's two slopes.
     cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
     mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
 
@@ -1405,7 +1427,15 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                         solution.cFuncLimitSlope,
                     )
 
-                # Combine the constrained and unconstrained functions into the true consumption function
+                # Combine the constrained and unconstrained functions into the true
+                # consumption function. The artificial constraint is applied here, as the
+                # lower envelope of two smooth functions, rather than inside one
+                # interpolant: at the kink the consumption function's slope jumps from one,
+                # below it, to the unconstrained MPC above it, and a cubic Hermite node
+                # carries only one slope. The piecewise linear rule does not need the
+                # envelope, since a linear interpolant can carry the kink at a node, but it
+                # is built the same way. Where the grid starts at the constraint, the two
+                # functions meet exactly at the kink's node.
                 cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
 
                 # Make the marginal value function and the marginal marginal value function

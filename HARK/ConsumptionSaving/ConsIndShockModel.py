@@ -827,8 +827,22 @@ def solve_one_period_ConsIndShock(
         np.array([0.0, 1.0]),
     )
 
-    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
-    aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    # Construct the end-of-period assets grid. Where the artificial borrowing
+    # constraint binds (BoroCnstNat < mNrmMinNow), the grid starts at that
+    # constraint, with the constraint itself as its first point. Gridpoints
+    # below it would build the unconstrained consumption function where the
+    # lower envelope below always takes the constraint line instead, so the
+    # expectations computed there would be wasted. At the constraint itself the
+    # end-of-period marginal value of assets is finite, so the first-order
+    # condition gives consumption there directly, and that point's endogenous
+    # gridpoint is the kink where the constraint stops binding: a node of the
+    # solution, not the crossing of two interpolants. Where the natural
+    # borrowing constraint binds, the grid stays above it, as marginal value
+    # is infinite at the natural limit itself.
+    if BoroCnstNat < mNrmMinNow:
+        aNrmNow = mNrmMinNow + np.insert(np.asarray(aXtraGrid), 0, 0.0)
+    else:
+        aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
 
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
@@ -842,7 +856,13 @@ def solve_one_period_ConsIndShock(
     cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
     mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
 
-    # Limiting consumption is zero as m approaches mNrmMin
+    # The unconstrained consumption function starts at the natural borrowing
+    # constraint, where consumption is zero, whichever constraint binds. Where
+    # the artificial constraint binds, this is the one point below the grid:
+    # it keeps the interpolant defined down to mNrmMinNow, where the lower
+    # envelope takes the constraint line instead. The kink is a node of this
+    # function, which is smooth there, with a single slope (the unconstrained
+    # MPC), so no interpolation node has to carry the kink's two slopes.
     c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
     m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
 
@@ -876,8 +896,15 @@ def solve_one_period_ConsIndShock(
             cFuncLimitSlope,
         )
 
-    # Combine the constrained and unconstrained functions into the true consumption function.
-    # LowerEnvelope should only be used when BoroCnstArt is True
+    # Combine the constrained and unconstrained functions into the true
+    # consumption function. The artificial constraint is applied here, as the
+    # lower envelope of two smooth functions, rather than inside one
+    # interpolant: at the kink the consumption function's slope jumps from one,
+    # below it, to the unconstrained MPC above it, and a cubic Hermite node
+    # carries only one slope. The piecewise linear rule does not need the
+    # envelope, since a linear interpolant can carry the kink at a node, but it
+    # is built the same way. Where the grid starts at the constraint, the two
+    # functions meet exactly at the kink's node.
     cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
 
     # Make the marginal value function and the marginal marginal value function
@@ -1079,7 +1106,11 @@ def solve_one_period_ConsKinkedR(
         np.array([0.0, 1.0]),
     )
 
-    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
+    # Construct the end-of-period assets grid from the constraint in force,
+    # mNrmMinNow, the larger of the natural and artificial borrowing
+    # constraints, with two points at zero for the kink in the interest factor
+    # (where borrowing and saving rates differ). Unlike the standard solver's
+    # grid, it has no point at an artificial constraint other than zero.
     aNrmNow = np.sort(
         np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 1e-15]))),
     )
