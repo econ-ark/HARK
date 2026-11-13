@@ -45,10 +45,15 @@ which one is in force is written per scenario:
   (thm:existenceNoWorst, prop:NoWorstTargets). For a constraint below zero the
   report claims nothing on the paper's authority.
 
+The labels in the report and in this module (thm:target, eq:WRICWorst, ...)
+are the paper's. :func:`paper_url` gives the place of each in the paper's web
+edition.
+
 References
 ----------
 Carroll, Christopher D. "Theoretical Foundations of Buffer Stock Saving."
-https://econ-ark.github.io/BufferStockTheory/
+https://llorracc.github.io/BufferStockTheory/ ; its appendix "Positive Minimum
+Income": https://llorracc.github.io/BufferStockTheory/#sec-apndxpositiveminimumincome
 """
 
 import warnings
@@ -89,6 +94,7 @@ from HARK.distributions import (
 )
 
 __all__ = [
+    "paper_url",
     "PointMassAtInfimum",
     "BufferStockConsumerType",
     "BufferStockConditions",
@@ -97,6 +103,30 @@ __all__ = [
     "constraint_scenario",
     "init_buffer_stock",
 ]
+
+
+PAPER_URL = "https://llorracc.github.io/BufferStockTheory/"
+
+
+def paper_url(label):
+    """
+    The place of one of the paper's labels in its web edition: for example,
+    paper_url("thm:existencePositiveMinimum") is
+    https://llorracc.github.io/BufferStockTheory/#thm-existencepositiveminimum.
+    The web edition makes each label an anchor, in lower case with a hyphen for
+    the colon; a label it does not show as an anchor leads to the top of the
+    page.
+
+    Parameters
+    ----------
+    label : str
+        A label of the paper, as this module cites it.
+
+    Returns
+    -------
+    url : str
+    """
+    return PAPER_URL + "#" + label.lower().replace(":", "-")
 
 
 ###############################################################################
@@ -1725,6 +1755,10 @@ class BufferStockConsumerType(IndShockConsumerType):
         lines.append(results.existence_basis)
         for note in results.notes:
             lines.append(note)
+        lines.append(
+            "The labels are the paper's: paper_url(label) gives each one's place in "
+            f"its web edition, {PAPER_URL}"
+        )
         self.bilt["conditions_report"] = "\n".join(lines) + "\n"
         if verbose >= 2 and not self.quiet:
             level = _log.level
