@@ -648,3 +648,44 @@ class testMarkovConstraintDomain(unittest.TestCase):
             self.assertTrue(np.isnan(cFunc(mNrmMin - 1e-6)))
             self.assertEqual(cFunc(mNrmMin), 0.0)
             self.assertAlmostEqual(cFunc(mNrmMin + 1e-6), 1e-6, places=12)
+
+
+class testMarkovKink(unittest.TestCase):
+    """Where the artificial constraint binds in a state, the solution records
+    that state's kink, consumption there and the MPC just above it."""
+
+    def test_kink_in_each_state(self):
+        for CubicBool in (False, True):
+            with self.subTest(CubicBool=CubicBool):
+                agent = MarkovConsumerType(cycles=0, CubicBool=CubicBool)
+                agent.solve()
+                solution = agent.solution[0]
+                for s in range(2):
+                    mNrmKink = solution.mNrmKink[s]
+                    cNrmKink = solution.cNrmKink[s]
+                    cFunc = solution.cFunc[s]
+                    self.assertAlmostEqual(
+                        cNrmKink, mNrmKink - solution.mNrmMin[s], places=12
+                    )
+                    self.assertAlmostEqual(float(cFunc(mNrmKink)), cNrmKink, places=12)
+                    h = 1e-7
+                    self.assertAlmostEqual(
+                        float(cFunc.derivative(mNrmKink - h)), 1.0, places=12
+                    )
+                    self.assertAlmostEqual(
+                        float(cFunc.derivative(mNrmKink + h)),
+                        solution.MPCaboveKink[s],
+                        places=5,
+                    )
+        # The default model's kinks with the linear rule
+        agent = MarkovConsumerType(cycles=0)
+        agent.solve()
+        np.testing.assert_allclose(
+            agent.solution[0].mNrmKink, [0.7253586953, 0.7351661883], atol=1e-9
+        )
+
+    def test_no_kink_where_the_natural_constraint_binds(self):
+        agent = MarkovConsumerType(cycles=0, BoroCnstArt=None)
+        agent.solve()
+        for name in ("mNrmKink", "cNrmKink", "MPCaboveKink"):
+            self.assertTrue(np.all(np.isnan(getattr(agent.solution[0], name))))

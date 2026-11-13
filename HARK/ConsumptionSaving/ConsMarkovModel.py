@@ -701,6 +701,26 @@ def solve_one_period_ConsMarkov(
     solution.hNrm = hNrmNow
     solution.MPCmin = MPCminNow
     solution.MPCmax = MPCmaxNow
+
+    # Where the artificial constraint binds in a state, the kink of its consumption
+    # function is the endogenous gridpoint of end-of-period assets at the
+    # constraint, the node after the natural borrowing constraint: record it, the
+    # consumption there and the MPC just above it (the node's MPC under the cubic
+    # rule, the slope of the segment that starts there under the linear one). NaN
+    # in a state where the natural constraint binds.
+    mNrmKink = np.full(StateCountNow, np.nan)
+    cNrmKink = np.full(StateCountNow, np.nan)
+    MPCaboveKink = np.full(StateCountNow, np.nan)
+    for i in np.flatnonzero(ArtCnstBinds):
+        m_i, c_i = mNrmNow[i], cNrmNow[i]
+        mNrmKink[i], cNrmKink[i] = m_i[1], c_i[1]
+        if CubicBool:
+            MPCaboveKink[i] = MPCnow[i][1]
+        else:
+            MPCaboveKink[i] = (c_i[2] - c_i[1]) / (m_i[2] - m_i[1])
+    solution.mNrmKink = mNrmKink
+    solution.cNrmKink = cNrmKink
+    solution.MPCaboveKink = MPCaboveKink
     solution.cFuncX = IndexedInterp(solution.cFunc)
     return solution
 
