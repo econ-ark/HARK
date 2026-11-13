@@ -8,6 +8,7 @@ Guides
    quick_start
    installation
    simulation
+   interpolation_backends
    krusell_smith
    migration_case_study
 
