@@ -469,39 +469,49 @@ def solve_one_period_ConsMarkov(
             )
         return BegOfPrd_vP, BegOfPrd_vPP, BegOfPrd_v
 
-    # Take expectations over Markov transitions to get EndOfPrdvP conditional on
-    # *this* period's Markov state.
+    # Construct each current state's end-of-period assets grid, as
+    # solve_one_period_ConsIndShock does. Where the artificial borrowing
+    # constraint binds in state i (BoroCnstNat_list[i] < mNrmMin_list[i]), the
+    # grid starts at that constraint, with the constraint itself as its first
+    # point: gridpoints below it would build the unconstrained consumption
+    # function where the lower envelope always takes the constraint line, and at
+    # the constraint the end-of-period marginal value of assets is finite, so
+    # that point's endogenous gridpoint is the kink. Where the natural borrowing
+    # constraint binds, the grid stays above it, as marginal value is infinite
+    # at the natural limit itself.
+    ArtCnstBinds = BoroCnstNat_list < mNrmMin_list
+    aNrmGrid_list = [
+        mNrmMin_list[i] + np.insert(aXtraGrid, 0, 0.0)
+        if ArtCnstBinds[i]
+        else BoroCnstNat_list[i] + aXtraGrid
+        for i in range(StateCountNow)
+    ]
 
-    # Find unique values of minimum acceptable end-of-period assets (and the
-    # current period states for which they apply).
-    aNrmMin_unique, Mrkv_inverse = np.unique(BoroCnstNat_list, return_inverse=True)
+    # Take expectations over Markov transitions to get end-of-period marginal
+    # value (and marginal marginal value, and value) conditional on *this*
+    # period's Markov state, at its own gridpoints. Current states whose grids
+    # are the same share one pass.
     possible_transitions = MrkvArray > 0
-
-    # Initialize end-of-period marginal value (and marg marg value, and value)
-    # at each asset gridpoint for each current period state
-    EndOfPrd_vP = np.zeros((StateCountNow, aXtraGrid.size))
-    EndOfPrd_vPP = np.zeros((StateCountNow, aXtraGrid.size))
-    EndOfPrd_v = np.zeros((StateCountNow, aXtraGrid.size))
-
-    # Calculate end-of-period marginal value (and marg marg value, and value) at
-    # each asset gridpoint for each current period state, grouping current states
-    # by their natural borrowing constraint
-    for k in range(aNrmMin_unique.size):
-        # Get the states for which this minimum applies amd the aNrm grid for
-        # this set of current states
-        aNrmMin = aNrmMin_unique[k]  # minimum assets for this pass
-        which_states = Mrkv_inverse == k
-        aNrmNow = aNrmMin + aXtraGrid  # assets grid for this pass
+    grid_keys = [
+        (aNrmGrid_list[i][0], bool(ArtCnstBinds[i])) for i in range(StateCountNow)
+    ]
+    EndOfPrd_vP = [None] * StateCountNow
+    EndOfPrd_vPP = [None] * StateCountNow
+    EndOfPrd_v = [None] * StateCountNow
+    for key in dict.fromkeys(grid_keys):
+        # Get the states for which this grid applies, and the grid
+        which_states = np.array([grid_key == key for grid_key in grid_keys])
+        aNrmNow = aNrmGrid_list[int(np.argmax(which_states))]
 
         # Make arrays to hold successor period's beginning-of-period (marginal)
         # marginal value, and value, if we transition to it
-        BegOfPrd_vPnext = np.zeros((StateCountNext, aXtraGrid.size))
-        BegOfPrd_vPPnext = np.zeros((StateCountNext, aXtraGrid.size))
-        BegOfPrd_vnext = np.zeros((StateCountNext, aXtraGrid.size))
+        BegOfPrd_vPnext = np.zeros((StateCountNext, aNrmNow.size))
+        BegOfPrd_vPPnext = np.zeros((StateCountNext, aNrmNow.size))
+        BegOfPrd_vnext = np.zeros((StateCountNext, aNrmNow.size))
 
         # Loop through future Markov states and fill in those values, but only
         # look at future states that can actually be reached from our current
-        # set of states (for this natural borrowing constraint value)
+        # set of states (for this grid)
         for j in range(StateCountNext):
             if not np.any(np.logical_and(possible_transitions[:, j], which_states)):
                 continue
@@ -512,30 +522,20 @@ def solve_one_period_ConsMarkov(
             if vFuncBool:
                 BegOfPrd_vnext[j, :] = v_j
 
-        # Weight conditional marginal values by transition probabilities
-        # to get unconditional marginal (marginal) value at each gridpoint.
+        # Weight conditional marginal values by transition probabilities to get
+        # unconditional marginal (marginal) value at each gridpoint, and scale
+        # by survival probability from each current state
         EndOfPrd_vP_temp = np.dot(MrkvArray, BegOfPrd_vPnext)
-
-        # Only take the states for which this asset minimum applies
-        EndOfPrd_vP[which_states, :] = EndOfPrd_vP_temp[which_states, :]
-
-        # Do the same thing for marginal marginal value and value
         if CubicBool:
             EndOfPrd_vPP_temp = np.dot(MrkvArray, BegOfPrd_vPPnext)
-            EndOfPrd_vPP[which_states, :] = EndOfPrd_vPP_temp[which_states, :]
         if vFuncBool:
             EndOfPrd_v_temp = np.dot(MrkvArray, BegOfPrd_vnext)
-            EndOfPrd_v[which_states, :] = EndOfPrd_v_temp[which_states, :]
-
-    # Store the results as attributes of self, scaling end of period marginal value by survival probability from each current state
-    LivPrb_tiled = np.tile(
-        np.reshape(LivPrb_list, (StateCountNow, 1)), (1, aXtraGrid.size)
-    )
-    EndOfPrd_vP = LivPrb_tiled * EndOfPrd_vP
-    if CubicBool:
-        EndOfPrd_vPP = LivPrb_tiled * EndOfPrd_vPP
-    if vFuncBool:
-        EndOfPrd_v = LivPrb_tiled * EndOfPrd_v
+        for i in np.flatnonzero(which_states):
+            EndOfPrd_vP[i] = LivPrb_list[i] * EndOfPrd_vP_temp[i, :]
+            if CubicBool:
+                EndOfPrd_vPP[i] = LivPrb_list[i] * EndOfPrd_vPP_temp[i, :]
+            if vFuncBool:
+                EndOfPrd_v[i] = LivPrb_list[i] * EndOfPrd_v_temp[i, :]
 
     # Calculate the bounding MPCs and PDV of human wealth for each state
 
@@ -581,20 +581,25 @@ def solve_one_period_ConsMarkov(
 
     # Find consumption and market resources corresponding to each end-of-period
     # assets point for each state (and add an additional point at the lower bound)
-    aNrmNow = (aXtraGrid)[np.newaxis, :] + np.array(BoroCnstNat_list)[:, np.newaxis]
-    cNrmNow = uFunc.derinv(EndOfPrd_vP, order=(1, 0))
-    mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
-    cNrmNow = np.hstack((np.zeros((StateCountNow, 1)), cNrmNow))
-    # The unconstrained consumption function starts at the natural borrowing
-    # constraint, below the first endogenous gridpoint, whether or not an
-    # artificial constraint binds; the lower envelope below applies the latter.
-    mNrmNow = np.hstack((np.reshape(BoroCnstNat_list, (StateCountNow, 1)), mNrmNow))
+    cNrmNow = []
+    mNrmNow = []
+    MPCnow = []
+    for i in range(StateCountNow):
+        cNrm_i = uFunc.derinv(EndOfPrd_vP[i], order=(1, 0))
+        mNrm_i = cNrm_i + aNrmGrid_list[i]  # Endogenous mNrm gridpoints
+        # The unconstrained consumption function starts at the natural borrowing
+        # constraint, below the first endogenous gridpoint, whether or not an
+        # artificial constraint binds; the lower envelope below applies the
+        # latter. Where the grid starts at the artificial constraint, the kink is
+        # a node of this function, which is smooth there with a single slope, so
+        # no cubic Hermite node has to carry the kink's two slopes.
+        cNrmNow.append(np.insert(cNrm_i, 0, 0.0))
+        mNrmNow.append(np.insert(mNrm_i, 0, BoroCnstNat_list[i]))
 
-    # Calculate the MPC at each market resource gridpoint in each state (if desired)
-    if CubicBool:
-        dcda = EndOfPrd_vPP / uFunc.der(cNrmNow[:, 1:], order=2)  # drop first
-        MPCnow = dcda / (dcda + 1.0)
-        MPCnow = np.hstack((np.reshape(MPCmaxNow, (StateCountNow, 1)), MPCnow))
+        # Calculate the MPC at each market resource gridpoint (if desired)
+        if CubicBool:
+            dcda = EndOfPrd_vPP[i] / uFunc.der(cNrm_i, order=2)
+            MPCnow.append(np.insert(dcda / (dcda + 1.0), 0, MPCmaxNow[i]))
 
     # Initialize an empty solution to which we'll add state-conditional solutions
     solution = ConsumerSolution()
@@ -612,15 +617,15 @@ def solve_one_period_ConsMarkov(
         )
         if CubicBool:
             cFuncNowUnc = CubicInterp(
-                mNrmNow[i, :],
-                cNrmNow[i, :],
-                MPCnow[i, :],
+                mNrmNow[i],
+                cNrmNow[i],
+                MPCnow[i],
                 MPCminNow_i * hNrmNow_i,
                 MPCminNow_i,
             )
         else:
             cFuncNowUnc = LinearInterp(
-                mNrmNow[i, :], cNrmNow[i, :], MPCminNow_i * hNrmNow_i, MPCminNow_i
+                mNrmNow[i], cNrmNow[i], MPCminNow_i * hNrmNow_i, MPCminNow_i
             )
         # NaN below mNrmMin, as in IndShockConsumerType, rather than the
         # unconstrained function's value there
@@ -643,13 +648,11 @@ def solve_one_period_ConsMarkov(
             # Make the end-of-period value function from its values at this state's
             # end-of-period asset gridpoints, which are exact there, adding the
             # natural borrowing constraint as the lower bound
-            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v[i, :])
-            EndOfPrd_vNvrsP = EndOfPrd_vP[i, :] * uFunc.derinv(
-                EndOfPrd_v[i, :], order=(0, 1)
-            )
+            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v[i])
+            EndOfPrd_vNvrsP = EndOfPrd_vP[i] * uFunc.derinv(EndOfPrd_v[i], order=(0, 1))
             EndOfPrd_vNvrs = np.insert(EndOfPrd_vNvrs, 0, 0.0)
             EndOfPrd_vNvrsP = np.insert(EndOfPrd_vNvrsP, 0, EndOfPrd_vNvrsP[0])
-            aNrm_temp = np.insert(aNrmNow[i, :], 0, BoroCnstNat_list[i])
+            aNrm_temp = np.insert(aNrmGrid_list[i], 0, BoroCnstNat_list[i])
             EndOfPrd_vFunc = ValueFuncCRRA(
                 CubicInterp(aNrm_temp, EndOfPrd_vNvrs, EndOfPrd_vNvrsP), CRRA
             )

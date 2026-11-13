@@ -281,13 +281,17 @@ class testMarkovValueFunc(unittest.TestCase):
             np.testing.assert_allclose(solution.vFunc[i](m), v, rtol=0, atol=1e-2)
 
     def test_vFunc(self):
-        # With 400 or 1600 asset gridpoints these values are -18.14255 and -17.90644.
-        # Before expectations over Markov states were exact at the gridpoints they
-        # were -18.15152 and -17.91514 on the default grid.
+        # With 1600 asset gridpoints these values are -18.14258 and -17.90647. The
+        # grid starts at the binding artificial constraint, so its top is
+        # aXtraMax above that constraint; with the top raised to 300 they are
+        # -18.14323 and -17.90711, the same to 1e-7 as when the grid started at the
+        # natural borrowing constraint. On the default grid they were -18.14233 and
+        # -17.90622 when it started there, and -18.15152 and -17.91514 before
+        # expectations over Markov states were exact at the gridpoints.
         agent = MarkovConsumerType(cycles=0, vFuncBool=True)
         agent.solve()
-        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.14233, places=4)
-        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.90622, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.14245, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.90635, places=4)
 
 
 class testMarkovMatchesIndShock(unittest.TestCase):
