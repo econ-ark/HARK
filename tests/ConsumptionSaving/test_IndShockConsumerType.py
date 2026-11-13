@@ -1593,3 +1593,58 @@ class testAssetGridAtTheArtificialConstraint(unittest.TestCase):
                         rtol=0.0,
                         atol=1e-12,
                     )
+
+
+class testKinkAttributes(unittest.TestCase):
+    """Where the artificial borrowing constraint binds, the solution records
+    the kink, consumption there and the MPC just above it."""
+
+    def test_kink_where_the_artificial_constraint_binds(self):
+        for CubicBool in (False, True):
+            with self.subTest(CubicBool=CubicBool):
+                agent = IndShockConsumerType(cycles=0, CubicBool=CubicBool)
+                agent.solve()
+                solution = agent.solution[0]
+                mNrmKink, cNrmKink = solution.mNrmKink, solution.cNrmKink
+                # The consumer ends the period at the constraint there
+                self.assertAlmostEqual(cNrmKink, mNrmKink - solution.mNrmMin, places=12)
+                self.assertAlmostEqual(
+                    float(solution.cFunc(mNrmKink)), cNrmKink, places=12
+                )
+                # Slope one below, on the constraint; MPCaboveKink above
+                h = 1e-7
+                self.assertAlmostEqual(
+                    float(solution.cFunc.derivative(mNrmKink - h)), 1.0, places=12
+                )
+                self.assertAlmostEqual(
+                    float(solution.cFunc.derivative(mNrmKink + h)),
+                    solution.MPCaboveKink,
+                    places=5,
+                )
+                self.assertLess(solution.MPCaboveKink, 1.0)
+
+    def test_default_values(self):
+        agent = IndShockConsumerType(cycles=0)
+        agent.solve()
+        solution = agent.solution[0]
+        self.assertAlmostEqual(solution.mNrmKink, 0.7550460925, places=8)
+        self.assertAlmostEqual(solution.MPCaboveKink, 0.5139080425, places=8)
+
+    def test_no_kink_where_the_natural_constraint_binds(self):
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        agent.solve()
+        solution = agent.solution[0]
+        self.assertTrue(np.isnan(solution.mNrmKink))
+        self.assertTrue(np.isnan(solution.cNrmKink))
+        self.assertTrue(np.isnan(solution.MPCaboveKink))
+
+    def test_every_period_of_a_finite_horizon(self):
+        agent = IndShockConsumerType(cycles=3)
+        agent.solve()
+        for solution in agent.solution[:-1]:
+            self.assertTrue(np.isfinite(solution.mNrmKink))
+            self.assertAlmostEqual(
+                float(solution.cFunc(solution.mNrmKink)), solution.cNrmKink, places=12
+            )
+        # The terminal solution is not solved on a grid, and records nothing
+        self.assertIsNone(agent.solution[-1].mNrmKink)
