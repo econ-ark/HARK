@@ -8,6 +8,7 @@ from HARK.ConsumptionSaving.ConsBufferStockModel import (
     BufferStockConsumerType,
     PointMassAtInfimum,
     calc_buffer_stock_conditions,
+    paper_url,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.distributions import DiscreteDistribution, Lognormal, MeanOneLogNormal
@@ -40,6 +41,15 @@ class testBufferStockConditions(unittest.TestCase):
         results = bilt["BufferStockConditions"]
         self.assertAlmostEqual(results.hNrm, 103.0, places=9)
         self.assertEqual(results.BoroCnstNat, 0.0)
+
+    def test_links_to_the_paper(self):
+        # Each label is an anchor of the paper's web edition, in lower case with a
+        # hyphen for the colon
+        self.assertEqual(
+            paper_url("thm:existencePositiveMinimum"),
+            "https://llorracc.github.io/BufferStockTheory/#thm-existencepositiveminimum",
+        )
+        self.assertIn("paper_url", self.agent.bilt["conditions_report"])
 
     def test_verdicts_at_the_calibration(self):
         results = self.agent.bilt["BufferStockConditions"]
