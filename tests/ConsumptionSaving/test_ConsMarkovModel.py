@@ -524,3 +524,30 @@ class testNewbornMarkovStates(unittest.TestCase):
         newborn = agent.history["t_age"] == 1  # t_age is recorded after the increment
         self.assertTrue(newborn[1:].any())
         np.testing.assert_array_equal(Mrkv, newborn.astype(int))
+
+
+class testMarkovHumanWealth(unittest.TestCase):
+    def test_limiting_intercept(self):
+        # With Rfree differing across persistent states, MPCmin differs too, and
+        # c(m) - MPCmin * m must approach MPCmin * hNrm deep inside the grid.
+        agent = MarkovConsumerType(
+            cycles=0,
+            CRRA=3.0,
+            Rfree=[np.array([1.01, 1.07])],
+            LivPrb=[np.array([1.0, 1.0])],
+            PermGroFac=[np.array([1.0, 1.0])],
+            Mrkv_p11=[0.95],
+            Mrkv_p22=[0.95],
+            PermShkStd=np.array([[0.1, 0.1]]),
+            TranShkStd=np.array([[0.1, 0.1]]),
+            UnempPrb=np.array([0.05, 0.05]),
+            IncUnemp=np.array([0.0, 0.0]),
+            aXtraMax=1.0e5,
+            aXtraCount=300,
+        )
+        agent.solve()
+        sol = agent.solution[0]
+        m = 5.0e4
+        for s in range(2):
+            gap = sol.cFunc[s](m) - sol.MPCmin[s] * m
+            self.assertAlmostEqual(gap, sol.MPCmin[s] * sol.hNrm[s], delta=0.05)
