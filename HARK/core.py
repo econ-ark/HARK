@@ -1107,6 +1107,10 @@ class AgentType(Model):
         one period problem in an infinite horizon (cycles=0) model in order
         for the solution to be considered as having "converged".  Inoperative
         when cycles>0.
+    max_cycles : int
+        Maximum number of cycles to solve in an infinite horizon (cycles=0)
+        model, default is 5000.  If the solution has not converged by then,
+        the solve stops with a warning.  Inoperative when cycles>0.
     verbose : int
         Level of output to be displayed by this instance, default is 1.
     quiet : bool
@@ -1152,6 +1156,7 @@ class AgentType(Model):
         seed=0,
         construct=True,
         use_defaults=True,
+        max_cycles=5000,
         **kwds,
     ):
         super().__init__()
@@ -1187,6 +1192,7 @@ class AgentType(Model):
         self.solution_terminal = solution_terminal  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
         self.tolerance = tolerance  # NOQA
+        self.max_cycles = max_cycles  # NOQA
         self.verbose = verbose
         self.quiet = quiet
         self.seed = seed  # NOQA
@@ -2365,7 +2371,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
     # Initialize the process, then loop over cycles
     go = True  # NOQA
     completed_cycles = 0  # NOQA
-    max_cycles = 5000  # NOQA  - escape clause
+    max_cycles = agent.max_cycles  # NOQA  - escape clause
     warned_nan = False  # warn once per solve about a nan distance
     if verbose:
         t_last = time()
@@ -2399,9 +2405,16 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                         "converged."
                     )
                     warned_nan = True
-                go = (
-                    not finite or solution_distance > agent.tolerance
-                ) and completed_cycles < max_cycles
+                converged = finite and solution_distance <= agent.tolerance
+                go = not converged and completed_cycles + 1 < max_cycles
+                if not converged and not go:
+                    warn(
+                        f"solve_agent stopped at its max_cycles of {max_cycles} "
+                        "with a distance between iterates of "
+                        f"{solution_distance}, above the tolerance of "
+                        f"{agent.tolerance}: the solution has not converged. "
+                        "Set a larger max_cycles to keep iterating."
+                    )
             else:  # Assume solution does not converge after only one cycle
                 solution_distance = 100.0
                 go = True

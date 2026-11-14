@@ -1687,3 +1687,54 @@ class test_solve_agent_nonfinite_distance(unittest.TestCase):
                 agent.solve()
             self.assertEqual(agent.completed_cycles, cycles)
             self.assertEqual(agent.solution_distance, 0.0)
+
+
+class test_solve_agent_max_cycles(unittest.TestCase):
+    """The cap on infinite-horizon cycles can be set, and warns when it binds (issue #1847)."""
+
+    @staticmethod
+    def _counting_agent(converges_after, **kwds):
+        # an infinite-horizon agent whose iterate grows by one each cycle, until
+        # it has been solved converges_after times
+        class Iterate(MetricObject):
+            distance_criteria = ["x"]
+
+            def __init__(self, x):
+                self.x = x
+
+        agent = AgentType(solution_terminal=Iterate(0.0), cycles=0, **kwds)
+        agent.T_cycle = 1
+        agent.calls = 0
+
+        def solve_one_period(solution_next):
+            agent.calls += 1
+            return Iterate(float(min(agent.calls, converges_after)))
+
+        agent.solve_one_period = solve_one_period
+        return agent
+
+    def test_default_is_5000(self):
+        self.assertEqual(AgentType().max_cycles, 5000)
+
+    def test_warns_when_the_cap_binds(self):
+        agent = self._counting_agent(converges_after=20, max_cycles=10)
+        with self.assertWarnsRegex(UserWarning, "max_cycles of 10"):
+            agent.solve()
+        self.assertEqual(agent.calls, 10)
+        self.assertEqual(agent.solution_distance, 1.0)
+
+    def test_a_larger_cap_lets_the_solve_converge(self):
+        agent = self._counting_agent(converges_after=20, max_cycles=10)
+        agent.max_cycles = 100
+        with std_warnings.catch_warnings():
+            std_warnings.simplefilter("error")
+            agent.solve()
+        self.assertEqual(agent.calls, 21)
+        self.assertEqual(agent.solution_distance, 0.0)
+
+    def test_converging_on_the_last_cycle_does_not_warn(self):
+        agent = self._counting_agent(converges_after=20, max_cycles=21)
+        with std_warnings.catch_warnings():
+            std_warnings.simplefilter("error")
+            agent.solve()
+        self.assertEqual(agent.solution_distance, 0.0)
