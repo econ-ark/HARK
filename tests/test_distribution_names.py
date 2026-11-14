@@ -257,12 +257,16 @@ class EarlierNamesTests(unittest.TestCase):
             np.testing.assert_array_equal(parent.mu, fresh_parent.mu)
             np.testing.assert_array_equal(parent.sigma, fresh_parent.sigma)
 
-        # and the distribution is the one a fresh build makes
-        np.testing.assert_array_equal(loaded.pmv, fresh.pmv)
-        np.testing.assert_array_equal(loaded.atoms, fresh.atoms)
+        # and the distribution is the one a fresh build makes. The fixture was
+        # pickled on one platform, and a fresh build on another can differ in the
+        # last bit of an atom, so the values are compared to within 1e-12
+        np.testing.assert_allclose(loaded.pmv, fresh.pmv, rtol=0, atol=1e-12)
+        np.testing.assert_allclose(loaded.atoms, fresh.atoms, rtol=0, atol=1e-12)
         for bound in ("infimum", "supremum"):
-            np.testing.assert_array_equal(loaded.limit[bound], fresh.limit[bound])
-        np.testing.assert_array_equal(loaded.draw(10), fresh.draw(10))
+            np.testing.assert_allclose(
+                loaded.limit[bound], fresh.limit[bound], rtol=0, atol=1e-12
+            )
+        np.testing.assert_allclose(loaded.draw(10), fresh.draw(10), rtol=0, atol=1e-12)
 
     def test_once_per_call_site(self):
         with warnings.catch_warnings(record=True) as caught:
