@@ -54,16 +54,10 @@ class testPrefShockConsumerType(unittest.TestCase):
         self.agent.initialize_sim()
         self.agent.simulate()
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.agent.history["cNrm"][0][5], 0.73660, place = HARK_PRECISION)
-
         self.assertEqual(
             self.agent.shock_history["PrefShk"][0][5],
             self.agent.history["PrefShk"][0][5],
         )
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.agent.history["PrefShk"][0][5], 0.49094, place = HARK_PRECISION)
 
 
 class testKinkyPrefConsumerType(unittest.TestCase):
@@ -101,9 +95,6 @@ class testKinkyPrefConsumerType(unittest.TestCase):
         self.agent.track_vars = ["cNrm", "PrefShk"]
         self.agent.initialize_sim()
         self.agent.simulate()
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.agent.history["cNrm"][0][5], 0.77171, place = HARK_PRECISION)
 
     def test_invalid_cases(self):
         EasyType = KinkyPrefConsumerType(Rboro=self.agent.Rsave, cycles=0)

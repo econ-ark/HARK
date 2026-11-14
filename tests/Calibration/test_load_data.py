@@ -104,7 +104,7 @@ class test_SCF_dists(unittest.TestCase):
 
 class test_get_ssa_life_tables(unittest.TestCase):
     def test_func(self):
-        output = get_ssa_life_tables()
+        get_ssa_life_tables()
 
 
 class test_parse_ssa_life_table(unittest.TestCase):

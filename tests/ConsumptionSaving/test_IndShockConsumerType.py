@@ -30,11 +30,6 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.agent.get_shocks()
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.agent.shocks["PermShk"][0], 1.04274, place = HARK_PRECISION)
-        # self.assertAlmostEqual(self.agent.shocks["PermShk"][1], 0.92781, place = HARK_PRECISION)
-        # self.assertAlmostEqual(self.agent.shocks["TranShk"][0], 0.88176, place = HARK_PRECISION)
-
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(**init_lifecycle)
         LifecycleExample.cycles = 1
@@ -80,12 +75,6 @@ class testIndShockConsumerType(unittest.TestCase):
     def test_simulated_values(self):
         self.agent.initialize_sim()
         self.agent.simulate()
-
-        # MPCnow depends on assets, which are stochastic
-        # self.assertAlmostEqual(self.agent.MPCnow[1], 0.57115, place = HARK_PRECISION)
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.agent.state_now["aLvl"][1], 0.18438, place = HARK_PRECISION)
 
     def test_income_dist_random_seeds(self):
         a1 = IndShockConsumerType(seed=1000)
@@ -285,20 +274,10 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         self.assertAlmostEqual(
             IndShockExample.solution[0].mNrmStE, 1.54882, places=HARK_PRECISION
         )
-        # self.assertAlmostEqual(
-        #    IndShockExample.solution[0].cFunc.functions[0].x_list[0],
-        #    -0.25018,
-        #    places=HARK_PRECISION,
-        # )
-        # This test is commented out because it was trivialized by revisions to the "worst income shock" code.
-        # The bottom x value of the unconstrained consumption function will definitely be zero, so this is pointless.
 
         IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "who_dies"]
         IndShockExample.initialize_sim()
         IndShockExample.simulate()
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(        #    IndShockExample.history["mNrm"][0][0], 1.01702, place = HARK_PRECISION        # )
 
     def test_euler_error_function(self):
         IndShockExample = self.IndShockExample
@@ -367,7 +346,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
         self.assertEqual(len(LifecycleExample.solution), 11)
 
-        mMin = np.min(
+        np.min(
             [
                 LifecycleExample.solution[t].mNrmMin
                 for t in range(LifecycleExample.T_cycle)
@@ -393,7 +372,7 @@ class testIndShockConsumerTypeLifecycleRfree(unittest.TestCase):
 
         self.assertEqual(len(LifecycleRfreeExample.solution), 11)
 
-        mMin = np.min(
+        np.min(
             [
                 LifecycleRfreeExample.solution[t].mNrmMin
                 for t in range(LifecycleRfreeExample.T_cycle)
@@ -715,11 +694,12 @@ dict_harmenberg = {
 
 
 class test_Harmenbergs_method(unittest.TestCase):
+    # A smoke test with no assertions: it simulates with and without the
+    # neutral measure for dict_harmenberg's T_sim periods.
     def test_Harmenberg_mtd(self):
         example = IndShockConsumerType(**dict_harmenberg, verbose=0)
         example.cycles = 0
         example.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
-        example.T_sim = 20000
 
         example.solve()
 
@@ -729,51 +709,13 @@ class test_Harmenbergs_method(unittest.TestCase):
         example.initialize_sim()
         example.simulate()
 
-        Asset_list = []
-        Consumption_list = []
-        M_list = []
-
-        for i in range(example.T_sim):
-            Assetagg = np.mean(example.history["aNrm"][i])
-            Asset_list.append(Assetagg)
-            ConsAgg = np.mean(example.history["cNrm"][i])
-            Consumption_list.append(ConsAgg)
-            Magg = np.mean(example.history["mNrm"][i])
-            M_list.append(Magg)
-
-        #########################################################
-
         example2 = IndShockConsumerType(**dict_harmenberg, verbose=0)
         example2.cycles = 0
         example2.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
-        example2.T_sim = 20000
 
         example2.solve()
         example2.initialize_sim()
         example2.simulate()
-
-        Asset_list2 = []
-        Consumption_list2 = []
-        M_list2 = []
-
-        for i in range(example2.T_sim):
-            Assetagg = np.mean(example2.history["aLvl"][i])
-            Asset_list2.append(Assetagg)
-            ConsAgg = np.mean(example2.history["cNrm"][i] * example2.history["pLvl"][i])
-            Consumption_list2.append(ConsAgg)
-            Magg = np.mean(example2.history["mNrm"][i] * example2.history["pLvl"][i])
-            M_list2.append(Magg)
-
-        c_std2 = np.std(Consumption_list2)
-        c_std1 = np.std(Consumption_list)
-        c_std_ratio = c_std2 / c_std1
-
-        # simulation tests -- seed/generator specific
-        # But these are based on aggregate population statistics.
-        # WARNING: May fail stochastically, or based on specific RNG types.
-        # self.assertAlmostEqual(c_std2, 0.0376882, places = 2)
-        # self.assertAlmostEqual(c_std1, 0.0044117, places = 2)
-        # self.assertAlmostEqual(c_std_ratio, 8.5426941, places = 2)
 
 
 # %% Shock pre-computing tests
