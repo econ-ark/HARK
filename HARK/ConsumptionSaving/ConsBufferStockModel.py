@@ -58,7 +58,7 @@ Income": https://llorracc.github.io/BufferStockTheory/#sec-apndxpositiveminimumi
 
 import warnings
 from copy import deepcopy
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import NamedTuple
 
 import numpy as np
@@ -562,6 +562,13 @@ class BufferStockConditions:
     notes : tuple
         Further statements: about the solution above the asset grid, and about
         what the class computes where the paper states nothing.
+    indshock : dict or None
+        What IndShockConsumerType's own condition check found for the agent:
+        "conditions" (each condition's name and whether it holds), "factors"
+        (its factors and limiting values, as in its bilt), "degenerate", and
+        "report", the text of its report. Filled in by
+        :meth:`BufferStockConsumerType.check_conditions`; None from
+        :func:`calc_buffer_stock_conditions`, which needs no agent.
     """
 
     conditions: dict
@@ -578,6 +585,7 @@ class BufferStockConditions:
     target_guaranteed: bool
     pseudo_target_guaranteed: bool
     notes: tuple
+    indshock: object = None
 
     def to_dict(self):
         """Return the results as nested dictionaries of plain values."""
@@ -1718,11 +1726,29 @@ class BufferStockConsumerType(IndShockConsumerType):
 
     def check_conditions(self, verbose=None):
         """
-        Compute the paper's conditions from the true laws and record them in
-        conditions, bilt and degenerate. verbose of 2 or more logs the report.
+        In the infinite horizon, with one period in the cycle: compute the
+        paper's conditions from the true laws and record them in conditions,
+        bilt and degenerate; run IndShockConsumerType's own condition check on
+        this agent and keep what it found in the record's indshock; and return
+        the record, a :class:`BufferStockConditions`, which is also
+        bilt["BufferStockConditions"]. The report, bilt["conditions_report"],
+        ends with IndShockConsumerType's. verbose of 2 or more logs it.
+
+        The conditions concern the limit of the solution as the horizon
+        extends, so in a finite horizon nothing is tested or reported: the
+        agent has no conditions and no report, and None is returned.
+        get_buffer_stock_conditions still gives them on request.
         """
         verbose = self.verbose if verbose is None else verbose
-        results = self.get_buffer_stock_conditions()
+        self.cFuncSlopeAboveGrid = None
+        if self.cycles != 0 or self.T_cycle != 1:
+            self.conditions = {}
+            self.degenerate = False
+            self.bilt["conditions_report"] = ""
+            self.bilt.pop("BufferStockConditions", None)
+            return None
+        indshock = self._indshock_conditions()
+        results = replace(self.get_buffer_stock_conditions(), indshock=indshock)
         self.conditions = {
             name: condition.holds for name, condition in results.conditions.items()
         }
@@ -1736,12 +1762,10 @@ class BufferStockConsumerType(IndShockConsumerType):
         self.PFLimitFinite = results.conditions["RIC"].holds and (
             results.conditions["FHWC"].holds
         )
-        # In the infinite horizon without a finite perfect foresight limit, extend
-        # the consumption function above the grid along the limiting MPC
-        if self.cycles == 0 and not self.PFLimitFinite:
+        # Without a finite perfect foresight limit, extend the consumption
+        # function above the grid along the limiting MPC
+        if not self.PFLimitFinite:
             self.cFuncSlopeAboveGrid = results.MPCmin
-        else:
-            self.cFuncSlopeAboveGrid = None
 
         lines = []
         for name, condition in results.conditions.items():
@@ -1759,12 +1783,77 @@ class BufferStockConsumerType(IndShockConsumerType):
             "The labels are the paper's: paper_url(label) gives each one's place in "
             f"its web edition, {PAPER_URL}"
         )
+        lines.append("")
+        lines.append(
+            "IndShockConsumerType's own condition report for this agent, from its "
+            "discretized income process:"
+        )
+        lines.append(indshock["report"].strip("\n"))
         self.bilt["conditions_report"] = "\n".join(lines) + "\n"
         if verbose >= 2 and not self.quiet:
             level = _log.level
             set_verbosity_level((4 - verbose) * 10)
             _log.info(self.bilt["conditions_report"])
             set_verbosity_level(level)
+        return results
+
+    # IndShockConsumerType's factors and limiting values that its condition
+    # check computes, kept in the record's indshock
+    _INDSHOCK_FACTORS = (
+        "APFac",
+        "RPFac",
+        "WRPFac",
+        "GPFacRaw",
+        "GPFacMod",
+        "GPFacLiv",
+        "GPFacLivMod",
+        "GPFacSdl",
+        "GPFacHrm",
+        "FHWFac",
+        "PFVAFac",
+        "VAFac",
+        "MPCmin",
+        "MPCmax",
+        "hNrm",
+        "WorstPrb",
+        "WorstPrbAtoms",
+    )
+
+    def _indshock_conditions(self):
+        """
+        Run IndShockConsumerType's own condition check on this agent, silently,
+        and return what it found: its conditions, factors, degeneracy and report.
+        What the check writes on the agent (conditions, degenerate and bilt) is
+        restored afterwards, and HARK's logger is left at its level.
+        """
+        saved_bilt = dict(self.bilt)
+        saved_conditions = dict(getattr(self, "conditions", {}))
+        saved_degenerate = getattr(self, "degenerate", False)
+        saved_quiet, level = self.quiet, _log.level
+        self.quiet = True
+        try:
+            # verbose 1 puts the explanations in the report, and its messages
+            # are logged below the logger's level, so nothing is shown
+            IndShockConsumerType.check_conditions(self, verbose=1)
+            found = {
+                "conditions": {
+                    name: bool(holds) for name, holds in self.conditions.items()
+                },
+                "factors": {
+                    name: float(self.bilt[name])
+                    for name in self._INDSHOCK_FACTORS
+                    if name in self.bilt
+                },
+                "degenerate": bool(self.degenerate),
+                "report": self.bilt.get("conditions_report", ""),
+            }
+        finally:
+            self.quiet = saved_quiet
+            set_verbosity_level(level)
+            self.bilt = saved_bilt
+            self.conditions = saved_conditions
+            self.degenerate = saved_degenerate
+        return found
 
     def _respond_to_conditions(self):
         """
@@ -1773,8 +1862,10 @@ class BufferStockConsumerType(IndShockConsumerType):
         paper simply proves no theorem for the parameters, the report says so
         and there is no warning.
         """
+        if self.cycles != 0:
+            return
         results = self.bilt["BufferStockConditions"]
-        if self.cycles != 0 or results.existence == "established":
+        if results.existence == "established":
             return
         message = results.existence_basis
         if results.existence == "fails":

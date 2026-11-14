@@ -1,6 +1,7 @@
 import json
 import unittest
 import warnings
+from dataclasses import replace
 
 import numpy as np
 
@@ -10,6 +11,7 @@ from HARK.ConsumptionSaving.ConsBufferStockModel import (
     calc_buffer_stock_conditions,
     paper_url,
 )
+from HARK import _log
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.distributions import DiscreteDistribution, LogNormal, LogNormalMeanOne
 
@@ -84,8 +86,12 @@ class testBufferStockConditions(unittest.TestCase):
             a.PermShkLaw,
             a.TranShkLaw,
         )
-        self.assertEqual(results, a.bilt["BufferStockConditions"])
+        # The agent's record adds what IndShockConsumerType's own check found
+        recorded = a.bilt["BufferStockConditions"]
+        self.assertIsNone(results.indshock)
+        self.assertEqual(results, replace(recorded, indshock=None))
         json.dumps(results.to_dict())
+        json.dumps(recorded.to_dict())
 
 
 class testBufferStockRestrictions(unittest.TestCase):
@@ -624,6 +630,46 @@ class testBufferStockSolution(unittest.TestCase):
         agent.solve()
         self.assertEqual(len(agent.solution), 11)
         self.assertNotIn("mNrmTrg", agent.bilt)
+        # The conditions concern the infinite horizon: none are tested or reported
+        with self.assertNoLogs(_log, level="DEBUG"):
+            self.assertIsNone(agent.check_conditions(verbose=3))
+        self.assertEqual(agent.conditions, {})
+        self.assertEqual(agent.bilt["conditions_report"], "")
+        self.assertNotIn("BufferStockConditions", agent.bilt)
+        # They are still available on request
+        self.assertEqual(agent.get_buffer_stock_conditions().existence, "established")
+
+    def test_conveys_IndShockConsumerTypes_conditions(self):
+        # In the infinite horizon the class runs IndShockConsumerType's own
+        # condition check on itself and returns what it found with the paper's
+        agent = make_agent(IncUnemp=0.3)
+        with self.assertNoLogs(_log, level="DEBUG"):
+            results = agent.check_conditions(verbose=0)
+        self.assertIs(results, agent.bilt["BufferStockConditions"])
+        indshock = results.indshock
+        # The same as IndShockConsumerType's check run directly on the agent
+        direct = make_agent(IncUnemp=0.3, quiet=True)
+        IndShockConsumerType.check_conditions(direct, verbose=1)
+        self.assertEqual(indshock["conditions"], direct.conditions)
+        self.assertEqual(indshock["report"], direct.bilt["conditions_report"])
+        self.assertEqual(indshock["degenerate"], direct.degenerate)
+        for name, value in indshock["factors"].items():
+            self.assertEqual(value, direct.bilt[name])
+        # The agent's own record is the paper's, not overwritten by the check
+        self.assertIn("PFFVAC", agent.conditions)
+        self.assertNotIn("GICLiv", agent.conditions)
+        self.assertEqual(agent.bilt["WorstPrb"], results.WorstPrb)
+        self.assertEqual(agent.bilt["MPCmax"], results.MPCmax)
+        # The report ends with IndShockConsumerType's
+        report = agent.bilt["conditions_report"]
+        self.assertIn("IndShockConsumerType's own condition report", report)
+        self.assertTrue(report.rstrip("\n").endswith(indshock["report"].strip("\n")))
+        # solve records them too
+        agent.solve()
+        self.assertEqual(
+            agent.bilt["BufferStockConditions"].indshock["conditions"],
+            indshock["conditions"],
+        )
 
 
 class testBufferStockArtificialConstraint(unittest.TestCase):
