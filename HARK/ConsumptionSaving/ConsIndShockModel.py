@@ -1736,7 +1736,12 @@ class PerfForesightConsumerType(AgentType):
         self.bilt["conditions_report"] = ""
         self.degenerate = False
         verbose = self.verbose if verbose is None else verbose
-        if self.cycles != 0 or self.T_cycle > 1:
+        if self.cycles != 0:
+            # The conditions concern the limit of the solution as the horizon
+            # extends, so they are tested and reported only for a model solved
+            # in the infinite horizon; a finite horizon model has neither.
+            return verbose, False
+        if self.T_cycle > 1:
             self.log_condition_result(
                 None,
                 None,
@@ -2580,7 +2585,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # parameter reports later)
         this_entry = [
             "WorstPrb",
-            "probability of worst income shock realization",
+            "probability of the worst income event under the laws of the shocks",
             "℘",
             False,
         ]
@@ -2625,7 +2630,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         MPCmax : Limiting maximum MPC as market resources approach minimum level
         hNrm : Human wealth divided by permanent income.
         ELogPermShk : Expected log permanent income shock
-        WorstPrb : Probability of worst income shock realization
+        WorstPrb : Probability of the worst income event under the laws of the shocks
+        WorstPrbAtoms : The same probability from the discretization's lowest atoms, as the solver reads it
         Delta_mNrm_ZeroFunc : Linear locus where expected change in market resource ratio is zero
         BalGroFunc : Linear consumption function where the level of market resources grows at the same rate as permanent income
 
@@ -2670,18 +2676,33 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShk_Hrm = np.exp(expected(Hrm_func, PermShkDstn)[0])
         aux_dict["GPFacHrm"] = aux_dict["GPFacRaw"] / PermShk_Hrm
 
-        # Calculate the probability of the worst income shock realization
-        PermShkValsNext = self.IncShkDstn[0].atoms[0]
-        TranShkValsNext = self.IncShkDstn[0].atoms[1]
-        ShkPrbsNext = self.IncShkDstn[0].pmv
+        # Calculate the probability of the worst income event under the laws of
+        # the shocks, not their discretization (eq:pWorst of the appendix
+        # "Positive Minimum Income" of BufferStockTheory): the probability that
+        # income is at the infimum the laws record, the product of the
+        # permanent and transitory shocks' infima. When the worst transitory
+        # income is zero, that is the probability of zero income, whatever the
+        # permanent shock. When it is positive, it is the probability that both
+        # shocks are at their infima together, which is zero for a law with no
+        # mass at its infimum, such as a lognormal: the MPC at the bottom is
+        # then one. A distribution that records no infimum is read from its
+        # lowest atoms, as the solver reads it; WorstPrbAtoms is that value.
+        IncShkDstn = self.IncShkDstn[0]
+        PermShkValsNext = IncShkDstn.atoms[0]
+        TranShkValsNext = IncShkDstn.atoms[1]
+        ShkPrbsNext = IncShkDstn.pmv
         Ex_IncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
-        WorstIncNext = PermShkMinNext * TranShkMinNext
-        WorstIncPrb = np.sum(
-            ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
-        )
+        WorstIncPrbAtoms = calc_worst_inc_prob(IncShkDstn)
+        limit = getattr(IncShkDstn, "limit", None) or {}
+        infimum = limit.get("infimum")
+        if infimum is not None and np.all(np.isfinite(infimum)):
+            WorstIncPrb = calc_worst_inc_prob(IncShkDstn, use_infimum=True)
+        else:
+            WorstIncPrb = WorstIncPrbAtoms
         aux_dict["WorstPrb"] = WorstIncPrb
+        aux_dict["WorstPrbAtoms"] = WorstIncPrbAtoms
 
         # Calculate the weak return patience factor
         aux_dict["WRPFac"] = WorstIncPrb ** (1.0 / self.CRRA) * aux_dict["RPFac"]
@@ -2801,8 +2822,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         result = WRPFac < 1.0
 
         messages = {
-            True: f"WRPFac={WRPFac:.5f} : The Weak Return Patience Factor satisfies the Weak Return Impatience Condition (WRIC) ℘ Þ/R < 1.",
-            False: f"WRPFac={WRPFac:.5f} : The Weak Return Patience Factor violates the Weak Return Impatience Condition (WRIC) ℘ Þ/R < 1.",
+            True: f"WRPFac={WRPFac:.5f} : The Weak Return Patience Factor satisfies the Weak Return Impatience Condition (WRIC) ℘^(1/ρ) Þ/R < 1, where ℘ is the probability of the worst income event under the laws of the shocks.",
+            False: f"WRPFac={WRPFac:.5f} : The Weak Return Patience Factor violates the Weak Return Impatience Condition (WRIC) ℘^(1/ρ) Þ/R < 1, where ℘ is the probability of the worst income event under the laws of the shocks.",
         }
         verbose = self.verbose if verbose is None else verbose
         self.log_condition_result(name, result, messages[result], verbose)
@@ -2812,7 +2833,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         This method checks whether the instance's type satisfies various conditions.
         When combinations of these conditions are satisfied, the solution to the
         problem exhibits different characteristics.  (For an exposition of the
-        conditions, see https://econ-ark.github.io/BufferStockTheory/)
+        conditions, see https://llorracc.github.io/BufferStockTheory/; with
+        positive income in the worst event, its appendix "Positive Minimum Income",
+        https://llorracc.github.io/BufferStockTheory/#sec-apndxpositiveminimumincome.)
+
+        The conditions concern the limit of the solution as the horizon extends,
+        so they are tested and reported only in the infinite horizon (cycles = 0),
+        with a cycle of one period. In a finite horizon model this method records
+        no conditions and no report. The probability of the worst income event,
+        WorstPrb, comes from the laws of the shocks, not their discretization.
 
         Parameters
         ----------
