@@ -11,15 +11,15 @@ from scipy.stats import (
 )
 from scipy.stats._distn_infrastructure import rv_continuous_frozen
 
-from HARK.distributions.base import Distribution
+from HARK.distributions.base import Distribution, _renamed_class
 from HARK.distributions.discrete import DiscreteDistribution
 
 
 def _hermite_discretize(distribution, N, endpoints, atoms_transform, lower_endpoint):
-    """Gauss-Hermite quadrature discretization shared by Normal/Lognormal.
+    """Gauss-Hermite quadrature discretization shared by Normal/LogNormal.
 
     ``atoms_transform`` maps the linear ``sqrt(2)*sigma*x + mu`` grid to the
-    distribution's support (identity for Normal, ``np.exp`` for Lognormal).
+    distribution's support (identity for Normal, ``np.exp`` for LogNormal).
     ``lower_endpoint`` is the value prepended when ``endpoints=True``.
     """
     x, w = np.polynomial.hermite.hermgauss(N)
@@ -187,9 +187,9 @@ class Normal(ContinuousFrozenDistribution):
         )
 
 
-class Lognormal(ContinuousFrozenDistribution):
+class LogNormal(ContinuousFrozenDistribution):
     """
-    A Lognormal distribution
+    A LogNormal distribution
 
     Parameters
     ----------
@@ -212,7 +212,7 @@ class Lognormal(ContinuousFrozenDistribution):
         std=None,
     ):
         """
-        Create a new Lognormal distribution. If sigma is zero, return a
+        Create a new LogNormal distribution. If sigma is zero, return a
         DiscreteDistribution with a single atom at exp(mu).
 
         Parameters
@@ -230,8 +230,8 @@ class Lognormal(ContinuousFrozenDistribution):
 
         Returns
         -------
-        Lognormal or DiscreteDistribution
-            Lognormal distribution or DiscreteDistribution with a single atom.
+        LogNormal or DiscreteDistribution
+            LogNormal distribution or DiscreteDistribution with a single atom.
         """
 
         if sigma == 0:
@@ -432,12 +432,9 @@ class Lognormal(ContinuousFrozenDistribution):
         return cls(mu=mu, sigma=sigma, seed=seed)
 
 
-LogNormal = Lognormal
-
-
-class MeanOneLogNormal(Lognormal):
+class LogNormalMeanOne(LogNormal):
     """
-    A Lognormal distribution with mean 1.
+    A LogNormal distribution with mean 1.
     """
 
     def __init__(self, sigma=1.0, seed=0):
@@ -535,12 +532,12 @@ _truncated_lognorm = _truncated_lognorm_gen(
 )
 
 
-class TruncatedLognormal(ContinuousFrozenDistribution):
+class LogNormalTruncated(ContinuousFrozenDistribution):
     """
     A lognormal distribution truncated in the log: X = exp(mu + sigma Z), with Z a
     standard normal conditioned on bot <= Z <= top. The bounds are in standard
     deviations of that normal, and None is no bound on that side, so with both
-    None this is Lognormal(mu, sigma).
+    None this is LogNormal(mu, sigma).
 
     Parameters
     ----------
@@ -656,10 +653,7 @@ class TruncatedLognormal(ContinuousFrozenDistribution):
         return DiscreteDistribution(pmv, atoms, seed=self.random_seed(), limit=limit)
 
 
-TruncatedLogNormal = TruncatedLognormal
-
-
-class MeanOneTruncatedLogNormal(TruncatedLognormal):
+class LogNormalTruncatedMeanOne(LogNormalTruncated):
     """
     A truncated lognormal with mean one after the truncation: mu is set so that
     E[X] = 1 for the truncated distribution. The bounds are in standard
@@ -711,10 +705,20 @@ class MeanOneTruncatedLogNormal(TruncatedLognormal):
 
         Returns
         -------
-        MeanOneTruncatedLogNormal or DiscreteDistribution
+        LogNormalTruncatedMeanOne or DiscreteDistribution
         """
         sigma = sd_log / np.sqrt(truncated_normal_variance(bot, top))
         return cls(sigma=sigma, bot=bot, top=top, seed=seed)
+
+
+# The names these classes had before: they still work, with a DeprecationWarning
+Lognormal = _renamed_class(LogNormal, "Lognormal")
+MeanOneLogNormal = _renamed_class(LogNormalMeanOne, "MeanOneLogNormal")
+TruncatedLognormal = _renamed_class(LogNormalTruncated, "TruncatedLognormal")
+TruncatedLogNormal = _renamed_class(LogNormalTruncated, "TruncatedLogNormal")
+MeanOneTruncatedLogNormal = _renamed_class(
+    LogNormalTruncatedMeanOne, "MeanOneTruncatedLogNormal"
+)
 
 
 class Uniform(ContinuousFrozenDistribution):
