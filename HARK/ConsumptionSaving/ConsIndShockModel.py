@@ -1731,7 +1731,8 @@ class PerfForesightConsumerType(AgentType):
         the instance default, and ``should_continue`` is False when the model
         is outside the infinite-horizon, single-period-cycle regime supported
         by ``check_conditions``. In that case the trivial-skip message has
-        already been logged.
+        already been added to the conditions report, and logged unless
+        ``self.quiet`` is set.
         """
         self.conditions = {}
         self.bilt["conditions_report"] = ""
