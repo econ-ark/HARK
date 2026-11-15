@@ -2,6 +2,7 @@ import functools
 from typing import Any, Optional, Union
 
 import numpy as np
+from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.special import erfc, hyp1f1, log_ndtr, ndtr, ndtri
 from scipy.stats import (
@@ -1174,6 +1175,319 @@ class LogNormalTaperedMeanOne(LogNormalTapered):
         sigma = float(sd_log)
         for _ in range(50):
             new = sd_log / np.sqrt(_tapered_normal(sigma, lo, hi).variance())
+            if abs(new - sigma) <= 1e-15 * sigma:
+                break
+            sigma = new
+        return cls(sigma=sigma, bot=bot, top=top, seed=seed)
+
+
+def _pooled_points(sigma, bot, top):
+    """
+    The pooled points of a lognormal exp(sigma Z) with tails beyond bot and top
+    pooled at their means, divided by its mean exp(sigma**2 / 2): the
+    conditional means of the tails, in logs so that far tails keep their digits.
+    An unpooled side (an infinite bound) gives nan.
+    """
+    with np.errstate(divide="ignore", invalid="ignore"):
+        lo = (
+            np.exp(log_ndtr(bot - sigma) - log_ndtr(bot))
+            if np.isfinite(bot)
+            else np.nan
+        )
+        hi = (
+            np.exp(log_ndtr(sigma - top) - log_ndtr(-top))
+            if np.isfinite(top)
+            else np.nan
+        )
+    return float(lo), float(hi)
+
+
+def _pooled_log_variance(sigma, bot, top):
+    """
+    Var(ln X) / sigma**2 for a lognormal exp(mu + sigma Z) whose tails beyond bot
+    and top, in standard deviations of Z, are pooled at their means.
+    """
+    mass = float(_normal_mass(bot, top))
+    pdf_lo, pdf_hi = norm.pdf(bot), norm.pdf(top)
+    z_pdf_lo = bot * pdf_lo if np.isfinite(bot) else 0.0
+    z_pdf_hi = top * pdf_hi if np.isfinite(top) else 0.0
+    m1, m2 = pdf_lo - pdf_hi, mass + z_pdf_lo - z_pdf_hi
+    x_lo, x_hi = _pooled_points(sigma, bot, top)
+    for prb, x in ((ndtr(bot), x_lo), (ndtr(-top), x_hi)):
+        if prb > 0.0:
+            # The point's coordinate (ln x - mu) / sigma
+            w = 0.5 * sigma + np.log(x) / sigma
+            m1, m2 = m1 + prb * w, m2 + prb * w * w
+    return float(m2 - m1 * m1)
+
+
+class LogNormalPooledTails(Distribution):
+    """
+    A lognormal whose tails are pooled at their means. X = exp(mu + sigma Z) with
+    Z a standard normal between the cutoffs lo = exp(mu + sigma bot) and
+    hi = exp(mu + sigma top), and each tail beyond a cutoff is replaced by a
+    single point, which has the tail's probability and sits at the tail's
+    conditional mean:
+
+        P(X = x_lo) = Phi(bot),      x_lo = E[X] Phi(bot - sigma) / Phi(bot),
+        P(X = x_hi) = 1 - Phi(top),  x_hi = E[X] Phi(sigma - top) / Phi(-top),
+
+    with E[X] = exp(mu + sigma**2 / 2), the lognormal's mean, which pooling keeps.
+    So the law is LogNormal(mu, sigma)'s own between lo and hi, its points x_lo
+    < lo and x_hi > hi are its infimum and supremum, and it is a mean-preserving
+    contraction of LogNormal(mu, sigma): E[f(X)] is no larger for any convex f.
+    Its lowest value has positive probability, infimum_prb.
+
+    This is not censoring in the statistical sense, which puts each tail's
+    probability at its cutoff and so changes the mean.
+
+    The cutoffs are in standard deviations of the underlying normal, and None is
+    no pooling on that side, where the lognormal's own tail is kept. With both
+    None this is LogNormal(mu, sigma).
+
+    Parameters
+    ----------
+    mu : float, optional
+        Mean of the underlying normal, by default 0.0.
+    sigma : float, optional
+        Standard deviation of the underlying normal, by default 1.0. With
+        sigma = 0 the distribution is the point exp(mu).
+    bot : float or None, optional
+        Lower cutoff, by default -2.0.
+    top : float or None, optional
+        Upper cutoff, by default 2.0.
+    seed : int, optional
+        Seed for random number generator, by default None.
+
+    Attributes
+    ----------
+    infimum, supremum : np.array
+        The pooled points x_lo and x_hi; 0 and inf on a side with no pooling.
+    infimum_prb, supremum_prb : float
+        The points' probabilities, Phi(bot) and 1 - Phi(top); zero on a side
+        with no pooling.
+    body : LogNormalTruncated
+        The law between the cutoffs, given that X is there.
+    body_prb : float
+        The probability that X is between the cutoffs.
+    """
+
+    def __new__(cls, mu=0.0, sigma=1.0, bot=-2.0, top=2.0, seed=None):
+        if sigma == 0:
+            # A point at exp(mu), whose bounds are the point
+            return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
+        return super().__new__(cls)
+
+    def __init__(self, mu=0.0, sigma=1.0, bot=-2.0, top=2.0, seed=None):
+        if np.ndim(mu) or np.ndim(sigma):
+            raise ValueError(
+                "mu and sigma must be scalars; use IndexDistribution for time variation."
+            )
+        if sigma < 0:
+            raise ValueError("sigma must be nonnegative, but it is " + str(sigma))
+        super().__init__(seed=seed)
+        self.mu = float(mu)
+        self.sigma = float(sigma)
+        self.bot = _bound(bot, -np.inf)
+        self.top = _bound(top, np.inf)
+        if not self.bot < self.top:
+            raise ValueError("The cutoffs must satisfy bot < top.")
+        self.body = LogNormalTruncated(
+            mu=self.mu, sigma=self.sigma, bot=self.bot, top=self.top, seed=0
+        )
+        self.body_prb = self.body.mass
+        self.infimum_prb = float(ndtr(self.bot))
+        self.supremum_prb = float(ndtr(-self.top))
+        mean = np.exp(self.mu + 0.5 * self.sigma**2)
+        x_lo, x_hi = _pooled_points(self.sigma, self.bot, self.top)
+        lo = mean * x_lo if np.isfinite(self.bot) else 0.0
+        hi = mean * x_hi if np.isfinite(self.top) else np.inf
+        self.infimum = np.array([lo])
+        self.supremum = np.array([hi])
+
+    def z(self, x):
+        """The standard normal coordinate (ln x - mu) / sigma of x."""
+        with np.errstate(divide="ignore"):
+            return (np.log(x) - self.mu) / self.sigma
+
+    def _points(self):
+        """The pooled points and their probabilities, on the sides that have one."""
+        return [
+            (prb, bound[0])
+            for prb, bound in (
+                (self.infimum_prb, self.infimum),
+                (self.supremum_prb, self.supremum),
+            )
+            if prb > 0.0
+        ]
+
+    def pdf(self, x):
+        """
+        The density of the law's continuous part, LogNormal(mu, sigma)'s own
+        between the cutoffs and zero elsewhere. The points' probabilities are
+        infimum_prb and supremum_prb.
+        """
+        return self.body_prb * self.body.pdf(x)
+
+    def cdf(self, x):
+        """The cumulative distribution function, with a step at each point."""
+        x = np.asarray(x, dtype=float)
+        F = self.infimum_prb + self.body_prb * self.body.cdf(x)
+        F = np.where(x < self.infimum[0], 0.0, F)
+        return np.where(x >= self.supremum[0], 1.0, F)
+
+    def ppf(self, q):
+        """
+        The quantile function, the least x with cdf(x) >= q: the lower point for
+        q up to infimum_prb and the upper point for q above 1 - supremum_prb.
+        """
+        q = np.asarray(q, dtype=float)
+        inside = np.clip((q - self.infimum_prb) / self.body_prb, 0.0, 1.0)
+        x = self.body.ppf(inside)
+        if self.infimum_prb > 0.0:
+            x = np.where(q <= self.infimum_prb, self.infimum[0], x)
+        if self.supremum_prb > 0.0:
+            x = np.where(q > 1.0 - self.supremum_prb, self.supremum[0], x)
+        return x
+
+    def moment(self, order):
+        """The raw moment E[X**order], for any real order, in closed form."""
+        k = float(order)
+        return float(
+            self.body_prb * self.body.moment(k)
+            + sum(prb * point**k for prb, point in self._points())
+        )
+
+    def mean(self):
+        """The mean, exp(mu + sigma**2 / 2)."""
+        return self.moment(1)
+
+    def var(self):
+        """The variance."""
+        return self.moment(2) - self.mean() ** 2
+
+    def std(self):
+        """The standard deviation."""
+        return np.sqrt(self.var())
+
+    def expect(self, func=None):
+        """
+        The expectation of func under the law: by quadrature against the normal
+        density between the cutoffs, plus the points. With no func, the mean.
+        """
+        if func is None:
+            return self.mean()
+
+        def integrand(z):
+            # Zero where the normal density is, so that func is not evaluated out
+            # where exp(mu + sigma z) would overflow
+            w = norm.pdf(z)
+            return 0.0 if w == 0.0 else func(np.exp(self.mu + self.sigma * z)) * w
+
+        inside, _ = quad(
+            integrand,
+            self.bot,
+            self.top,
+            limit=200,
+            epsabs=1e-14,
+            epsrel=1e-12,
+        )
+        return float(inside + sum(prb * func(point) for prb, point in self._points()))
+
+    def rvs(self, size=None, random_state=None):
+        """Random draws, through the quantile function."""
+        rng = self._rng if random_state is None else random_state
+        return self.ppf(rng.uniform(size=size))
+
+    def _approx_equiprobable(self, N, endpoints=False):
+        """
+        A discrete approximation that keeps the pooled points, with their
+        probabilities, as atoms of their own, and puts N atoms of equal
+        probability between the cutoffs, each the conditional mean of its bin,
+        so the mean is exact and the lowest atom is the infimum whatever N is.
+
+        Parameters
+        ----------
+        N : int
+            Number of atoms between the cutoffs.
+        endpoints : bool, optional
+            Whether to add zero-probability atoms at the infimum and supremum
+            on a side with no pooling, by default False. A pooled point is
+            already its side's bound.
+
+        Returns
+        -------
+        DiscreteDistribution
+        """
+        body = self.body._approx_equiprobable(N)
+        atoms = np.ravel(body.atoms)
+        pmv = self.body_prb * np.asarray(body.pmv)
+        if self.infimum_prb > 0.0 or endpoints:
+            atoms = np.r_[self.infimum, atoms]
+            pmv = np.r_[self.infimum_prb, pmv]
+        if self.supremum_prb > 0.0 or endpoints:
+            atoms = np.r_[atoms, self.supremum]
+            pmv = np.r_[pmv, self.supremum_prb]
+        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+        return DiscreteDistribution(pmv, atoms, seed=self.random_seed(), limit=limit)
+
+
+class LogNormalPooledTailsMeanOne(LogNormalPooledTails):
+    """
+    A lognormal with tails pooled at their means, with mean one:
+    mu = -sigma**2 / 2, since pooling keeps the lognormal's mean. The cutoffs are
+    in standard deviations of the underlying normal, by default two either
+    side.
+
+    Parameters
+    ----------
+    sigma : float, optional
+        Standard deviation of the underlying normal, by default 1.0. With
+        sigma = 0 the distribution is the point 1.
+    bot : float or None, optional
+        Lower cutoff, by default -2.0.
+    top : float or None, optional
+        Upper cutoff, by default 2.0.
+    seed : int, optional
+        Seed for random number generator, by default 0.
+    """
+
+    def __new__(cls, sigma=1.0, bot=-2.0, top=2.0, seed=0):
+        if sigma == 0:
+            return DiscreteDistribution([1.0], [1.0], seed=seed)
+        return super().__new__(cls)
+
+    def __init__(self, sigma=1.0, bot=-2.0, top=2.0, seed=0):
+        super().__init__(mu=-0.5 * sigma**2, sigma=sigma, bot=bot, top=top, seed=seed)
+
+    @classmethod
+    def from_sd_log(cls, sd_log, bot=-2.0, top=2.0, seed=0):
+        """
+        The mean-one law with pooled tails whose log has standard deviation
+        sd_log. Pooling changes the log's dispersion slightly, so the underlying
+        normal's sigma is set so that an estimated dispersion keeps its value.
+
+        Parameters
+        ----------
+        sd_log : float
+            Standard deviation of ln X.
+        bot : float or None, optional
+            Lower cutoff, by default -2.0.
+        top : float or None, optional
+            Upper cutoff, by default 2.0.
+        seed : int, optional
+            Seed for random number generator, by default 0.
+
+        Returns
+        -------
+        LogNormalPooledTailsMeanOne or DiscreteDistribution
+        """
+        if sd_log == 0:
+            return cls(sigma=0.0, bot=bot, top=top, seed=seed)
+        lo, hi = _bound(bot, -np.inf), _bound(top, np.inf)
+        sigma = float(sd_log)
+        for _ in range(50):
+            new = sd_log / np.sqrt(_pooled_log_variance(sigma, lo, hi))
             if abs(new - sigma) <= 1e-15 * sigma:
                 break
             sigma = new
