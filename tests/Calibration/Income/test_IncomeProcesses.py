@@ -208,7 +208,7 @@ class testMixtureTranIncShkHANKBounds(unittest.TestCase):
         sigma, UnempPrb, IncUnemp = 0.2, 0.05, 0.3
         wage, labor, tax_rate = 1.2, 0.9, 0.25
         with mock.patch(
-            "HARK.Calibration.Income.IncomeProcesses.MeanOneLogNormal", FiniteBase
+            "HARK.Calibration.Income.IncomeProcesses.LogNormalMeanOne", FiniteBase
         ):
             dstn = MixtureTranIncShk_HANK(
                 sigma, UnempPrb, IncUnemp, 7, wage=wage, labor=labor, tax_rate=tax_rate

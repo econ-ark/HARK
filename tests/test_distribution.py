@@ -609,7 +609,7 @@ class LimitBoundsTests(unittest.TestCase):
     def test_degenerate_lognormal(self):
         # A lognormal with sigma zero is the single point exp(mu), and its bounds
         # say so: retirement's permanent shock in a life-cycle model is one
-        dstn = MeanOneLogNormal(0.0)
+        dstn = LogNormalMeanOne(0.0)
         np.testing.assert_array_equal(dstn.infimum, [1.0])
         np.testing.assert_array_equal(dstn.supremum, [1.0])
         agent = IndShockConsumerType(**init_lifecycle)
