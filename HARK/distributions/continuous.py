@@ -1,7 +1,9 @@
+import functools
 from typing import Any, Optional, Union
 
 import numpy as np
-from scipy.special import erfc, ndtr, ndtri
+from scipy.optimize import brentq
+from scipy.special import erfc, hyp1f1, log_ndtr, ndtr, ndtri
 from scipy.stats import (
     rv_continuous,
     norm,
@@ -713,6 +715,468 @@ class LogNormalTruncatedMeanOne(LogNormalTruncated):
         LogNormalTruncatedMeanOne or DiscreteDistribution
         """
         sigma = sd_log / np.sqrt(truncated_normal_variance(bot, top))
+        return cls(sigma=sigma, bot=bot, top=top, seed=seed)
+
+
+# Each tail of a tapered lognormal is tapered over this many standard deviations
+# of the log, ending at its bound.
+_TAPER_SD = 1.0
+
+
+def _taper_moment(eta, k, s=1.0):
+    """
+    E[exp(k T) 1{T > 1 - s}] for T ~ Beta(1, eta + 1), whose density is
+    (eta + 1) (1 - t)**eta on [0, 1], with s in [0, 1] the distance left to the
+    end at t = 1. Substituting u = 1 - t and using Kummer's transformation, it is
+    exp(k) s**(eta + 1) M(eta + 1, eta + 2, -k s), with M the confluent
+    hypergeometric function; at s = 1 it is M(1, eta + 2, k).
+    """
+    s = np.asarray(s, dtype=float)
+    return np.exp(k) * s ** (eta + 1.0) * hyp1f1(eta + 1.0, eta + 2.0, -k * s)
+
+
+@functools.lru_cache(maxsize=None)
+def _fit_taper(a, k):
+    """
+    The power eta of the tail that replaces a standard normal's tail beyond a.
+    With t the distance past a, measured outward, the tail's density on
+    0 <= t <= 1 is (eta + 1) P (1 - t)**eta, with P = P(Z > a): it carries the
+    normal tail's probability and is zero at t = 1. eta is set so that the
+    tail's integral of exp(k t) is the normal tail's, P exp(k**2/2 - k a)
+    P(Z > a - k) / P(Z > a); with k = sigma on the upper tail and -sigma on the
+    lower, that is the tail's share of the lognormal's mean.
+
+    The integral falls with eta when k > 0 and rises with it when k < 0, from
+    its value for a uniform tail at eta = 0 toward P as eta grows, so eta is the
+    one root of a one-dimensional equation.
+
+    Returns
+    -------
+    eta, or None if no eta > 0 fits: the normal tail's mean lies farther out
+    than a uniform tail's, so no taper over one standard deviation carries it.
+    """
+    log_target = 0.5 * k * k - k * a + log_ndtr(k - a) - log_ndtr(-a)
+
+    def gap(eta):
+        return np.log(_taper_moment(eta, k)) - log_target
+
+    lo, hi = 1e-12, 1.0
+    if gap(lo) * np.sign(k) <= 0.0:
+        return None
+    while gap(hi) * np.sign(k) > 0.0:
+        hi *= 2.0
+        if hi > 1e6:
+            return None
+    return float(brentq(gap, lo, hi, xtol=1e-15, rtol=4.0 * np.finfo(float).eps))
+
+
+class _TaperedTail:
+    """
+    One tapered tail of a tapered standard normal: it starts at cut and runs
+    outward, in the direction outward (+1 for the upper tail, -1 for the lower),
+    for _TAPER_SD standard deviations to its bound. At distance t past the cut
+    its density is height (1 - t)**eta, with height = (eta + 1) prob and prob the
+    normal's probability beyond the cut.
+    """
+
+    def __init__(self, cut, outward, sigma):
+        self.cut = float(cut)
+        self.outward = outward
+        self.a = outward * self.cut
+        self.prob = float(ndtr(-self.a))
+        eta = _fit_taper(self.a, outward * float(sigma))
+        if eta is None:
+            raise ValueError(
+                "No tapered tail fits beyond "
+                + str(self.cut)
+                + " standard deviations: the lognormal's tail there has its mean "
+                "too far out for a taper over one standard deviation to carry. "
+                "Put the bounds farther out."
+            )
+        self.eta = eta
+        self.height = (eta + 1.0) * self.prob
+        # The density of X along the tail is proportional to
+        # (1 - t)**eta exp(-outward sigma t), which falls all the way to the
+        # bound only if eta + outward sigma > 0
+        if not eta + outward * float(sigma) > 0.0:
+            raise ValueError(
+                "The density of X beyond "
+                + str(self.cut)
+                + " standard deviations would rise before falling to its bound. "
+                "Put the bounds farther out: at three standard deviations from "
+                "the median both tails fall to their bounds for sigma below 0.8, "
+                "at 3.5 for sigma below 1.27, and at four for sigma below 1.74."
+            )
+
+    def density(self, d):
+        """The density of Z at distance d past the cut, for d in [0, 1]."""
+        d = np.clip(np.asarray(d, dtype=float), 0.0, 1.0)
+        with np.errstate(divide="ignore"):
+            return self.height * np.exp(self.eta * np.log1p(-d))
+
+    def integral(self, d, k=0.0):
+        """
+        The integral of density(t) exp(k t) over t from d to 1, for an array of d
+        in [0, 1]: the tail's probability beyond d when k = 0.
+        """
+        d = np.clip(np.asarray(d, dtype=float), 0.0, 1.0)
+        return self.prob * _taper_moment(self.eta, k, 1.0 - d)
+
+    def distance(self, prob):
+        """The distance d past the cut beyond which the tail holds prob."""
+        share = np.clip(np.asarray(prob, dtype=float) / self.prob, 0.0, 1.0)
+        with np.errstate(divide="ignore"):
+            return -np.expm1(np.log(share) / (self.eta + 1.0))
+
+    def moments(self):
+        """The integrals of density(t) t and density(t) t**2 over the tail."""
+        b = self.eta + 2.0
+        return self.prob / b, 2.0 * self.prob / (b * (b + 1.0))
+
+
+class _TaperedNormal:
+    """
+    The standard normal coordinate Z of a tapered lognormal: a standard normal
+    on [bot + 1, top - 1] and a tapered tail from there to each finite bound.
+    """
+
+    def __init__(self, sigma, bot, top):
+        self.bot, self.top = float(bot), float(top)
+        self.lower = (
+            _TaperedTail(bot + _TAPER_SD, -1, sigma) if np.isfinite(bot) else None
+        )
+        self.upper = (
+            _TaperedTail(top - _TAPER_SD, 1, sigma) if np.isfinite(top) else None
+        )
+        self.c_lo = self.lower.cut if self.lower else -np.inf
+        self.c_hi = self.upper.cut if self.upper else np.inf
+
+    def pdf(self, z):
+        z = np.asarray(z, dtype=float)
+        out = np.where((z >= self.c_lo) & (z <= self.c_hi), norm.pdf(z), 0.0)
+        if self.lower:
+            past = (z < self.c_lo) & (z >= self.bot)
+            out = np.where(past, self.lower.density(self.c_lo - z), out)
+        if self.upper:
+            past = (z > self.c_hi) & (z <= self.top)
+            out = np.where(past, self.upper.density(z - self.c_hi), out)
+        return out
+
+    def cdf(self, z):
+        z = np.asarray(z, dtype=float)
+        out = ndtr(z)
+        if self.lower:
+            out = np.where(z < self.c_lo, self.lower.integral(self.c_lo - z), out)
+        if self.upper:
+            out = np.where(z > self.c_hi, 1.0 - self.upper.integral(z - self.c_hi), out)
+        return np.where(z <= self.bot, 0.0, np.where(z >= self.top, 1.0, out))
+
+    def ppf(self, q):
+        q = np.asarray(q, dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            out = ndtri(q)
+        if self.lower:
+            low = q < self.lower.prob
+            out = np.where(low, self.c_lo - self.lower.distance(q), out)
+        if self.upper:
+            high = q > 1.0 - self.upper.prob
+            out = np.where(high, self.c_hi + self.upper.distance(1.0 - q), out)
+        out = np.where(q <= 0.0, self.bot, out)
+        return np.where(q >= 1.0, self.top, out)
+
+    def expectation_exp(self, c, z_lo, z_hi):
+        """E[exp(c Z) 1{z_lo < Z < z_hi}], for arrays of interval ends."""
+        z_lo, z_hi = np.asarray(z_lo, dtype=float), np.asarray(z_hi, dtype=float)
+        lo, hi = np.maximum(z_lo, self.c_lo), np.minimum(z_hi, self.c_hi)
+        body = np.where(
+            hi > lo, np.exp(0.5 * c * c) * _normal_mass(lo - c, hi - c), 0.0
+        )
+        if self.upper:
+            d1 = np.clip(z_lo - self.c_hi, 0.0, 1.0)
+            d2 = np.clip(z_hi - self.c_hi, 0.0, 1.0)
+            body = body + np.exp(c * self.c_hi) * (
+                self.upper.integral(d1, c) - self.upper.integral(d2, c)
+            )
+        if self.lower:
+            d1 = np.clip(self.c_lo - z_hi, 0.0, 1.0)
+            d2 = np.clip(self.c_lo - z_lo, 0.0, 1.0)
+            body = body + np.exp(c * self.c_lo) * (
+                self.lower.integral(d1, -c) - self.lower.integral(d2, -c)
+            )
+        return body
+
+    def variance(self):
+        """Var(Z)."""
+        lo, hi = self.c_lo, self.c_hi
+        pdf_lo, pdf_hi = norm.pdf(lo), norm.pdf(hi)
+        mean = pdf_lo - pdf_hi
+        second = (
+            _normal_mass(lo, hi)
+            + (lo * pdf_lo if np.isfinite(lo) else 0.0)
+            - (hi * pdf_hi if np.isfinite(hi) else 0.0)
+        )
+        for tail in (self.lower, self.upper):
+            if tail:
+                # Z = cut + outward t on the tail
+                m1, m2 = tail.moments()
+                mean += tail.prob * tail.cut + tail.outward * m1
+                second += (
+                    tail.prob * tail.cut**2 + 2.0 * tail.cut * tail.outward * m1 + m2
+                )
+        return float(second - mean**2)
+
+
+@functools.lru_cache(maxsize=None)
+def _tapered_normal(sigma, bot, top):
+    return _TaperedNormal(sigma, bot, top)
+
+
+def _by_shape(fn, x, s, lo, hi):
+    """Apply fn(x, s, lo, hi) once per distinct (s, lo, hi), as scipy broadcasts them."""
+    x, s, lo, hi = np.broadcast_arrays(
+        *(np.asarray(v, dtype=float) for v in (x, s, lo, hi))
+    )
+    out = np.empty(x.shape)
+    keys = np.stack([s.ravel(), lo.ravel(), hi.ravel()], axis=1)
+    for key in np.unique(keys, axis=0):
+        sel = np.all(keys == key, axis=1).reshape(x.shape)
+        out[sel] = fn(x[sel], *key)
+    return out
+
+
+class _tapered_lognorm_gen(rv_continuous):
+    """
+    The tapered lognormal exp(s Z), with Z a tapered standard normal on [lo, hi]
+    in its standard deviations. scipy's scale is exp(mu).
+    """
+
+    def _argcheck(self, s, lo, hi):
+        return (s > 0) & (hi - lo >= 2.0 * _TAPER_SD)
+
+    def _get_support(self, s, lo, hi):
+        return np.exp(s * lo), np.exp(s * hi)
+
+    def _pdf(self, x, s, lo, hi):
+        def pdf(x, s, lo, hi):
+            with np.errstate(divide="ignore"):
+                z = np.log(x) / s
+            return _tapered_normal(s, lo, hi).pdf(z) / (s * x)
+
+        return _by_shape(pdf, x, s, lo, hi)
+
+    def _cdf(self, x, s, lo, hi):
+        def cdf(x, s, lo, hi):
+            with np.errstate(divide="ignore"):
+                return _tapered_normal(s, lo, hi).cdf(np.log(x) / s)
+
+        return _by_shape(cdf, x, s, lo, hi)
+
+    def _ppf(self, q, s, lo, hi):
+        return _by_shape(
+            lambda q, s, lo, hi: np.exp(s * _tapered_normal(s, lo, hi).ppf(q)),
+            q,
+            s,
+            lo,
+            hi,
+        )
+
+    def _munp(self, n, s, lo, hi):
+        return _by_shape(
+            lambda n, s, lo, hi: _tapered_normal(s, lo, hi).expectation_exp(
+                n * s, -np.inf, np.inf
+            ),
+            n,
+            s,
+            lo,
+            hi,
+        )
+
+
+_tapered_lognorm = _tapered_lognorm_gen(
+    a=0.0, name="tapered_lognorm", shapes="s, lo, hi"
+)
+
+
+class LogNormalTapered(ContinuousFrozenDistribution):
+    """
+    A lognormal whose tails are tapered to zero at its bounds: X = exp(mu + sigma Z),
+    where Z has the standard normal density between bot + 1 and top - 1 and, over
+    the last standard deviation before each bound, a power taper:
+
+        h (1 - t)**eta,
+
+    with t in [0, 1] the distance past the start of the tapered tail, measured
+    outward. Each tail's power eta is the one for which the tail carries exactly
+    the share of E[X] of the lognormal's tail that it replaces, and
+    h = (eta + 1) P, with P that tail's probability, so that it carries the
+    probability too; within the tail, t has the distribution Beta(1, eta + 1).
+    So the density of X is LogNormal(mu, sigma)'s own between the tapered tails,
+    it steps to h / (sigma x) at the start of each tapered tail, it is zero at the
+    bounds, which are its infimum and supremum, and E[X] is
+    exp(mu + sigma**2 / 2), as for LogNormal(mu, sigma).
+
+    The bounds are in standard deviations of the underlying normal, and None is
+    no bound on that side, where the lognormal's own tail is kept. With both None
+    this is LogNormal(mu, sigma). The density of X must fall all the way to each
+    bound, and bounds for which it would rise first, or for which no taper with
+    eta > 0 carries the tail's mean, are refused: at three standard deviations
+    from the median both tails fall to their bounds for sigma below 0.8, at 3.5
+    for sigma below 1.27, and at four for sigma below 1.74.
+
+    Parameters
+    ----------
+    mu : float, optional
+        Mean of the underlying normal, by default 0.0.
+    sigma : float, optional
+        Standard deviation of the underlying normal, by default 1.0. With
+        sigma = 0 the distribution is the point exp(mu).
+    bot : float or None, optional
+        Lower bound, by default -3.0.
+    top : float or None, optional
+        Upper bound, by default 3.0.
+    seed : int, optional
+        Seed for random number generator, by default None.
+    """
+
+    def __new__(cls, mu=0.0, sigma=1.0, bot=-3.0, top=3.0, seed=None):
+        if sigma == 0:
+            # A point at exp(mu), whose bounds are the point
+            return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
+        return super().__new__(cls)
+
+    def __init__(self, mu=0.0, sigma=1.0, bot=-3.0, top=3.0, seed=None):
+        if np.ndim(mu) or np.ndim(sigma):
+            raise ValueError(
+                "mu and sigma must be scalars; use IndexDistribution for time variation."
+            )
+        if sigma < 0:
+            raise ValueError("sigma must be nonnegative, but it is " + str(sigma))
+        self.mu = float(mu)
+        self.sigma = float(sigma)
+        self.bot = _bound(bot, -np.inf)
+        self.top = _bound(top, np.inf)
+        if not self.top - self.bot >= 2.0 * _TAPER_SD:
+            raise ValueError(
+                "The bounds must be at least two standard deviations apart, so "
+                "that each tapered tail has its standard deviation."
+            )
+        self._law = _tapered_normal(self.sigma, self.bot, self.top)
+        super().__init__(
+            _tapered_lognorm,
+            s=self.sigma,
+            lo=self.bot,
+            hi=self.top,
+            scale=np.exp(self.mu),
+            loc=0,
+            seed=seed,
+        )
+        self.infimum = np.array([np.exp(self.mu + self.sigma * self.bot)])
+        self.supremum = np.array([np.exp(self.mu + self.sigma * self.top)])
+
+    def z(self, x):
+        """The standard normal coordinate (ln x - mu) / sigma of x."""
+        with np.errstate(divide="ignore"):
+            return (np.log(x) - self.mu) / self.sigma
+
+    def moment(self, order):
+        """The raw moment E[X**order], for any real order."""
+        k = float(order)
+        return np.exp(k * self.mu) * self._law.expectation_exp(
+            k * self.sigma, -np.inf, np.inf
+        )
+
+    def _approx_equiprobable(self, N, endpoints=False):
+        """
+        A discrete approximation with N atoms of probability 1/N, each the
+        conditional mean of its bin, so the mean is exact.
+
+        Parameters
+        ----------
+        N : int
+            Number of atoms.
+        endpoints : bool, optional
+            Whether to add zero-probability atoms at the infimum and supremum,
+            by default False.
+
+        Returns
+        -------
+        DiscreteDistribution
+        """
+        cuts = self._law.ppf(np.arange(N + 1) / N)
+        cuts[0], cuts[-1] = self.bot, self.top
+        pmv = np.ones(N) / N
+        atoms = (
+            np.exp(self.mu)
+            * self._law.expectation_exp(self.sigma, cuts[:-1], cuts[1:])
+            * N
+        )
+        if endpoints:
+            atoms = np.r_[self.infimum, atoms, self.supremum]
+            pmv = np.r_[0.0, pmv, 0.0]
+        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+        return DiscreteDistribution(pmv, atoms, seed=self.random_seed(), limit=limit)
+
+
+class LogNormalTaperedMeanOne(LogNormalTapered):
+    """
+    A tapered lognormal with mean one: mu = -sigma**2 / 2, since the tapering
+    keeps the lognormal's mean. The bounds are in standard deviations of the
+    underlying normal, by default three either side, so the tapered tails start
+    two standard deviations out.
+
+    Parameters
+    ----------
+    sigma : float, optional
+        Standard deviation of the underlying normal, by default 1.0. With
+        sigma = 0 the distribution is the point 1.
+    bot : float or None, optional
+        Lower bound, by default -3.0.
+    top : float or None, optional
+        Upper bound, by default 3.0.
+    seed : int, optional
+        Seed for random number generator, by default 0.
+    """
+
+    def __new__(cls, sigma=1.0, bot=-3.0, top=3.0, seed=0):
+        if sigma == 0:
+            return DiscreteDistribution([1.0], [1.0], seed=seed)
+        return super().__new__(cls)
+
+    def __init__(self, sigma=1.0, bot=-3.0, top=3.0, seed=0):
+        super().__init__(mu=-0.5 * sigma**2, sigma=sigma, bot=bot, top=top, seed=seed)
+
+    @classmethod
+    def from_sd_log(cls, sd_log, bot=-3.0, top=3.0, seed=0):
+        """
+        The mean-one tapered lognormal whose log has standard deviation sd_log.
+        The tapering narrows the log slightly, so the underlying normal's sigma
+        is set a little above sd_log, so that an estimated dispersion keeps its
+        value.
+
+        Parameters
+        ----------
+        sd_log : float
+            Standard deviation of ln X.
+        bot : float or None, optional
+            Lower bound, by default -3.0.
+        top : float or None, optional
+            Upper bound, by default 3.0.
+        seed : int, optional
+            Seed for random number generator, by default 0.
+
+        Returns
+        -------
+        LogNormalTaperedMeanOne or DiscreteDistribution
+        """
+        if sd_log == 0:
+            return cls(sigma=0.0, bot=bot, top=top, seed=seed)
+        lo, hi = _bound(bot, -np.inf), _bound(top, np.inf)
+        sigma = float(sd_log)
+        for _ in range(50):
+            new = sd_log / np.sqrt(_tapered_normal(sigma, lo, hi).variance())
+            if abs(new - sigma) <= 1e-15 * sigma:
+                break
+            sigma = new
         return cls(sigma=sigma, bot=bot, top=top, seed=seed)
 
 
