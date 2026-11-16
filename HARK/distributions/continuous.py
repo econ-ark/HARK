@@ -872,6 +872,16 @@ class _TaperedNormal:
             out = np.where(z > self.c_hi, 1.0 - self.upper.integral(z - self.c_hi), out)
         return np.where(z <= self.bot, 0.0, np.where(z >= self.top, 1.0, out))
 
+    def sf(self, z):
+        """1 - cdf(z), with the upper tail's digits kept."""
+        z = np.asarray(z, dtype=float)
+        out = ndtr(-z)
+        if self.lower:
+            out = np.where(z < self.c_lo, 1.0 - self.lower.integral(self.c_lo - z), out)
+        if self.upper:
+            out = np.where(z > self.c_hi, self.upper.integral(z - self.c_hi), out)
+        return np.where(z <= self.bot, 1.0, np.where(z >= self.top, 0.0, out))
+
     def ppf(self, q):
         q = np.asarray(q, dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -1073,6 +1083,44 @@ class LogNormalTapered(ContinuousFrozenDistribution):
         )
         self.infimum = np.array([np.exp(self.mu + self.sigma * self.bot)])
         self.supremum = np.array([np.exp(self.mu + self.sigma * self.top)])
+
+    # The density, CDF, survival function and quantile function come straight
+    # from the tapered normal, as scipy's would through _tapered_lognorm, but
+    # without its handling of shape parameters that may vary by element, which
+    # this law's, being scalars, never do.
+
+    def _in_z(self, x):
+        """
+        The coordinate z of x, and where x is below, inside and above the open
+        support, so that the bounds, which z recovers only to rounding, are
+        outside it.
+        """
+        x = np.asarray(x, dtype=float)
+        below, above = x <= self.infimum[0], x >= self.supremum[0]
+        inside = ~(below | above)
+        return self.z(np.where(inside, x, 1.0)), below, inside, above, x
+
+    def pdf(self, x):
+        """The density of X at x."""
+        z, _, inside, _, x = self._in_z(x)
+        out = self._law.pdf(z) / (self.sigma * np.where(inside, x, 1.0))
+        return np.where(inside, out, 0.0)[()]
+
+    def cdf(self, x):
+        """P(X <= x)."""
+        z, _, inside, above, _ = self._in_z(x)
+        return np.where(inside, self._law.cdf(z), np.where(above, 1.0, 0.0))[()]
+
+    def sf(self, x):
+        """P(X > x)."""
+        z, below, inside, _, _ = self._in_z(x)
+        return np.where(inside, self._law.sf(z), np.where(below, 1.0, 0.0))[()]
+
+    def ppf(self, q):
+        """The quantile function: the x with P(X <= x) = q, nan outside [0, 1]."""
+        q = np.asarray(q, dtype=float)
+        out = np.exp(self.mu + self.sigma * self._law.ppf(np.clip(q, 0.0, 1.0)))
+        return np.where((q >= 0.0) & (q <= 1.0), out, np.nan)[()]
 
     def z(self, x):
         """The standard normal coordinate (ln x - mu) / sigma of x."""

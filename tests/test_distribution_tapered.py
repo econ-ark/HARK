@@ -10,7 +10,7 @@ from HARK.distributions import (
     LogNormalTapered,
     LogNormalTaperedMeanOne,
 )
-from HARK.distributions.continuous import _taper_moment
+from HARK.distributions.continuous import _taper_moment, _tapered_lognorm
 
 
 def integrate(fn, pieces):
@@ -214,3 +214,45 @@ class LogNormalTaperedTests(unittest.TestCase):
                         epsrel=1e-13,
                     )[0]
                     self.assertAlmostEqual(_taper_moment(eta, k, s) / ref, 1.0, 13)
+
+    def test_its_own_functions_match_scipys(self):
+        # The density, CDF and quantile function the law computes from the
+        # tapered normal are those of scipy's generic path through
+        # _tapered_lognorm, inside and outside the support, to rounding
+        for sigma, bot, top in self.cases:
+            d = LogNormalTapered(mu=0.2, sigma=sigma, bot=bot, top=top)
+            shape = dict(s=sigma, lo=bot, hi=top, scale=np.exp(0.2))
+            # off the steps at the tails' starts and the bounds, where the two
+            # paths' roundings of z can fall on different sides
+            z = np.linspace(bot - 0.5, top + 0.5, 401)
+            steps = np.array([bot, bot + 1.0, top - 1.0, top])
+            z = z[np.min(np.abs(z[:, None] - steps), axis=1) > 1e-9]
+            x = np.r_[-1.0, 0.0, np.exp(0.2 + sigma * z)]
+            for name in ("pdf", "cdf"):
+                with self.subTest(sigma=sigma, function=name):
+                    np.testing.assert_allclose(
+                        getattr(d, name)(x),
+                        getattr(_tapered_lognorm, name)(x, **shape),
+                        rtol=1e-12,
+                        atol=1e-300,
+                    )
+            # scipy's survival function is 1 - cdf, which this one equals to
+            # rounding while keeping the upper tail's digits (below)
+            np.testing.assert_allclose(d.sf(x) + d.cdf(x), 1.0, rtol=0, atol=2e-16)
+            # the support is open: nothing at the bounds
+            ends = np.r_[d.infimum, d.supremum]
+            np.testing.assert_array_equal(d.pdf(ends), [0.0, 0.0])
+            np.testing.assert_array_equal(d.cdf(ends), [0.0, 1.0])
+            np.testing.assert_array_equal(d.sf(ends), [1.0, 0.0])
+            q = np.r_[-0.1, 0.0, np.linspace(0.0, 1.0, 401)[1:-1], 1.0, 1.1]
+            np.testing.assert_allclose(
+                d.ppf(q), _tapered_lognorm.ppf(q, **shape), rtol=1e-13
+            )
+            self.assertTrue(np.isnan(d.ppf(-0.1)) and np.isnan(d.ppf(1.1)))
+            self.assertIsInstance(d.pdf(1.0), float)
+            # the survival function keeps the upper tail's digits, to the
+            # rounding with which z is recovered from x, which the tail's mass a
+            # hundredth from the bound magnifies about 200 times
+            far = np.exp(0.2 + sigma * (top - 0.01))
+            tail = d._law.upper.integral(top - 0.01 - d._law.c_hi)
+            self.assertAlmostEqual(float(d.sf(far)) / float(tail), 1.0, places=11)
