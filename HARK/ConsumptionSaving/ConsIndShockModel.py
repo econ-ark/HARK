@@ -1174,9 +1174,10 @@ def _bounds(law):
 class _ScaledLaw:
     """
     The law of scale * X, for X distributed as a continuous law: its quantile
-    function, CDF, survival function, density and bounds, all scaled, and the
-    standard-normal coordinate the law supplies, if it supplies one, with its
-    values scaled, and that coordinate's density, if the law supplies it.
+    function, CDF, survival function, density, bounds and breakpoints, all
+    scaled, and the standard-normal coordinate the law supplies, if it supplies
+    one, with its values scaled, and that coordinate's density, if the law
+    supplies it.
 
     Parameters
     ----------
@@ -1208,6 +1209,13 @@ class _ScaledLaw:
 
     def mean(self):
         return self.scale * float(np.squeeze(self.law.mean()))
+
+    def breakpoints(self):
+        # the law's own, scaled, where it has them
+        breaks = getattr(self.law, "breakpoints", None)
+        if breaks is None:
+            return np.array([])
+        return self.scale * np.asarray(breaks(), dtype=float)
 
     @property
     def normal_coordinate(self):

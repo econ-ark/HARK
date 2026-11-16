@@ -7,10 +7,12 @@ their laws with solve_one_period_ConsIndShock_continuous.
 import pickle
 import unittest
 from copy import deepcopy
+from unittest import mock
 
 import numpy as np
 from scipy.stats import beta, gamma
 
+from HARK.Calibration.Income import IncomeProcesses
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     TRANSITION_SPLIT,
     ConsumerSolution,
@@ -837,6 +839,33 @@ class testIncShkExpectation(unittest.TestCase):
         c_q, mpc_q = solutions[1].cFunc.eval_with_derivative(m)
         np.testing.assert_allclose(c_q, c, rtol=0.0, atol=1e-5)
         np.testing.assert_allclose(mpc_q, mpc, rtol=0.0, atol=5e-4)
+
+    def test_rescaled_law_keeps_its_breakpoints(self):
+        # The employed transitory law, rescaled for unemployment's mean, keeps
+        # its law's breakpoints, scaled, so the expectation cuts there; here the
+        # jumpless laws, given breakpoints two standard deviations from the median
+        class WithBreakpoints(LogNormalTruncatedJumplessMeanOne):
+            def breakpoints(self):
+                return np.exp(self.mu + self.sigma * np.array([-2.0, 2.0]))
+
+        with mock.patch.dict(
+            IncomeProcesses._SHOCK_TAILS, {"jumpless": WithBreakpoints}
+        ):
+            agent = IndShockConsumerType(
+                cycles=0,
+                IncShkExpectation="continuous",
+                TranShk_inf=-3.5,
+                **JUMPLESS_TAILS,
+            )
+        perm, tran, p, x = get_income_shock_laws(agent.IncShkDstn[0])
+        law = agent.IncShkDstn[0].limit["dist"][1].limit["dist"].limit["dist"]
+        self.assertIsInstance(law, WithBreakpoints)
+        scale = (1.0 - p * x) / (1.0 - p)
+        self.assertEqual(tran.breakpoints().size, 2)
+        np.testing.assert_allclose(tran.breakpoints(), scale * law.breakpoints())
+        np.testing.assert_allclose(
+            perm.breakpoints(), np.exp(perm.mu + perm.sigma * np.array([-2.0, 2.0]))
+        )
 
     def test_errors(self):
         with self.assertRaises(ValueError):
