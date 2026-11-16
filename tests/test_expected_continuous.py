@@ -15,6 +15,8 @@ from HARK.distributions import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     LogNormalMeanOne,
+    LogNormalPooledTailsMeanOne,
+    LogNormalTaperedMeanOne,
     LogNormalTruncatedMeanOne,
     Normal,
     Uniform,
@@ -324,6 +326,56 @@ class testExpectedContinuous(unittest.TestCase):
                         nodes=nodes,
                     )
                     self.assertAlmostEqual(float(split), exact, delta=tol)
+
+    def test_tapered_and_pooled_laws(self):
+        # The tapered lognormal and the lognormal with pooled tails, reached
+        # through their quantile functions and cut at their breakpoints (where
+        # the tapered tails start, and the cutoffs), against their closed-form
+        # moments of orders -4 to 2: to 1e-6 at four nodes a piece and to 1e-12
+        # at eight, with breakpoints on the coordinate's unit steps and off them
+        orders = np.array([-4.0, -2.0, -1.0, 1.0, 2.0])
+        laws = []
+        for sigma in (0.1, 0.3):
+            for bot, top in ((-2.5, 2.5), (-3.0, 3.0), (-3.5, 3.5), (-3.0, 4.0)):
+                law = LogNormalTaperedMeanOne(sigma, bot, top)
+                laws.append(("tapered", sigma, bot, top, law))
+            for bot, top in ((-2.0, 2.0), (-1.5, 2.5)):
+                law = LogNormalPooledTailsMeanOne(sigma, bot, top)
+                laws.append(("pooled", sigma, bot, top, law))
+        for name, sigma, bot, top, law in laws:
+            exact = np.array([float(law.moment(k)) for k in orders])
+            for nodes, tol in ((4, 1e-6), (8, 1e-12)):
+                with self.subTest(
+                    law=name, sigma=sigma, bounds=(bot, top), nodes=nodes
+                ):
+                    got = expected_continuous(
+                        lambda x: np.stack([x[0] ** k for k in orders]),
+                        law,
+                        nodes=nodes,
+                    )
+                    np.testing.assert_allclose(got / exact, 1.0, rtol=0, atol=tol)
+
+    def test_breakpoints_are_edges(self):
+        # A law's breakpoints are edges of its pieces in z, beside the unit steps
+        law = LogNormalTaperedMeanOne(0.2, -3.5, 3.5)
+        np.testing.assert_allclose(
+            law.breakpoints(), np.exp(law.mu + law.sigma * np.array([-2.5, 2.5]))
+        )
+        pooled = LogNormalPooledTailsMeanOne(0.2, -1.5, 2.5)
+        np.testing.assert_allclose(
+            pooled.breakpoints(),
+            np.exp(pooled.mu + pooled.sigma * np.array([-1.5, 2.5])),
+        )
+        for each, z in ((law, (-2.5, 2.5)), (pooled, (-1.5, 2.5))):
+            edges = np.array(_coordinate(each)[0])
+            for point in z:
+                self.assertLess(np.min(np.abs(edges - point)), 1e-12)
+            self.assertTrue(np.all(np.diff(edges) > 1e-9))
+        # on the unit steps they add no edge, and most laws have none
+        steps = np.array(_coordinate(LogNormalTaperedMeanOne(0.2, -3.0, 3.0))[0])
+        np.testing.assert_allclose(steps, np.arange(-8.0, 9.0), atol=1e-12)
+        self.assertEqual(LogNormalMeanOne(0.2).breakpoints().size, 0)
+        self.assertEqual(LogNormalTruncatedMeanOne(0.2).breakpoints().size, 0)
 
     def test_errors(self):
         law = LogNormalMeanOne(0.1)

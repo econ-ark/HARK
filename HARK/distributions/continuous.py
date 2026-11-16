@@ -1202,6 +1202,21 @@ class LogNormalTapered(ContinuousFrozenDistribution):
         with np.errstate(divide="ignore"):
             return (np.log(x) - self.mu) / self.sigma
 
+    def breakpoints(self):
+        """
+        The values at which the density steps: where each tapered tail starts,
+        one standard deviation inside its bound.
+
+        Returns
+        -------
+        np.ndarray
+            The points, in increasing order.
+        """
+        starts = (self._law.c_lo, self._law.c_hi)
+        return np.array(
+            [np.exp(self.mu + self.sigma * c) for c in starts if np.isfinite(c)]
+        )
+
     def moment(self, order):
         """The raw moment E[X**order], for any real order."""
         k = float(order)
@@ -1432,6 +1447,22 @@ class LogNormalPooledTails(Distribution):
         """The standard normal coordinate (ln x - mu) / sigma of x."""
         with np.errstate(divide="ignore"):
             return (np.log(x) - self.mu) / self.sigma
+
+    def breakpoints(self):
+        """
+        The cutoffs, where the quantile function jumps from a pooled point to
+        the lognormal's own part, across the gap between them that holds no
+        probability.
+
+        Returns
+        -------
+        np.ndarray
+            The points, in increasing order.
+        """
+        cuts = (self.bot, self.top)
+        return np.array(
+            [np.exp(self.mu + self.sigma * c) for c in cuts if np.isfinite(c)]
+        )
 
     def _points(self):
         """The pooled points and their probabilities, on the sides that have one."""

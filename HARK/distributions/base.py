@@ -176,6 +176,21 @@ class Distribution:
         """
         return self._rng.integers(0, MAX_INT32, dtype=np.int32)
 
+    def breakpoints(self) -> np.ndarray:
+        """
+        The values inside the support at which the law is not smooth: where its
+        density jumps or has a kink, or where its quantile function jumps, across
+        a gap that holds no probability. A quadrature over the law cuts its
+        pieces there, so that each piece's integrand is smooth. This law has
+        none; a law that has some returns them.
+
+        Returns
+        -------
+        np.ndarray
+            The points, in increasing order.
+        """
+        return np.array([])
+
     def draw(self, N: int) -> np.ndarray:
         """
         Generate arrays of draws from this distribution.
