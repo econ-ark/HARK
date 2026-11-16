@@ -731,9 +731,10 @@ def _coordinate(dstn):
     normal restricted to an interval, through its method normal_coordinate(),
     as the normal and lognormal laws, truncated or not, do; for any other law z
     is its normal score, reached through its quantile function,
-    X = F^{-1}(Phi(z)), so the integrand is smooth in z wherever f is. A side
-    without a bound is cut at Z_UNBOUNDED, and the edges are at every multiple
-    of Z_STEP between the ends.
+    X = F^{-1}(Phi(z)), so the integrand is smooth in z wherever f and the law
+    are. A side without a bound is cut at Z_UNBOUNDED, and the edges are at
+    every multiple of Z_STEP between the ends and at the law's breakpoints(),
+    the values at which it is not smooth.
     """
     if hasattr(dstn, "normal_coordinate"):
         bot, top, value, coord = dstn.normal_coordinate()
@@ -756,6 +757,17 @@ def _coordinate(dstn):
     lo, hi = max(float(bot), -Z_UNBOUNDED), min(float(top), Z_UNBOUNDED)
     steps = np.arange(np.floor(lo / Z_STEP) + 1.0, np.ceil(hi / Z_STEP)) * Z_STEP
     edges = [lo] + [z for z in steps if lo < z < hi] + [hi]
+    # The law's own breakpoints are edges too, so that no piece holds a step
+    # in its density; one within rounding of an edge already there is that edge
+    breaks = getattr(dstn, "breakpoints", None)
+    if breaks is not None:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            inner = np.ravel(coord(np.asarray(breaks(), dtype=float)))
+        tol = 1e-12 * max(1.0, abs(lo), abs(hi))
+        for z in inner[np.isfinite(inner)]:
+            if lo < z < hi and min(abs(z - e) for e in edges) > tol:
+                edges.append(float(z))
+        edges.sort()
     mass = float(_normal_mass(lo, hi))
 
     def density(z):
@@ -855,7 +867,8 @@ def expected_continuous(
 
     In z, a side without a bound is cut at Z_UNBOUNDED standard deviations, and
     every integral is split at each multiple of Z_STEP, so that a few nodes a
-    piece resolve the normal density.
+    piece resolve the normal density, and at each of the law's breakpoints(),
+    the values at which it is not smooth, so that no piece holds one.
 
     Parameters
     ----------

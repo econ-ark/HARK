@@ -325,6 +325,22 @@ class testExpectedContinuous(unittest.TestCase):
                     )
                     self.assertAlmostEqual(float(split), exact, delta=tol)
 
+    def test_breakpoints_are_edges(self):
+        # A law's breakpoints are edges of its pieces in z, beside the unit
+        # steps; here a truncated lognormal that declares one at z = 0.5
+        class WithBreakpoint(LogNormalTruncatedMeanOne):
+            def breakpoints(self):
+                return np.exp(self.mu + self.sigma * np.array([0.5]))
+
+        edges = np.array(_coordinate(WithBreakpoint(0.2, -3.0, 3.0))[0])
+        self.assertLess(np.min(np.abs(edges - 0.5)), 1e-12)
+        self.assertTrue(np.all(np.diff(edges) > 1e-9))
+        # on the unit steps they add no edge, and most laws have none
+        steps = np.array(_coordinate(LogNormalTruncatedMeanOne(0.2, -3.0, 3.0))[0])
+        self.assertTrue(np.all(np.isin(np.round(steps, 12), np.arange(-8.0, 9.0))))
+        self.assertEqual(LogNormalMeanOne(0.2).breakpoints().size, 0)
+        self.assertEqual(LogNormalTruncatedMeanOne(0.2).breakpoints().size, 0)
+
     def test_errors(self):
         law = LogNormalMeanOne(0.1)
         with self.assertRaises(TypeError):
