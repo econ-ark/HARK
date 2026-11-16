@@ -540,7 +540,18 @@ class testIncShkExpectation(unittest.TestCase):
         # Untruncated laws reach their infimum, zero, only through a tail: at the
         # natural limit, zero, the marginal value stays finite, so the limit binds
         # as a constraint with a kink, and it makes no difference that no
-        # artificial constraint is set
+        # artificial constraint is set. Under the continuous expectation the
+        # laws are untruncated only with infinite bounds. With no unemployment
+        # event: with one, an employed law unbounded below would reach below
+        # unemployment income, which the solver refuses where the natural limit
+        # can bind
+        unbounded = {
+            "PermShk_inf": -np.inf,
+            "PermShk_sup": np.inf,
+            "TranShk_inf": -np.inf,
+            "TranShk_sup": np.inf,
+            "UnempPrb": 0.0,
+        }
         solutions = []
         for constraint in (0.0, None):
             agent = IndShockConsumerType(
@@ -549,6 +560,7 @@ class testIncShkExpectation(unittest.TestCase):
                 CubicBool=True,
                 BoroCnstArt=constraint,
                 IncShkExpectation="continuous",
+                **unbounded,
             )
             agent.cycles = 3
             agent.solve()
