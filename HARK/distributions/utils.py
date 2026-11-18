@@ -3,13 +3,14 @@ from warnings import warn
 
 import numpy as np
 from scipy import stats
+from scipy.special import ndtr, ndtri
 
 from HARK.distributions.base import IndexDistribution
 from HARK.distributions.discrete import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
 )
-from HARK.distributions.continuous import Normal
+from HARK.distributions.continuous import Normal, _normal_mass
 
 
 # TODO: This function does not generate the limit attribute
@@ -235,18 +236,20 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
 # ================================================================================
 
 
-def _bounds_with_added_atom(distribution, x, atoms):
+def _bounds_with_added_atom(distribution, x, atoms, scale=1.0):
     """
     Compute (infimum, supremum) for a distribution after a new atom ``x`` is added.
 
-    Falls back to taking min/max over the augmented atoms array when the source
-    distribution does not expose ``infimum``/``supremum`` in its ``limit`` dict.
+    The source distribution's own bounds are multiplied by ``scale``, the factor
+    its atoms were multiplied by. Falls back to taking min/max over the augmented
+    atoms array when the source distribution does not expose
+    ``infimum``/``supremum`` in its ``limit`` dict.
     """
     temp_x = np.array(x, ndmin=1)
     try:
         infimum = np.array(
             [
-                np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                np.minimum(temp_x[i], scale * distribution.limit["infimum"][i])
                 for i in range(temp_x.size)
             ]
         )
@@ -255,7 +258,7 @@ def _bounds_with_added_atom(distribution, x, atoms):
     try:
         supremum = np.array(
             [
-                np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                np.maximum(temp_x[i], scale * distribution.limit["supremum"][i])
                 for i in range(temp_x.size)
             ]
         )
@@ -264,17 +267,18 @@ def _bounds_with_added_atom(distribution, x, atoms):
     return infimum, supremum
 
 
-def _finalize_with_added_atom(distribution, atoms, x, p, method, sort):
+def _finalize_with_added_atom(distribution, atoms, x, p, method, sort, scale=1.0):
     """Build the new ``DiscreteDistribution`` after a value ``x`` (probability ``p``)
     has been spliced onto ``distribution``. Shared by ``add_discrete_outcome`` and
-    ``add_discrete_outcome_constant_mean``.
+    ``add_discrete_outcome_constant_mean``; ``scale`` is the factor applied to the
+    original atoms.
     """
     pmv = np.append(p, distribution.pmv * (1 - p))
     if sort:
         indices = np.argsort(atoms)
         atoms = atoms[indices]
         pmv = pmv[indices]
-    infimum, supremum = _bounds_with_added_atom(distribution, x, atoms)
+    infimum, supremum = _bounds_with_added_atom(distribution, x, atoms, scale)
     limit = {
         "dist": distribution,
         "method": method,
@@ -324,7 +328,15 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
 
     atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
     return _finalize_with_added_atom(
-        distribution, atoms, x, p, "add_discrete_outcome_constant_mean", sort
+        distribution,
+        atoms,
+        x,
+        p,
+        "add_discrete_outcome_constant_mean",
+        sort,
+        # In numpy's arithmetic, as the atoms' scale above is, so that np.errstate
+        # governs a probability of one here as it does there
+        scale=np.float64(1 - p * x) / (1 - p),
     )
 
 
@@ -629,3 +641,260 @@ def expected(func=None, dstn=None, args=(), vectorized=True, **kwargs):
     if kwargs:
         return dstn.expected(func, **kwargs)
     return dstn.expected(func)
+
+
+# Standard deviations used for the standard-normal coordinate of a law whose
+# support is unbounded on that side: the normal mass beyond eight is 1.2e-15.
+Z_UNBOUNDED = 8.0
+# The standard-normal coordinate is cut into pieces this wide, so that a few
+# Gauss-Legendre nodes a piece resolve the normal density: over [-8, 8], four
+# nodes a piece miss the normal mass by 6e-12 and five by 2e-13, where with one
+# piece beyond three standard deviations on either side four miss it by 1e-4.
+Z_STEP = 1.0
+_GAUSS_LEGENDRE = {}
+
+
+def _gauss_legendre(n):
+    """Gauss-Legendre nodes and weights on [-1, 1], cached by their number."""
+    if n not in _GAUSS_LEGENDRE:
+        _GAUSS_LEGENDRE[n] = np.polynomial.legendre.leggauss(n)
+    return _GAUSS_LEGENDRE[n]
+
+
+def _coordinate(dstn):
+    """
+    The standard-normal coordinate z in which expected_continuous integrates a
+    continuous distribution, as (edges, value, coord, density): E[f(X)] is the
+    integral over [edges[0], edges[-1]] of f(value(z)) density(z) dz, taken in
+    pieces between the edges, and coord is the inverse of value, which places
+    the split points. A law supplies its own z, in which it is the standard
+    normal restricted to an interval, through its method normal_coordinate(),
+    as the normal and lognormal laws, truncated or not, do; for any other law z
+    is its normal score, reached through its quantile function,
+    X = F^{-1}(Phi(z)), so the integrand is smooth in z wherever f and the law
+    are. A side without a bound is cut at Z_UNBOUNDED, and the edges are at
+    every multiple of Z_STEP between the ends and at the law's breakpoints(),
+    the values at which it is not smooth, such as where a tapered lognormal's
+    tails start.
+    """
+    if hasattr(dstn, "normal_coordinate"):
+        bot, top, value, coord = dstn.normal_coordinate()
+    elif hasattr(dstn, "ppf") and hasattr(dstn, "cdf"):
+        bot, top = -np.inf, np.inf
+
+        def value(z):
+            return dstn.ppf(ndtr(z))
+
+        def coord(x):
+            return ndtri(dstn.cdf(x))
+
+    else:
+        raise TypeError(
+            "expected_continuous() cannot integrate over a "
+            f"{type(dstn).__name__}: it takes laws with a quantile function and "
+            "CDF, or a normal_coordinate() method, mixtures and discrete "
+            "distributions."
+        )
+    lo, hi = max(float(bot), -Z_UNBOUNDED), min(float(top), Z_UNBOUNDED)
+    steps = np.arange(np.floor(lo / Z_STEP) + 1.0, np.ceil(hi / Z_STEP)) * Z_STEP
+    edges = [lo] + [z for z in steps if lo < z < hi] + [hi]
+    # The law's own breakpoints are edges too, so that no piece holds a step
+    # in its density; one within rounding of an edge already there is that edge
+    breaks = getattr(dstn, "breakpoints", None)
+    if breaks is not None:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            inner = np.ravel(coord(np.asarray(breaks(), dtype=float)))
+        tol = 1e-12 * max(1.0, abs(lo), abs(hi))
+        for z in inner[np.isfinite(inner)]:
+            if lo < z < hi and min(abs(z - e) for e in edges) > tol:
+                edges.append(float(z))
+        edges.sort()
+    mass = float(_normal_mass(lo, hi))
+
+    def density(z):
+        return np.exp(-0.5 * z * z) / (np.sqrt(2.0 * np.pi) * mass)
+
+    return edges, value, coord, density
+
+
+def _split_gauss_legendre(edges, n):
+    """
+    Gauss-Legendre nodes and weights, n a piece, on the pieces between sorted
+    edges, with rows in the leading axes and the edges in the last. Pieces of
+    zero length are dropped: each row keeps its pieces in order, padded with
+    empty ones to the number the row with the most has. Returns the nodes and
+    the weights, each of shape rows + (m,).
+    """
+    edges = np.asarray(edges, dtype=float)
+    empty = np.diff(edges, axis=-1) <= 0.0
+    order = np.argsort(empty, axis=-1, kind="stable")
+    count = max(int(np.max(np.sum(~empty, axis=-1), initial=0)), 1)
+    a = np.take_along_axis(edges[..., :-1], order[..., :count], axis=-1)
+    b = np.take_along_axis(edges[..., 1:], order[..., :count], axis=-1)
+    x, w = _gauss_legendre(n)
+    half = 0.5 * (b - a)[..., None]
+    nodes = half * x + 0.5 * (b + a)[..., None]
+    shape = nodes.shape[:-2] + (-1,)
+    return nodes.reshape(shape), (half * w).reshape(shape)
+
+
+def _quadrature(dstn, cuts, n):
+    """
+    Nodes and weights for one distribution, with n Gauss-Legendre nodes on each
+    piece between its cut points. With cuts of shape B + (k,), the returned
+    values and weights have shape B + (m,), with the nodes in the last axis;
+    without cuts they are 1D. A discrete distribution gives its atoms and
+    probabilities whatever the cuts, and a mixture its components' nodes, with
+    their weights multiplied by the components' weights.
+    """
+    if isinstance(dstn, DiscreteDistribution):
+        atoms = np.asarray(dstn.atoms, dtype=float)
+        if atoms.shape[0] != 1:
+            raise ValueError(
+                "expected_continuous() takes univariate distributions: pass the "
+                "variables of a joint discrete distribution separately."
+            )
+        return atoms[0], np.asarray(dstn.pmv, dtype=float)
+
+    if hasattr(dstn, "components") and hasattr(dstn, "weights"):
+        parts = [_quadrature(part, cuts, n) for part in dstn.components]
+        lead = () if cuts is None else cuts.shape[:-1]
+        values = [np.broadcast_to(v, lead + v.shape[-1:]) for v, _ in parts]
+        weights = [
+            p * np.broadcast_to(w, lead + w.shape[-1:])
+            for p, (_, w) in zip(dstn.weights, parts)
+        ]
+        return np.concatenate(values, axis=-1), np.concatenate(weights, axis=-1)
+
+    fixed, value, coord, density = _coordinate(dstn)
+    lo, hi = fixed[0], fixed[-1]
+    if cuts is None:
+        edges = np.array(fixed)
+    else:
+        # Cut points outside the support give pieces of zero length, dropped
+        inner = np.clip(
+            np.nan_to_num(coord(cuts), nan=lo, posinf=hi, neginf=lo), lo, hi
+        )
+        ends = np.ones(cuts.shape[:-1] + (1,)) * np.array(fixed)
+        edges = np.sort(np.concatenate([ends, inner], axis=-1), axis=-1)
+    nodes, weights = _split_gauss_legendre(edges, n)
+    return value(nodes), weights * density(nodes)
+
+
+def expected_continuous(
+    func=None, dstns=None, args=(), labels=None, splits=None, nodes=4
+):
+    """
+    The expectation of a function over independent distributions, taken against
+    continuous laws by Gauss-Legendre quadrature instead of summed over a
+    discretization's atoms. The integral over each law can be split at points
+    where the function is not smooth, such as a kink, so that no quadrature
+    node straddles one.
+
+    The calling convention is expected()'s: func receives the values of the
+    distributions, one per variable, and the other arguments. Each ndarray in
+    args gets one more trailing axis per distribution, as expected() gives it
+    one for the atoms, and the result has the shape that args broadcast to.
+
+    The distributions can be:
+
+    - continuous laws, integrated in a standard-normal coordinate z: the one a
+      law supplies through its method normal_coordinate(), as the normal and
+      lognormal laws, truncated or not, supply their own, or else the normal
+      score reached through its quantile function, X = F^{-1}(Phi(z));
+    - mixtures, objects with ``weights`` and ``components``, integrated
+      component by component;
+    - discrete distributions, summed over their atoms.
+
+    In z, a side without a bound is cut at Z_UNBOUNDED standard deviations, and
+    every integral is split at each multiple of Z_STEP, so that a few nodes a
+    piece resolve the normal density, and at each of the law's breakpoints(),
+    the values at which it is not smooth, so that no piece holds one.
+
+    Parameters
+    ----------
+    func : callable, optional
+        The function, called as ``func(x, *args)``. Without labels, x stacks the
+        variables' values in its first axis, as expected() passes atoms; with
+        labels, x is a dictionary of the values keyed by them. Defaults to the
+        identity, which gives the means.
+    dstns : list
+        The independent distributions, one per variable; a single distribution
+        need not be in a list.
+    args : tuple, optional
+        Other arguments of func.
+    labels : list of str, optional
+        Names of the variables, one per distribution.
+    splits : list, optional
+        For each distribution, None or a function giving the points at which its
+        integral is split: ``splits[i](x_0, ..., x_{i-1}, *args)`` receives the
+        values of the earlier variables and the arguments, broadcast as func
+        receives them, and returns the split points in the last axis of an
+        array. Points outside a law's support are ignored. By default nothing
+        is split.
+    nodes : int or list of int, optional
+        Gauss-Legendre nodes a piece, for all distributions or for each one.
+        The default is 4, which on the unit steps of the coordinate integrates
+        the normal density to 6e-12 and smooth integrands to about 1e-8.
+
+    Returns
+    -------
+    f_exp : np.array or float
+        The expectation of func at the given arguments.
+    """
+    if func is None:
+
+        def func(x, *args):
+            return x
+
+    if not isinstance(args, tuple):
+        args = (args,)
+    dstns = list(dstns) if isinstance(dstns, (list, tuple)) else [dstns]
+    d = len(dstns)
+    splits = [None] * d if splits is None else list(splits)
+    nodes = [nodes] * d if np.ndim(nodes) == 0 else list(nodes)
+    if len(splits) != d or len(nodes) != d:
+        raise ValueError("splits and nodes must have one entry per distribution.")
+    if labels is not None and len(labels) != d:
+        raise ValueError("labels must have one entry per distribution.")
+
+    # One trailing axis per distribution on each ndarray argument
+    arrays = [arg for arg in args if isinstance(arg, np.ndarray)]
+    lead = np.broadcast_shapes(*[arg.shape for arg in arrays]) if arrays else ()
+    args = tuple(
+        arg.reshape(arg.shape + (1,) * d) if isinstance(arg, np.ndarray) else arg
+        for arg in args
+    )
+
+    # Each variable's nodes go in its own axis, after the arguments' axes
+    values, weights = [], []
+    for i in range(d):
+        prefix = lead + tuple(v.shape[len(lead) + j] for j, v in enumerate(values))
+        prefix = prefix + (1,) * (d - i)
+        cuts = None
+        if splits[i] is not None:
+            cuts = np.asarray(splits[i](*values, *args), dtype=float)
+            cuts = cuts.reshape(cuts.shape or (1,))
+            cuts = np.broadcast_to(
+                cuts, np.broadcast_shapes(cuts.shape[:-1], prefix) + cuts.shape[-1:]
+            )
+        v, w = _quadrature(dstns[i], cuts, int(nodes[i]))
+        axis = len(lead) + i
+        if v.ndim == 1:
+            shape = (1,) * axis + (v.size,) + (1,) * (d - i - 1)
+            v, w = v.reshape(shape), w.reshape(shape)
+        else:
+            v, w = np.swapaxes(v, axis, -1)[..., 0], np.swapaxes(w, axis, -1)[..., 0]
+        values.append(v)
+        weights.append(w)
+
+    if labels is None:
+        shape = np.broadcast_shapes(*[v.shape for v in values])
+        x = np.stack([np.broadcast_to(v, shape) for v in values])
+    else:
+        x = dict(zip(labels, values))
+    f = np.asarray(func(x, *args))
+    weight = weights[0]
+    for w in weights[1:]:
+        weight = weight * w
+    return np.sum(f * weight, axis=tuple(range(-d, 0)))

@@ -18,7 +18,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.distributions import expected, Lognormal
+from HARK.distributions import expected, LogNormal
 from HARK.core import AgentType, get_it_from
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
@@ -59,7 +59,7 @@ def make_lognormal_habit_init_dstn(hLogInitMean, hLogInitStd, HabitInitCount, RN
     HabitInitDstn : DiscreteDistribution
         Discretized distribution of initial habit stock for newborns.
     """
-    dstn = Lognormal(
+    dstn = LogNormal(
         mu=hLogInitMean,
         sigma=hLogInitStd,
         seed=RNG.integers(0, 2**31 - 1),
