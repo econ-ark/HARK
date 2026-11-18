@@ -29,6 +29,8 @@ from HARK.distributions import (
     Uniform,
     expected,
     DiscreteDistribution,
+    employed_atoms,
+    restrict_to_atoms,
 )
 from HARK.interpolation import (
     CubicInterp,
@@ -1148,6 +1150,12 @@ class MarkovConsumerType(IndShockConsumerType):
                 # set current income distribution
                 IncShkDstnNow = self.IncShkDstn[0][j]
                 PermGroFacNow = self.PermGroFac[0][j]  # and permanent growth factor
+                # Born employed (the default): a newborn that draws a
+                # transitory shock draws it with the unemployment event left out
+                if self.NewbornTransShk and getattr(self, "NewbornEmployed", True):
+                    keep = employed_atoms(IncShkDstnNow)
+                    if keep is not None:
+                        IncShkDstnNow = restrict_to_atoms(IncShkDstnNow, keep)
 
                 # Draw income shocks from the discrete distribution
                 if getattr(self, "income_shuffle", False):

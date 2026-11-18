@@ -38,6 +38,7 @@ import warnings
 import numpy as np
 
 from HARK.distributions.discrete import DiscreteDistribution, cdf_invert
+from HARK.distributions.utils import employed_atoms, restrict_to_atoms
 
 __all__ = [
     "make_Q_measure_dstn",
@@ -175,6 +176,22 @@ def _Q_equals_P(p_dstn, q_dstn):
     if isinstance(p_dstn, (list, tuple)):
         return all(q is p for p, q in zip(p_dstn, q_dstn))
     return q_dstn is p_dstn
+
+
+def _newborn_dstn(agent, dstn_P, dstn_Q):
+    """
+    The Q-measure distribution a newborn's shocks come from: dstn_Q, or, where
+    the newborn draws a transitory shock and is born employed (NewbornEmployed,
+    the default), dstn_Q without the unemployment event that dstn_P records, as
+    the P side draws it. The two share their atoms, so P's record marks Q's.
+    """
+    if getattr(agent, "NewbornTransShk", False) and getattr(
+        agent, "NewbornEmployed", True
+    ):
+        keep = employed_atoms(dstn_P)
+        if keep is not None:
+            return restrict_to_atoms(dstn_Q, keep)
+    return dstn_Q
 
 
 def _fill_Q_cell(mask, dstn, PermGroFac, base_draws, PermShkQ, TranShkQ):
@@ -448,7 +465,7 @@ class DualMeasureMixin:
         if np.any(newborn):
             _fill_Q_cell(
                 newborn,
-                self.IncShkDstn_Q[0],
+                _newborn_dstn(self, self.IncShkDstn[0], self.IncShkDstn_Q[0]),
                 self.PermGroFac[0],
                 base_draws_dict.get("newborn"),
                 PermShkQ,
@@ -507,7 +524,9 @@ class DualMeasureMixin:
                 if np.any(these_nb):
                     _fill_Q_cell(
                         these_nb,
-                        self.IncShkDstn_Q[0][j],
+                        _newborn_dstn(
+                            self, self.IncShkDstn[0][j], self.IncShkDstn_Q[0][j]
+                        ),
                         self.PermGroFac[0][j],
                         base_draws_dict.get(("newborn", j)),
                         PermShkQ,

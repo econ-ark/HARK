@@ -31,6 +31,8 @@ __all__ = [
     "MarkovProcess",
     "add_discrete_outcome",
     "add_discrete_outcome_constant_mean",
+    "employed_atoms",
+    "restrict_to_atoms",
     "make_tauchen_ar1",
 ]
 
@@ -71,6 +73,8 @@ from HARK.distributions.utils import (
     calc_normal_style_pars_from_lognormal_pars,
     combine_indep_dstns,
     distr_of_function,
+    employed_atoms,
     expected,
     make_tauchen_ar1,
+    restrict_to_atoms,
 )
