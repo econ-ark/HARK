@@ -244,8 +244,17 @@ class EarlierNamesTests(unittest.TestCase):
             loaded = FixtureUnpickler(io.BytesIO(stored)).load()
         self.assertEqual(renamed_warnings(caught), [])
 
-        # Both continuous parents load as objects of the class under its new name
-        fresh = IndShockConsumerType().IncShkDstn[0]
+        # Both continuous parents load as objects of the class under its new name.
+        # The fixture holds the unbounded lognormal process, the default when it
+        # was pickled; None now takes the default bounds, so the fresh build asks
+        # for no bounds with infinite ones
+        unbounded = {
+            "PermShk_inf": -np.inf,
+            "PermShk_sup": np.inf,
+            "TranShk_inf": -np.inf,
+            "TranShk_sup": np.inf,
+        }
+        fresh = IndShockConsumerType(**unbounded).IncShkDstn[0]
         self.assertIs(type(loaded), type(fresh))
         for get_parent in (
             lambda dstn: dstn.limit["dist"][0].limit["dist"],

@@ -4,6 +4,7 @@ import warnings
 from dataclasses import replace
 
 import numpy as np
+from scipy.stats import norm
 
 from HARK.ConsumptionSaving.ConsBufferStockModel import (
     BufferStockConsumerType,
@@ -13,13 +14,45 @@ from HARK.ConsumptionSaving.ConsBufferStockModel import (
 )
 from HARK import _log
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-from HARK.distributions import DiscreteDistribution, Lognormal, MeanOneLogNormal
+from HARK.distributions import (
+    DiscreteDistribution,
+    Lognormal,
+    LogNormalTruncatedMeanOne,
+    MeanOneLogNormal,
+)
 
 
 def make_agent(**kwds):
     params = {"verbose": 0}
     params.update(kwds)
     return BufferStockConsumerType(**params)
+
+
+def make_agent_with_truncated_laws(**kwds):
+    """
+    An agent with the laws the class built by default before HARK's default
+    became the power-tapered lognormal: mean-one lognormals truncated at the
+    bounds, whose logs have standard deviations PermShkStd and TranShkStd, the
+    permanent shock's with a point mass at its infimum where make_PermShkLaw puts
+    one. The values of the checks of the paper's appendix were computed with
+    these laws.
+    """
+    agent = make_agent(**kwds)
+    perm = LogNormalTruncatedMeanOne.from_sd_log(
+        agent.PermShkStd, bot=agent.PermShk_inf, top=agent.PermShk_sup
+    )
+    if agent.UnempPrb > 0.0 and agent.IncUnemp > 0.0:
+        prb = agent.PermShkMinPrb
+        if prb is None:
+            prb = norm.cdf(agent.PermShk_inf)
+        if prb > 0.0:
+            perm = PointMassAtInfimum(perm, prb)
+    agent.PermShkLaw = perm
+    agent.TranShkLaw = LogNormalTruncatedMeanOne.from_sd_log(
+        agent.TranShkStd, bot=agent.TranShk_inf, top=agent.TranShk_sup
+    )
+    agent.update_income_process()
+    return agent
 
 
 class testBufferStockConditions(unittest.TestCase):
@@ -63,7 +96,7 @@ class testBufferStockConditions(unittest.TestCase):
         self.assertTrue(all(self.agent.conditions.values()))
 
     def test_moments_come_from_the_law(self):
-        # With the truncation far out, the moments are the lognormal's
+        # With the bounds far out, the moments are the lognormal's
         agent = make_agent(PermShk_inf=-12.0, PermShk_sup=12.0)
         agent.check_conditions()
         self.assertAlmostEqual(agent.bilt["GPFacMod"], 0.979846, places=6)
@@ -221,10 +254,10 @@ class testBufferStockSolution(unittest.TestCase):
         )
 
     def test_stable_points_at_the_papers_calibration(self):
-        # The paper's calibration with seven equiprobable points of untruncated
+        # The paper's calibration with seven equiprobable points of unbounded
         # lognormals, 400 asset points up to 100, cubic interpolation. The values
-        # were computed independently with IndShockConsumerType. Truncating at 12
-        # standard deviations reproduces the untruncated discretization.
+        # were computed independently with IndShockConsumerType. Bounds at 12
+        # standard deviations reproduce the unbounded discretization.
         agent = make_agent(
             PermShk_inf=-12.0,
             PermShk_sup=12.0,
@@ -303,16 +336,16 @@ class testBufferStockSolution(unittest.TestCase):
         # The permanent shock's default law then has a point mass at its infimum,
         # so that its lowest value has positive probability
         # (ass:shocksPositiveMinimum)
-        truncated = make_agent().PermShkLaw
-        self.assertNotIsInstance(truncated, PointMassAtInfimum)
+        base = make_agent().PermShkLaw
+        self.assertNotIsInstance(base, PointMassAtInfimum)
         agent = make_agent(IncUnemp=0.3)
         law = agent.PermShkLaw
         self.assertIsInstance(law, PointMassAtInfimum)
-        # The lowest value is the truncated lognormal's infimum, with the mass
-        # the truncation removes below it; the mean is still one
-        self.assertEqual(law.infimum[0], truncated.infimum[0])
+        # The lowest value is the default law's infimum, with the probability
+        # the unbounded lognormal puts below the bound; the mean is still one
+        self.assertEqual(law.infimum[0], base.infimum[0])
         self.assertAlmostEqual(law.infimum_prb, 0.0013498980316301, places=12)
-        self.assertGreater(law.scale * truncated.infimum[0], law.infimum[0])
+        self.assertGreater(law.scale * base.infimum[0], law.infimum[0])
         agent.check_restrictions()
         agent.check_conditions()
         results = agent.bilt["BufferStockConditions"]
@@ -487,10 +520,13 @@ class testBufferStockSolution(unittest.TestCase):
 
     def test_solution_without_a_point_mass_at_the_lowest_value(self):
         # The values of the check of the appendix's revision
-        # (subsec:PositiveMinimumNoWorstEvent) at seven points: the solver's
-        # lowest permanent shock is above the law's infimum, so the consumer
-        # ends the period at the limit below a kink
-        agent = make_agent(IncUnemp=0.3, PermShkMinPrb=0.0, tolerance=1e-10)
+        # (subsec:PositiveMinimumNoWorstEvent) at seven points, with the truncated
+        # lognormals it was computed with: the solver's lowest permanent shock is
+        # above the law's infimum, so the consumer ends the period at the limit
+        # below a kink
+        agent = make_agent_with_truncated_laws(
+            IncUnemp=0.3, PermShkMinPrb=0.0, tolerance=1e-10
+        )
         agent.solve()
         solution, bilt = agent.solution[0], agent.bilt
         results = bilt["BufferStockConditions"]
@@ -573,7 +609,7 @@ class testBufferStockSolution(unittest.TestCase):
         # that has no point mass at its infimum and an artificial constraint
         # that does not yet bind:
         agent = make_agent(IncUnemp=0.3, BoroCnstArt=-0.3, cycles=1)
-        agent.PermShkLaw = make_agent().PermShkLaw  # the truncated lognormal
+        agent.PermShkLaw = make_agent().PermShkLaw  # the default law, no point mass
         agent.update_income_process()
         agent.solve()
         infimum = agent.PermShkLaw.infimum[0]
@@ -779,8 +815,11 @@ class testBufferStockArtificialConstraint(unittest.TestCase):
         # artificial constraint, with the constraint as a gridpoint, so the kink
         # where it stops binding is a node. For the liquidity constrained
         # consumer, located by bisection, the kink is then the value of the
-        # check of the appendix's revision (item:Restrained), 0.9769
-        agent = make_agent(UnempPrb=0.0, BoroCnstArt=0.0, tolerance=1e-10)
+        # check of the appendix's revision (item:Restrained), 0.9769, with the
+        # truncated lognormals it was computed with
+        agent = make_agent_with_truncated_laws(
+            UnempPrb=0.0, BoroCnstArt=0.0, tolerance=1e-10
+        )
         agent.solve()
         cFunc = agent.solution[0].cFunc
         lo, hi = 0.9, 1.05
@@ -802,8 +841,11 @@ class testBufferStockArtificialConstraint(unittest.TestCase):
         # Without a point mass at the permanent shock's lowest value, the laws'
         # limit binds as an artificial constraint at that level does, and the
         # solution records the kink there: 0.8840 above the limit at seven
-        # points, as in the check of the appendix's revision (item:NoPointMass)
-        agent = make_agent(IncUnemp=0.3, PermShkMinPrb=0.0, tolerance=1e-10)
+        # points, as in the check of the appendix's revision (item:NoPointMass),
+        # with the truncated lognormals it was computed with
+        agent = make_agent_with_truncated_laws(
+            IncUnemp=0.3, PermShkMinPrb=0.0, tolerance=1e-10
+        )
         agent.solve()
         solution = agent.solution[0]
         self.assertAlmostEqual(solution.mNrmKink - solution.mNrmMin, 0.8840, delta=5e-4)
@@ -818,15 +860,17 @@ class testBufferStockArtificialConstraint(unittest.TestCase):
 
     def test_no_borrowing_with_positive_income_in_the_event(self):
         # The values of the check of the appendix's revision (item:Artificial),
-        # with the default laws: the constraint binds below a positive level of
-        # m, and both targets are at least one
+        # with the truncated lognormals it was computed with: the constraint
+        # binds below a positive level of m, and both targets are at least one
         expected = {
             0.05: (0.5604, 0.8860, 1.3179, 1.3068),
             0.3: (0.9459, 0.9677, 1.1001, 1.0967),
             0.5: (0.9688, 0.9814, 1.0523, 1.0509),
         }
         for IncUnemp, (kink, c_one, target, pseudo) in expected.items():
-            agent = make_agent(IncUnemp=IncUnemp, BoroCnstArt=0.0, tolerance=1e-10)
+            agent = make_agent_with_truncated_laws(
+                IncUnemp=IncUnemp, BoroCnstArt=0.0, tolerance=1e-10
+            )
             agent.solve()
             solution, bilt = agent.solution[0], agent.bilt
             self.assertEqual(solution.mNrmMin, 0.0)

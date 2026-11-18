@@ -1,7 +1,8 @@
 """
 Tests for bounded income shocks in IndShock's income constructor: the bounds
 PermShk_inf, PermShk_sup, TranShk_inf and TranShk_sup, in standard deviations of
-the underlying normal, with None (the default) for no bound, and the treatment
+the underlying normal, with None (the default) for the default bounds of the
+treatment of the tails and an infinite bound for no bound, and the treatment
 of the tails at the bounds, PermShk_tails and TranShk_tails: "tapered" (the
 default) or "pooled".
 """
@@ -62,7 +63,12 @@ class testIncomeShockTails(unittest.TestCase):
             )
             np.testing.assert_array_equal(plain.atoms, none.atoms)
             np.testing.assert_array_equal(plain.pmv, none.pmv)
-        agent = IndShockConsumerType()
+        # In the agent's income constructor None takes the default bounds, and
+        # an infinite bound is no bound: with infinite bounds the agent carries
+        # none of the bounds' parameters
+        agent = IndShockConsumerType(
+            **{key: np.inf if key.endswith("sup") else -np.inf for key in BOUNDS}
+        )
         keys = BOUNDS.keys() | POOLED.keys()
         self.assertEqual(agent.IncShkDstn.conditional.keys() & keys, set())
 

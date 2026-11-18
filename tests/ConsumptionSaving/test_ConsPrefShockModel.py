@@ -31,7 +31,7 @@ class testPrefShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc.derivativeX(m, np.ones_like(m))[35],
-            0.44974,
+            0.44966,
             places=HARK_PRECISION,
         )
 
@@ -41,7 +41,7 @@ class testPrefShockConsumerType(unittest.TestCase):
     def test_vFunc(self):
         vFunc = self.agent.solution[0].vFunc
         mNrm = 5.0
-        self.assertAlmostEqual(vFunc(mNrm), -13.93642, places=HARK_PRECISION)
+        self.assertAlmostEqual(vFunc(mNrm), -13.94075, places=HARK_PRECISION)
 
     def test_invalid_cases(self):
         BrokenType = PrefShockConsumerType(CubicBool=True)
@@ -73,7 +73,7 @@ class testKinkyPrefConsumerType(unittest.TestCase):
 
     def test_solution(self):
         self.assertAlmostEqual(
-            self.agent.solution[0].mNrmMin, -0.75552, places=HARK_PRECISION
+            self.agent.solution[0].mNrmMin, -0.75501, places=HARK_PRECISION
         )
 
         m = np.linspace(self.agent.solution[0].mNrmMin, 5, 200)
@@ -94,7 +94,7 @@ class testKinkyPrefConsumerType(unittest.TestCase):
     def test_vFunc(self):
         vFunc = self.agent.solution[0].vFunc
         mNrm = 5.0
-        self.assertAlmostEqual(vFunc(mNrm), -14.0436, places=HARK_PRECISION)
+        self.assertAlmostEqual(vFunc(mNrm), -14.04825, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
