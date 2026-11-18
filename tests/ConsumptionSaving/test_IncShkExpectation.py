@@ -24,6 +24,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     _mpc_transition,
     _natural_limit_assets,
     _reaches_natural_limit,
+    _worst_income_mass,
     calc_BegOfPrd_continuous,
     get_income_shock_laws,
     get_mNrm_kinks,
@@ -281,6 +282,28 @@ class testIncShkExpectation(unittest.TestCase):
             np.testing.assert_array_equal(copy.mNrmKinks, solution.mNrmKinks)
         agent = deepcopy(self.agent)
         self.assertIs(agent.solve_one_period, solve_one_period_ConsIndShock_continuous)
+
+    def test_worst_income_with_no_benefit(self):
+        # With no unemployment benefit, income in that event is zero whatever the
+        # permanent shock, so the worst income has the event's probability and the
+        # MPC at the natural limit is below one, as over the atoms
+        for expectation in ("atoms", "continuous"):
+            with self.subTest(expectation=expectation):
+                agent = IndShockConsumerType(
+                    cycles=1,
+                    IncUnemp=0.0,
+                    BoroCnstArt=None,
+                    IncShkExpectation=expectation,
+                    **BOUNDS,
+                )
+                agent.solve()
+                solution = agent.solution[0]
+                PatFac = (agent.Rfree[0] * agent.DiscFac * agent.LivPrb[0]) ** (
+                    1.0 / agent.CRRA
+                ) / agent.Rfree[0]
+                MPCmax = 1.0 / (1.0 + agent.UnempPrb ** (1.0 / agent.CRRA) * PatFac)
+                self.assertEqual(solution.mNrmMin, 0.0)
+                self.assertAlmostEqual(solution.MPCmax, MPCmax, places=12)
 
     def test_natural_constraint(self):
         # No artificial constraint: the natural one, from the laws' infima, binds,
@@ -663,6 +686,58 @@ class testIncShkExpectation(unittest.TestCase):
             with self.subTest(law=name):
                 self.assertEqual(_law_end(law, upper=False)[1], lower)
                 self.assertEqual(_law_end(law, upper=True)[1], upper)
+
+    def test_point_mass_at_the_natural_limit(self):
+        # A permanent shock with a point mass at its infimum (PermShkMinPrb)
+        # makes the worst income, unemployment with the permanent shock at its
+        # point, have positive probability: at the natural limit consumption falls
+        # to zero with no kink at any CRRA, and the MPC there is the bound the
+        # solution reports, which follows the worst income's probability period
+        # by period
+        mass = 0.02
+        for CRRA in (1.5, 2.0, 5.0):
+            for UnempPrb in (0.05,):
+                with self.subTest(CRRA=CRRA, UnempPrb=UnempPrb):
+                    agent = IndShockConsumerType(
+                        cycles=1,
+                        T_cycle=1,
+                        CRRA=CRRA,
+                        UnempPrb=UnempPrb,
+                        BoroCnstArt=None,
+                        IncShkExpectation="continuous",
+                        PermShkMinPrb=mass,
+                    )
+                    agent.cycles = 3
+                    agent.solve()
+                    solution = agent.solution[0]
+                    laws = get_income_shock_laws(agent.IncShkDstn[0])
+                    worst = UnempPrb * mass
+                    self.assertAlmostEqual(_worst_income_mass(laws), worst, places=12)
+                    self.assertEqual(get_mNrm_kinks(solution).size, 0)
+                    # three periods before the last, 1 / MPC = 1 + q + q^2 + q^3,
+                    # with q = (DiscFac LivPrb Rfree p)^(1 / CRRA) / Rfree
+                    R = agent.Rfree[0]
+                    q = (agent.DiscFac * agent.LivPrb[0] * R * worst) ** (1.0 / CRRA)
+                    q /= R
+                    bound = 1.0 / (1.0 + q + q**2 + q**3)
+                    self.assertAlmostEqual(solution.MPCmax, bound, places=10)
+                    just_above = np.array([solution.mNrmMin + 1e-7])
+                    self.assertAlmostEqual(
+                        solution.cFunc.derivative(just_above)[0], bound, places=4
+                    )
+        # laws that hold no probability at their lowest values put none on the
+        # worst income, unless unemployment pays nothing
+        for tails in ("truncated", "jumpless"):
+            for benefit, worst in ((0.3, 0.0), (0.0, 0.05)):
+                with self.subTest(tails=tails, IncUnemp=benefit):
+                    agent = IndShockConsumerType(
+                        PermShk_tails=tails,
+                        TranShk_tails=tails,
+                        IncUnemp=benefit,
+                        IncShkExpectation="continuous",
+                    )
+                    laws = get_income_shock_laws(agent.IncShkDstn[0])
+                    self.assertEqual(_worst_income_mass(laws), worst)
 
     def test_natural_limit_rule_for_other_laws(self):
         # The same rule for laws that are not lognormal: a uniform law holds each

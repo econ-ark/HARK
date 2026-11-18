@@ -1300,6 +1300,14 @@ class PointMassAtInfimum(Distribution):
         rest = (1.0 - self.infimum_prb) * self.base.cdf(x / self.scale)
         return np.where(x < self.infimum[0], 0.0, self.infimum_prb + rest)
 
+    def pdf(self, x):
+        """
+        The density of the law's continuous part: (1 - infimum_prb) times the
+        base law's, scaled. The point at the infimum has none.
+        """
+        x = np.asarray(x, dtype=float)
+        return (1.0 - self.infimum_prb) * self.base.pdf(x / self.scale) / self.scale
+
     def breakpoints(self):
         """
         Where the law's continuous part starts, scale times the infimum: its

@@ -1885,6 +1885,66 @@ def _law_end(law, upper):
     return x, _end_order(law, x, upper)
 
 
+def _end_probability(law, upper):
+    """
+    The probability a law holds at one end of its support itself: the atom's
+    there, for a discrete law; a point mass's at the end (_end_mass); zero for a
+    density.
+    A mixture law holds what its components with weight that reach the end hold.
+    """
+    if isinstance(law, DiscreteDistribution):
+        x = np.asarray(law.atoms, dtype=float).ravel()
+        prb = np.asarray(law.pmv, dtype=float).ravel()
+        return float(np.sum(prb[x == (x.max() if upper else x.min())]))
+    if hasattr(law, "components") and hasattr(law, "weights"):
+        parts = [
+            (_law_end(part, upper)[0], weight * _end_probability(part, upper))
+            for weight, part in zip(law.weights, law.components)
+            if weight > 0.0
+        ]
+        x = max(at for at, _ in parts) if upper else min(at for at, _ in parts)
+        return float(sum(mass for at, mass in parts if at == x))
+    lo, hi = _bounds(law)
+    x = hi if upper else lo
+    if lo == hi:
+        return 1.0  # a point
+    if not np.isfinite(x):
+        return 0.0
+    return max(_end_mass(law, x, upper), 0.0)
+
+
+def _worst_income_mass(laws):
+    """
+    The probability the income shocks' laws, (PermShkLaw, TranShkLaw, UnempPrb,
+    IncUnemp) as get_income_shock_laws() returns them, put on the worst income
+    itself, which sets the MPC at the natural borrowing constraint
+    (calc_mpc_max): zero unless a point mass sits there. An unemployment event
+    that pays nothing is one, whatever the permanent shock. Otherwise it is the
+    probability of the lowest transitory shock (the unemployment event's, or the
+    mass the employed law holds at its lowest value, whichever is the lower
+    shock) times the mass the permanent shock's law holds at its lowest value,
+    which a point mass at the infimum (PointMassAtInfimum) or a discrete law has
+    and a density has not.
+    """
+    PermShkLaw, TranShkLaw, UnempPrb, IncUnemp = laws
+    branches = []  # (probability, lowest transitory shock, the mass held there)
+    if UnempPrb < 1.0:
+        branches.append(
+            (
+                1.0 - UnempPrb,
+                _law_end(TranShkLaw, upper=False)[0],
+                _end_probability(TranShkLaw, upper=False),
+            )
+        )
+    if UnempPrb > 0.0:
+        branches.append((UnempPrb, IncUnemp, 1.0))
+    lowest = min(at for _, at, _ in branches)
+    tran = sum(prb * mass for prb, at, mass in branches if at == lowest)
+    if lowest == 0.0:
+        return tran
+    return tran * _end_probability(PermShkLaw, upper=False)
+
+
 def _reaches_natural_limit(aNrm, mNrmMinNext, laws, Rfree, PermGroFac, CRRA):
     """
     Whether end-of-period assets aNrm leave next period's expected marginal value
@@ -2282,10 +2342,16 @@ def _solve_one_period_ConsIndShock(
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
 
     # Calculate the probability that we get the worst possible income draw. Under
-    # continuous laws the worst income has no mass. Over the atoms, it is the
+    # the laws the worst income has no mass unless a point mass sits there: an
+    # unemployment event that pays nothing, whose income is zero whatever the
+    # permanent shock, or the lowest values of laws that hold probability there,
+    # as PointMassAtInfimum does (_worst_income_mass). Over the atoms, it is the
     # probability of the lowest, which sets the MPC at the atoms' own limit,
     # where the unconstrained consumption function is anchored
-    WorstIncPrb = 0.0 if continuous else calc_worst_inc_prob(IncShkDstn)
+    if continuous:
+        WorstIncPrb = _worst_income_mass(get_income_shock_laws(IncShkDstn))
+    else:
+        WorstIncPrb = calc_worst_inc_prob(IncShkDstn)
     Ex_IncNext = expected(lambda x: x["PermShk"] * x["TranShk"], IncShkDstn)
     hNrmNow = calc_human_wealth(solution_next.hNrm, PermGroFac, Rfree, Ex_IncNext)
 
