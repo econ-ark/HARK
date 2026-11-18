@@ -174,6 +174,25 @@ _SHOCK_TAILS = {
 }
 
 
+# The default bounds of an income shock's log, in standard deviations of the
+# underlying normal, by how its tails are treated: the tapered law is zero at
+# +-3, its tapers starting at +-2; the pooled law pools each tail beyond +-2 at
+# its mean. A bound left None takes its default; an infinite one is no bound.
+SHOCK_BOUND_DEFAULT = {"tapered": 3.0, "pooled": 2.0}
+
+
+def _shock_bounds(inf, sup, tails):
+    """
+    The bounds of an income shock's log, in standard deviations, for the
+    treatment of its tails: a bound left None takes SHOCK_BOUND_DEFAULT's value
+    for tails, below and above, and an infinite bound is no bound (None here).
+    """
+    bound = SHOCK_BOUND_DEFAULT[tails]
+    inf = -bound if inf is None else float(inf)
+    sup = bound if sup is None else float(sup)
+    return (None if np.isneginf(inf) else inf), (None if np.isposinf(sup) else sup)
+
+
 def _check_tails(tails):
     """Refuse a treatment of the tails other than those in _SHOCK_TAILS."""
     if tails not in _SHOCK_TAILS:
@@ -770,16 +789,18 @@ def construct_lognormal_income_process_unemployment(
         Indicator for whether the permanent-income-neutral measure should be used.
     PermShk_inf : float or None
         Lower bound of the log permanent shock, in standard deviations of the
-        underlying normal; None, the default, is no bound.
+        underlying normal. None, the default, takes the default bound for the
+        treatment of the tails (SHOCK_BOUND_DEFAULT: -3 for the tapered law,
+        whose density is zero there, -2 for the pooled); -np.inf is no bound.
     PermShk_sup : float or None
-        Upper bound of the log permanent shock, as PermShk_inf.
+        Upper bound of the log permanent shock, as PermShk_inf (np.inf is no
+        bound).
     TranShk_inf : float or None
-        Lower bound of the log of the transitory shock's lognormal part, in
-        standard deviations of the underlying normal; None, the default, is no
-        bound.
+        Lower bound of the log of the transitory shock's lognormal part, as
+        PermShk_inf.
     TranShk_sup : float or None
         Upper bound of the log of the transitory shock's lognormal part, as
-        TranShk_inf.
+        PermShk_sup.
     PermShk_tails : str
         How the permanent shock's tails are treated at its bounds: "tapered"
         (the default) or "pooled".
@@ -806,14 +827,16 @@ def construct_lognormal_income_process_unemployment(
         TranShkCount,
         neutral_measure,
     )
+    _check_tails(PermShk_tails)
+    _check_tails(TranShk_tails)
+    PermShk_inf, PermShk_sup = _shock_bounds(PermShk_inf, PermShk_sup, PermShk_tails)
+    TranShk_inf, TranShk_sup = _shock_bounds(TranShk_inf, TranShk_sup, TranShk_tails)
     bounds = {
         "PermShk_inf": PermShk_inf,
         "PermShk_sup": PermShk_sup,
         "TranShk_inf": TranShk_inf,
         "TranShk_sup": TranShk_sup,
     }
-    _check_tails(PermShk_tails)
-    _check_tails(TranShk_tails)
     if any(bound is not None for bound in bounds.values()):
         bounds.update({"PermShk_tails": PermShk_tails, "TranShk_tails": TranShk_tails})
         conditional.update({key: [b] * T_cycle for key, b in bounds.items()})

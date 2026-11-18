@@ -24,8 +24,8 @@ there. When the permanent shock takes its lowest value with positive
 probability, the consumer stays away from the borrowing limit and the MPC at
 the bottom is below one; without that point mass the limit can be reached and
 the MPC there is one (subsec:PositiveMinimumNoWorstEvent). With a positive
-``IncUnemp`` the class by default builds a law of the first kind: the truncated
-lognormal with a point mass at its infimum (:class:`PointMassAtInfimum`). The
+``IncUnemp`` the class by default builds a law of the first kind: the
+power-tapered lognormal with a point mass at its infimum (:class:`PointMassAtInfimum`). The
 lowest value is then the law's infimum at every number of points of the
 discretization, as the lowest transitory income is the zero-income event's.
 
@@ -88,7 +88,7 @@ from HARK.distributions import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
-    MeanOneTruncatedLogNormal,
+    LogNormalTaperedMeanOne,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
 )
@@ -143,13 +143,28 @@ def _law_bounds(law):
 
 
 def _law_expect(law, func):
-    """The expectation of func under a shock law, by quadrature of its quantile function."""
+    """
+    The expectation of func under a shock law, by quadrature of its quantile
+    function, split where the law is not smooth: at the probabilities of its
+    breakpoints(), where its quantile function has a kink or a jump, as the
+    power-tapered lognormal's does where each taper starts.
+    """
     if isinstance(law, DiscreteDistribution):
         return float(np.dot(law.pmv, func(np.ravel(law.atoms))))
     if isinstance(law, PointMassAtInfimum):
         return law.expect(func)
+    points = None
+    if hasattr(law, "breakpoints"):
+        qs = np.ravel(law.cdf(np.asarray(law.breakpoints(), dtype=float)))
+        points = [float(q) for q in qs if 0.0 < q < 1.0] or None
     value, _ = quad(
-        lambda q: func(law.ppf(q)), 0.0, 1.0, limit=200, epsabs=1e-14, epsrel=1e-12
+        lambda q: func(law.ppf(q)),
+        0.0,
+        1.0,
+        limit=200,
+        epsabs=1e-14,
+        epsrel=1e-12,
+        points=points,
     )
     return float(value)
 
@@ -182,7 +197,7 @@ class PointMassAtInfimum:
     ----------
     base : distribution
         A continuous law with mean one, a positive infimum below one and a
-        finite supremum, such as a MeanOneTruncatedLogNormal.
+        finite supremum, such as a LogNormalTaperedMeanOne.
     prb : float
         The probability of the lowest value, strictly between zero and one.
 
@@ -264,20 +279,21 @@ def make_PermShkLaw(
     PermShkStd, PermShk_inf, PermShk_sup, PermShkMinPrb, UnempPrb, IncUnemp, RNG
 ):
     """
-    The default law of the permanent shock: a mean-one lognormal truncated at
-    PermShk_inf and PermShk_sup standard deviations of its log, whose log has
-    standard deviation PermShkStd after the truncation.
+    The default law of the permanent shock: HARK's default for a bounded shock,
+    the mean-one power-tapered lognormal (LogNormalTaperedMeanOne), whose
+    density is zero at PermShk_inf and PermShk_sup standard deviations of its
+    log, each tail tapered from one standard deviation inside, and whose log has
+    standard deviation PermShkStd.
 
     With positive income in the zero-income event the law is that lognormal
     with a point mass at its infimum (:class:`PointMassAtInfimum`), so that the
     lowest value of the permanent shock has positive probability
     (ass:shocksPositiveMinimum), of probability PermShkMinPrb; when that is
-    None, the probability that a lognormal which is not truncated puts below
-    the bound, norm.cdf(PermShk_inf), so that the mass the truncation removes
-    at the bottom sits on the bound. PermShkMinPrb of zero gives the lognormal
-    itself, with which the borrowing limit can be reached (item:NoPointMass).
+    None, norm.cdf(PermShk_inf), the probability the unbounded lognormal puts
+    below the bound. PermShkMinPrb of zero gives the tapered law itself, with
+    which the borrowing limit can be reached (item:NoPointMass).
     """
-    law = MeanOneTruncatedLogNormal.from_sd_log(
+    law = LogNormalTaperedMeanOne.from_sd_log(
         PermShkStd, bot=PermShk_inf, top=PermShk_sup, seed=RNG.integers(0, 2**31 - 1)
     )
     positive_minimum = UnempPrb > 0.0 and IncUnemp > 0.0
@@ -290,11 +306,11 @@ def make_PermShkLaw(
 
 def make_TranShkLaw(TranShkStd, TranShk_inf, TranShk_sup, RNG):
     """
-    The default law of the transitory draw when income is not zero: a mean-one
-    lognormal truncated at TranShk_inf and TranShk_sup standard deviations of its
-    log, whose log has standard deviation TranShkStd after the truncation.
+    The default law of the transitory draw when income is not zero: the
+    mean-one power-tapered lognormal, zero at TranShk_inf and TranShk_sup
+    standard deviations of its log, whose log has standard deviation TranShkStd.
     """
-    return MeanOneTruncatedLogNormal.from_sd_log(
+    return LogNormalTaperedMeanOne.from_sd_log(
         TranShkStd, bot=TranShk_inf, top=TranShk_sup, seed=RNG.integers(0, 2**31 - 1)
     )
 
@@ -1367,14 +1383,14 @@ BufferStockConsumerType_constructors_default.update(
 BufferStockConsumerType_IncShkDstn_default = {
     "UnempPrb": 0.005,  # Probability of the zero-income event
     "IncUnemp": 0.0,  # Income in that event, zero in the paper
-    "PermShkStd": 0.1,  # Standard deviation of log permanent shocks, after truncation
-    "PermShk_inf": -3.0,  # Lower bound of log permanent shocks, in its standard deviations
+    "PermShkStd": 0.1,  # Standard deviation of log permanent shocks
+    "PermShk_inf": -3.0,  # Lower bound of log permanent shocks, in its standard deviations: the tapered law is zero there
     "PermShk_sup": 3.0,  # Upper bound of log permanent shocks, in its standard deviations
     "PermShkCount": 7,  # Points in the discretization of the permanent shock
     # With IncUnemp above zero, the probability of the permanent shock's lowest
-    # value, its law's infimum; None for the mass the truncation removes there
+    # value, its law's infimum; None for norm.cdf(PermShk_inf)
     "PermShkMinPrb": None,
-    "TranShkStd": 0.1,  # Standard deviation of log transitory draws, after truncation
+    "TranShkStd": 0.1,  # Standard deviation of log transitory draws
     "TranShk_inf": -3.0,  # Lower bound of log transitory draws, in its standard deviations
     "TranShk_sup": 3.0,  # Upper bound of log transitory draws, in its standard deviations
     "TranShkCount": 7,  # Points in the discretization of the transitory draw
@@ -1472,7 +1488,8 @@ class BufferStockConsumerType(IndShockConsumerType):
         shock's lowest value must be below Rfree.
     PermShkLaw, TranShkLaw : distribution
         The laws of the permanent shock and of the transitory draw. By default
-        mean-one truncated lognormals built from PermShkStd, PermShk_inf,
+        mean-one power-tapered lognormals (LogNormalTaperedMeanOne), HARK's
+        default for bounded shocks, built from PermShkStd, PermShk_inf,
         PermShk_sup and their transitory counterparts; with IncUnemp above zero
         the permanent shock's default law is that lognormal with a point mass
         at its infimum (:class:`PointMassAtInfimum`), unless PermShkMinPrb is
@@ -1483,9 +1500,9 @@ class BufferStockConsumerType(IndShockConsumerType):
         lowest value in its default law: at least zero and below one. With a
         positive value the consumer stays away from the borrowing limit; zero
         gives the lognormal itself, with which the limit can be reached and the
-        MPC at the bottom is one (item:NoPointMass). None (the default) for the
-        probability that a lognormal which is not truncated puts below the
-        bound, norm.cdf(PermShk_inf).
+        MPC at the bottom is one (item:NoPointMass). None (the default) for
+        norm.cdf(PermShk_inf), the probability the unbounded lognormal puts
+        below the bound.
     PermShkCount, TranShkCount : int
         The number of points in each law's equiprobable discretization. A point
         mass of a law is a point of its own, so the lowest values and their
