@@ -39,6 +39,8 @@ from HARK.distributions import (
     cdf_invert,
     combine_indep_dstns,
     expected,
+    employed_atoms,
+    restrict_to_atoms,
 )
 from HARK.interpolation import (
     LinearInterp,
@@ -2178,6 +2180,7 @@ IndShockConsumerType_simulation_default = {
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
     "NewbornPermShk": True,  # Whether newborns have a permanent shock (and growth)
+    "NewbornEmployed": True,  # Whether a newborn that draws a transitory shock is employed
     # ADDITIONAL OPTIONAL PARAMETERS
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
@@ -2306,6 +2309,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         first period (default True). If False, their permanent shock is 1, so
         they enter with pLvl drawn from pLvlInitDstn exactly. Read by
         ``simulate``; the model-file simulator (``initialize_sym``) refuses False.
+    NewbornEmployed: boolean
+        Whether a newborn that draws a transitory shock in its first period
+        (NewbornTransShk True) is born employed (default True): its draw comes
+        from the income distribution with the unemployment event left out
+        (employed_atoms). If False, it may draw the unemployment event. A newborn
+        that draws no transitory shock gets 1 either way. Read by ``simulate``.
 
     Attributes
     ----------
@@ -2424,6 +2433,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
             # set current income distribution
             IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
+            # Born employed (the default): a newborn that draws a transitory
+            # shock draws it with the unemployment event left out
+            if NewbornTransShk and getattr(self, "NewbornEmployed", True):
+                keep = employed_atoms(IncShkDstnNow)
+                if keep is not None:
+                    IncShkDstnNow = restrict_to_atoms(IncShkDstnNow, keep)
 
             # Draw income shocks from the discrete distribution
             if getattr(self, "income_shuffle", False):
@@ -3069,6 +3084,12 @@ class KinkedRconsumerType(IndShockConsumerType):
         first period (default True). If False, their permanent shock is 1, so
         they enter with pLvl drawn from pLvlInitDstn exactly. Read by
         ``simulate``; the model-file simulator (``initialize_sym``) refuses False.
+    NewbornEmployed: boolean
+        Whether a newborn that draws a transitory shock in its first period
+        (NewbornTransShk True) is born employed (default True): its draw comes
+        from the income distribution with the unemployment event left out
+        (employed_atoms). If False, it may draw the unemployment event. A newborn
+        that draws no transitory shock gets 1 either way. Read by ``simulate``.
 
     Attributes
     ----------
