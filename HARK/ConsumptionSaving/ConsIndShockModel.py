@@ -59,7 +59,7 @@ from HARK.rewards import (
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
-from HARK.utilities import make_assets_grid
+from HARK.utilities import get_arg_names, make_assets_grid
 from scipy.optimize import newton
 
 from HARK import (
@@ -158,6 +158,17 @@ class ConsumerSolution(MetricObject):
     MPCmax : float
         Supremum of the marginal propensity to consume this period.
         MPC --> MPCmax as m --> mNrmMin.
+    mNrmKink : float or None
+        Where an artificial borrowing constraint binds, the normalized market
+        resources at the kink of the consumption function, below which the
+        consumer ends the period at the constraint. NaN where the natural
+        borrowing constraint binds, and None where the solver does not record it.
+    cNrmKink : float or None
+        Normalized consumption at the kink, mNrmKink minus the constraint on
+        end-of-period assets; NaN or None as for mNrmKink.
+    MPCaboveKink : float or None
+        The marginal propensity to consume just above the kink. Below it, on the
+        constraint, the MPC is one. NaN or None as for mNrmKink.
 
     """
 
@@ -173,6 +184,9 @@ class ConsumerSolution(MetricObject):
         hNrm=None,
         MPCmin=None,
         MPCmax=None,
+        mNrmKink=None,
+        cNrmKink=None,
+        MPCaboveKink=None,
     ):
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
@@ -184,6 +198,9 @@ class ConsumerSolution(MetricObject):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
+        self.mNrmKink = mNrmKink
+        self.cNrmKink = cNrmKink
+        self.MPCaboveKink = MPCaboveKink
 
     def append_solution(self, new_solution):
         """
@@ -221,6 +238,46 @@ class ConsumerSolution(MetricObject):
             self.vPfunc.append(new_solution.vPfunc)
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
+
+
+def find_kink(mNrm, cNrm, MPC, BoroCnstNat, mNrmMin):
+    """
+    Find the kink of a consumption function solved on an end-of-period asset
+    grid that starts at a binding artificial borrowing constraint, with the
+    constraint itself as a gridpoint. The unconstrained function's nodes are
+    then the natural borrowing constraint, with zero consumption, followed by
+    the endogenous gridpoints, the first of which is the kink: there the
+    consumer ends the period with assets exactly at the constraint.
+
+    Parameters
+    ----------
+    mNrm : np.array
+        Market resources at the unconstrained consumption function's nodes,
+        starting with the natural borrowing constraint.
+    cNrm : np.array
+        Consumption at those nodes.
+    MPC : np.array or None
+        The marginal propensity to consume at those nodes, for the cubic rule;
+        None for the linear rule, whose MPC just above the kink is the slope of
+        the segment that starts there.
+    BoroCnstNat : float
+        The natural borrowing constraint on end-of-period assets.
+    mNrmMin : float
+        The constraint in force, the larger of the natural and the artificial.
+
+    Returns
+    -------
+    mNrmKink, cNrmKink, MPCaboveKink : float
+        Market resources and consumption at the kink, and the MPC just above it;
+        each NaN where the natural borrowing constraint binds, so there is no kink.
+    """
+    if not BoroCnstNat < mNrmMin:
+        return np.nan, np.nan, np.nan
+    if MPC is None:
+        MPCaboveKink = (cNrm[2] - cNrm[1]) / (mNrm[2] - mNrm[1])
+    else:
+        MPCaboveKink = MPC[1]
+    return float(mNrm[1]), float(cNrm[1]), float(MPCaboveKink)
 
 
 # =====================================================================
@@ -744,6 +801,7 @@ def solve_one_period_ConsIndShock(
     aXtraGrid,
     vFuncBool,
     CubicBool,
+    BoroCnstInfimum=True,
 ):
     """Solves one period of a consumption-saving model with idiosyncratic shocks to
     permanent and transitory income, with one risk free asset and CRRA utility.
@@ -779,6 +837,10 @@ def solve_one_period_ConsIndShock(
         included in the reported solution.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear interpolation.
+    BoroCnstInfimum: boolean
+        Whether the natural borrowing constraint is computed from the infima of
+        the true shock distributions, recorded in IncShkDstn.limit["infimum"],
+        rather than from the lowest discretized atoms. Default True.
 
     Returns
     -------
@@ -807,6 +869,20 @@ def solve_one_period_ConsIndShock(
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
     mNrmMinNow = calc_m_nrm_min(BoroCnstArt, BoroCnstNat)
+    # The true distributions' infima can bound resources more tightly than the
+    # atoms do. The atoms' limit still anchors the unconstrained consumption
+    # function, where marginal value is infinite, so the infima's limit is imposed
+    # as a constraint, as BoroCnstArt is: where it is above the atoms' limit it
+    # binds on the atoms, so the asset grid starts at it and the solution records
+    # its kink. Making it BoroCnstNat itself, as PR #1524 did, anchored the grid
+    # where the atoms' marginal value is still finite, which left the first
+    # endogenous gridpoint far above the bottom and broke the value function; PR
+    # #1589 reverted that.
+    if BoroCnstInfimum:
+        BoroCnstInf = calc_boro_const_nat(
+            solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, use_infimum=True
+        )
+        mNrmMinNow = max(mNrmMinNow, BoroCnstInf)
 
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = calc_patience_factor(Rfree, DiscFacEff, CRRA)
@@ -827,8 +903,22 @@ def solve_one_period_ConsIndShock(
         np.array([0.0, 1.0]),
     )
 
-    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
-    aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    # Construct the end-of-period assets grid. Where the artificial borrowing
+    # constraint binds (BoroCnstNat < mNrmMinNow), the grid starts at that
+    # constraint, with the constraint itself as its first point. Gridpoints
+    # below it would build the unconstrained consumption function where the
+    # lower envelope below always takes the constraint line instead, so the
+    # expectations computed there would be wasted. At the constraint itself the
+    # end-of-period marginal value of assets is finite, so the first-order
+    # condition gives consumption there directly, and that point's endogenous
+    # gridpoint is the kink where the constraint stops binding: a node of the
+    # solution, not the crossing of two interpolants. Where the natural
+    # borrowing constraint binds, the grid stays above it, as marginal value
+    # is infinite at the natural limit itself.
+    if BoroCnstNat < mNrmMinNow:
+        aNrmNow = mNrmMinNow + np.insert(np.asarray(aXtraGrid), 0, 0.0)
+    else:
+        aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
 
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
@@ -842,7 +932,13 @@ def solve_one_period_ConsIndShock(
     cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
     mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
 
-    # Limiting consumption is zero as m approaches mNrmMin
+    # The unconstrained consumption function starts at the natural borrowing
+    # constraint, where consumption is zero, whichever constraint binds. Where
+    # the artificial constraint binds, this is the one point below the grid:
+    # it keeps the interpolant defined down to mNrmMinNow, where the lower
+    # envelope takes the constraint line instead. The kink is a node of this
+    # function, which is smooth there, with a single slope (the unconstrained
+    # MPC), so no interpolation node has to carry the kink's two slopes.
     c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
     m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
 
@@ -876,8 +972,25 @@ def solve_one_period_ConsIndShock(
             cFuncLimitSlope,
         )
 
-    # Combine the constrained and unconstrained functions into the true consumption function.
-    # LowerEnvelope should only be used when BoroCnstArt is True
+    # Where the artificial constraint binds, the kink is the endogenous gridpoint
+    # of end-of-period assets at the constraint; record it, with the MPC above it
+    mNrmKink, cNrmKink, MPCaboveKink = find_kink(
+        m_for_interpolation,
+        c_for_interpolation,
+        MPC_for_interpolation if CubicBool else None,
+        BoroCnstNat,
+        mNrmMinNow,
+    )
+
+    # Combine the constrained and unconstrained functions into the true
+    # consumption function. The artificial constraint is applied here, as the
+    # lower envelope of two smooth functions, rather than inside one
+    # interpolant: at the kink the consumption function's slope jumps from one,
+    # below it, to the unconstrained MPC above it, and a cubic Hermite node
+    # carries only one slope. The piecewise linear rule does not need the
+    # envelope, since a linear interpolant can carry the kink at a node, but it
+    # is built the same way. Where the grid starts at the constraint, the two
+    # functions meet exactly at the kink's node.
     cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
 
     # Make the marginal value function and the marginal marginal value function
@@ -945,6 +1058,9 @@ def solve_one_period_ConsIndShock(
         hNrm=hNrmNow,
         MPCmin=MPCminNow,
         MPCmax=MPCmaxNow,
+        mNrmKink=mNrmKink,
+        cNrmKink=cNrmKink,
+        MPCaboveKink=MPCaboveKink,
     )
     return solution_now
 
@@ -1029,6 +1145,7 @@ def solve_one_period_ConsKinkedR(
             aXtraGrid,
             vFuncBool,
             CubicBool,
+            BoroCnstInfimum=False,  # as this solver's own path does
         )
         return solution_now
 
@@ -1079,7 +1196,11 @@ def solve_one_period_ConsKinkedR(
         np.array([0.0, 1.0]),
     )
 
-    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
+    # Construct the end-of-period assets grid from the constraint in force,
+    # mNrmMinNow, the larger of the natural and artificial borrowing
+    # constraints, with two points at zero for the kink in the interest factor
+    # (where borrowing and saving rates differ). Unlike the standard solver's
+    # grid, it has no point at an artificial constraint other than zero.
     aNrmNow = np.sort(
         np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 1e-15]))),
     )
@@ -2167,6 +2288,7 @@ IndShockConsumerType_solving_default = {
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "BoroCnstInfimum": True,  # Whether the natural constraint uses the shocks' infima
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation
 }
@@ -2329,6 +2451,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "vFuncBool",
         "CubicBool",
         "aXtraGrid",
+        "BoroCnstInfimum",
     ]
     time_vary_ = PerfForesightConsumerType.time_vary_ + [
         "IncShkDstn",
@@ -2345,6 +2468,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "kNrmInitDstn",
         "pLvlInitDstn",
     ]
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        # A subclass's defaults may lack this option. Its solver receives only the
+        # arguments it takes, so the default is harmless where the solver ignores it.
+        if not hasattr(self, "BoroCnstInfimum"):
+            self.assign_parameters(BoroCnstInfimum=True)
 
     def update_income_process(self):
         self.update("IncShkDstn", "PermShkDstn", "TranShkDstn")
@@ -2558,6 +2688,23 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
+    def solver_takes(self, name):
+        """
+        Whether this agent's one period solver takes the named argument.
+
+        Parameters
+        ----------
+        name : str
+            Name of the solver's argument.
+
+        Returns
+        -------
+        bool
+        """
+        if hasattr(self.solve_one_period, "__getitem__"):
+            return False  # a sequence of solvers, one per period
+        return name in get_arg_names(self.solve_one_period)
+
     def describe_parameters(self):
         """
         Generate a string describing the primitive model parameters that will
@@ -2696,6 +2843,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Find the upper bound of the MPC as market resources approach the minimum
         BoroCnstArt = -np.inf if self.BoroCnstArt is None else self.BoroCnstArt
+        if self.solver_takes("BoroCnstInfimum") and self.BoroCnstInfimum:
+            # The limit implied by the true distributions' infima binds like BoroCnstArt
+            PermShkInf, TranShkInf = self.IncShkDstn[0].limit["infimum"]
+            temp = PermShkInf * aux_dict["FHWFac"]
+            BoroCnstArt = max(BoroCnstArt, -TranShkInf * temp / (1.0 - temp))
         if BoroCnstNat < BoroCnstArt:
             MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
         else:
