@@ -8,4 +8,4 @@ nbsphinx>=0.8
 pydata-sphinx-theme
 sphinx>=6.1
 sphinx-copybutton
-sphinx-design
+sphinx-design>=0.8

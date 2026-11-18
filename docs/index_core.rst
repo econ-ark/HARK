@@ -35,80 +35,84 @@ you might want to look at the `DemARK
       :padding: 2
       :text-align: center
 
-      **Quick-start guide**
-      ^^^^^^^^^^^^^^^^^^^^^
+      .. card-header::
+
+         **Quick-start guide**
 
       To get up-and-running with HARK, see the quick-start guide
       for a brief overview
       and guidance on further resources.
 
-      +++
+      .. card-footer::
 
-      .. button-ref:: docs/guides/quick_start
-         :ref-type: doc
-         :color: info
-         :click-parent:
-         :expand:
+         .. button-ref:: docs/guides/quick_start
+            :ref-type: doc
+            :color: info
+            :click-parent:
+            :expand:
 
-         Quick Start Guide
+            Quick Start Guide
 
    .. grid-item-card::
       :padding: 2
       :text-align: center
 
-      **Overview and Examples**
-      ^^^^^^^^^^^^^^^^^^^^^^^^^
+      .. card-header::
+
+         **Overview and Examples**
 
       To learn how HARK works and what it's capable of, see the Overview and Examples.
 
-      +++
+      .. card-footer::
 
-      .. button-ref:: docs/overview/index
-         :ref-type: doc
-         :color: info
-         :click-parent:
-         :expand:
+         .. button-ref:: docs/overview/index
+            :ref-type: doc
+            :color: info
+            :click-parent:
+            :expand:
 
-         Overview and Examples
+            Overview and Examples
 
    .. grid-item-card::
       :padding: 2
       :text-align: center
 
-      **API reference**
-      ^^^^^^^^^^^^^^^^^
+      .. card-header::
+
+         **API reference**
 
       The reference guide contains a detailed description of the HARK API,
       and assumes an understanding of HARK's key concepts.
 
-      +++
+      .. card-footer::
 
-      .. button-ref:: docs/reference/index
-         :ref-type: doc
-         :color: info
-         :click-parent:
-         :expand:
+         .. button-ref:: docs/reference/index
+            :ref-type: doc
+            :color: info
+            :click-parent:
+            :expand:
 
-         Tools & Models Reference Guide
+            Tools & Models Reference Guide
 
    .. grid-item-card::
       :padding: 2
       :text-align: center
 
-      **Developer's guide**
-      ^^^^^^^^^^^^^^^^^^^^^
+      .. card-header::
+
+         **Developer's guide**
 
       Saw a typo in the documentation?
       Want to improve existing functionalities?
       The contributing guidelines will guide you through
       the process of improving Econ-ARK.
 
-      +++
+      .. card-footer::
 
-      .. button-ref:: docs/guides/contributing
-         :ref-type: doc
-         :color: info
-         :click-parent:
-         :expand:
+         .. button-ref:: docs/guides/contributing
+            :ref-type: doc
+            :color: info
+            :click-parent:
+            :expand:
 
-         Contributing Guide
+            Contributing Guide
