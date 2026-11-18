@@ -8,6 +8,7 @@ from scipy.stats import norm
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    KinkedRconsumerType,
     PerfForesightConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
@@ -1931,6 +1932,57 @@ class testKinkChecksAndOneSentinel(unittest.TestCase):
                 )
 
 
+class testEmployedFloor(unittest.TestCase):
+    """
+    Where the natural borrowing limit can bind (no artificial constraint at or
+    above it), the lowest employed transitory income, by its true law, must be
+    strictly above unemployment income, or the solve halts.
+    """
+
+    def assertHalts(self, agent_type=IndShockConsumerType, **kwds):
+        agent = agent_type(cycles=1, **kwds)
+        with self.assertRaises(ValueError) as caught:
+            agent.solve()
+        self.assertIn("strictly above unemployment income", str(caught.exception))
+
+    def test_the_default_laws_pass(self):
+        # The truncated default's employed floor is far above the benefit, 0.3
+        for BoroCnstArt in (None, 0.0):
+            agent = IndShockConsumerType(cycles=1, BoroCnstArt=BoroCnstArt)
+            agent.solve()
+            self.assertTrue(np.isfinite(agent.solution[0].mNrmMin))
+
+    def test_an_unbounded_employed_law_halts(self):
+        # Its infimum is zero, below the benefit
+        self.assertHalts(BoroCnstArt=None, TranShk_inf=-np.inf, TranShk_sup=np.inf)
+
+    def test_a_benefit_above_the_employed_floor_halts(self):
+        self.assertHalts(BoroCnstArt=None, IncUnemp=0.8)
+        self.assertHalts(KinkedRconsumerType, BoroCnstArt=None, IncUnemp=0.8)
+
+    def test_an_artificial_constraint_at_or_above_the_limit_exempts(self):
+        # With both laws unbounded the natural limit is zero, the default
+        # artificial constraint's level: the edge is exempt
+        agent = IndShockConsumerType(
+            cycles=1,
+            BoroCnstArt=0.0,
+            PermShk_inf=-np.inf,
+            PermShk_sup=np.inf,
+            TranShk_inf=-np.inf,
+            TranShk_sup=np.inf,
+        )
+        agent.solve()
+        agent = IndShockConsumerType(cycles=1, BoroCnstArt=0.0, IncUnemp=0.8)
+        agent.solve()
+        self.assertEqual(agent.solution[0].mNrmMin, 0.0)
+
+    def test_no_unemployment_is_not_checked(self):
+        agent = IndShockConsumerType(
+            cycles=1, BoroCnstArt=None, UnempPrb=0.0, TranShk_inf=-np.inf
+        )
+        agent.solve()
+
+
 class testNaturalLimitFromTheInfima(unittest.TestCase):
     """
     The natural borrowing constraint belongs to the model, not to its
@@ -2124,10 +2176,10 @@ class testNaturalLimitFromTheInfima(unittest.TestCase):
     def test_laws_unbounded_below_keep_the_atoms_limit(self):
         # A law unbounded below records an infimum of zero, where the infima
         # would allow no borrowing at all; the atoms' limit stands, as it did
-        # before the solver read the infima, with both shocks unbounded and with
-        # the permanent shock alone
+        # before the solver read the infima, with the permanent shock unbounded
         unbounded_perm = dict(PermShk_inf=-np.inf, PermShk_sup=np.inf)
-        for kwds in (self.UNBOUNDED, unbounded_perm):
+        # Both shocks unbounded halt at the employed-floor check (testEmployedFloor)
+        for kwds in (unbounded_perm,):
             agent = IndShockConsumerType(cycles=0, BoroCnstArt=None, **kwds)
             agent.solve()
             self.assertEqual(agent.IncShkDstn[0].limit["infimum"][0], 0.0)

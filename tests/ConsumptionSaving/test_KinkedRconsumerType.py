@@ -160,7 +160,8 @@ class testKinkedRNaturalLimitFromTheInfima(unittest.TestCase):
             TranShk_sup=np.inf,
         )
         unbounded_perm = dict(PermShk_inf=-np.inf, PermShk_sup=np.inf)
-        for kwds in (unbounded, unbounded_perm):
+        # Both shocks unbounded halt at the employed-floor check (testEmployedFloor)
+        for kwds in (unbounded_perm,):
             agent = KinkedRconsumerType(cycles=0, BoroCnstArt=None, **kwds)
             agent.solve()
             perm_min, tran_min = np.min(agent.IncShkDstn[0].atoms, axis=1)

@@ -1069,6 +1069,55 @@ def calc_boro_const_nat_from_infima(m_nrm_min_next, inc_shk_dstn, rfree, perm_gr
     )
 
 
+def check_employed_floor(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
+    """
+    Halt where the natural borrowing limit can bind with an unemployment event
+    whose income is not strictly below every employed income: where the
+    transitory shock has an unemployment event and no artificial constraint is
+    at or above the natural limit from the shock laws' infima, the infimum of
+    the employed transitory shock, by its true law, must be strictly above
+    unemployment income. Then the employed branch never reaches the natural
+    limit, and the unemployment event is the lowest income.
+
+    The event and the employed law are read from the income distribution's
+    limit, as IndShock's income constructor records them
+    (add_discrete_outcome_constant_mean); a distribution that records no
+    unemployment event is not checked.
+
+    Args:
+        inc_shk_dstn (DiscreteDistribution): Distribution of shocks to income.
+        boro_const_art (float or None): Artificial borrowing constraint.
+        boro_const_nat_inf (float): Natural borrowing constraint from the
+            shock laws' infima.
+
+    Raises:
+        ValueError: if the rule is violated.
+    """
+    limit = getattr(inc_shk_dstn, "limit", None) or {}
+    dists = limit.get("dist")
+    if limit.get("method") != "combine_indep_dstns" or dists is None or len(dists) != 2:
+        return
+    tran = getattr(dists[1], "limit", None) or {}
+    if tran.get("method") != "add_discrete_outcome_constant_mean":
+        return
+    p, x = float(tran["p"]), float(tran["x"])
+    if p <= 0.0:
+        return
+    if boro_const_art is not None and boro_const_art >= boro_const_nat_inf:
+        return
+    employed = tran["dist"]
+    floor = float(np.ravel(employed.limit["infimum"])[0]) * (1.0 - p * x) / (1.0 - p)
+    if not floor > x:
+        raise ValueError(
+            "Where the natural borrowing limit can bind (no artificial constraint "
+            "at or above it), the lowest employed transitory income must be "
+            f"strictly above unemployment income: here it is {floor:.6g}, against "
+            f"unemployment income {x:.6g}. Bound the transitory shock's law below "
+            "(TranShk_inf), lower IncUnemp, or impose an artificial constraint at "
+            "or above the natural limit (BoroCnstArt)."
+        )
+
+
 def check_worst_transitory_point_mass(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
     """
     Halt where the continuous expectation would solve a model whose natural
@@ -2243,6 +2292,14 @@ def _solve_one_period_ConsIndShock(
     BoroCnstNat = calc_boro_const_nat(
         solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac
     )
+    # Where the natural limit can bind, unemployment must be the lowest income
+    check_employed_floor(
+        IncShkDstn,
+        BoroCnstArt,
+        calc_boro_const_nat(
+            solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, use_infimum=True
+        ),
+    )
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
     mNrmMinNow = calc_m_nrm_min(BoroCnstArt, BoroCnstNat)
@@ -2855,6 +2912,14 @@ def solve_one_period_ConsKinkedR(
         Rboro,
         PermGroFac,
         use_infimum=False,
+    )
+    # Where the natural limit can bind, unemployment must be the lowest income
+    check_employed_floor(
+        IncShkDstn,
+        BoroCnstArt,
+        calc_boro_const_nat(
+            solution_next.mNrmMin, IncShkDstn, Rboro, PermGroFac, use_infimum=True
+        ),
     )
     # The natural limit from the shock laws' infima, at the borrowing rate, where
     # they are bounded below away from zero (calc_boro_const_nat_from_infima)
