@@ -32,8 +32,8 @@ from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
     income_wealth_dists_from_scf,
 )
 from HARK.distributions import (
-    Lognormal,
-    MeanOneLogNormal,
+    LogNormal,
+    LogNormalMeanOne,
     Uniform,
     add_discrete_outcome_constant_mean,
     cdf_invert,
@@ -249,7 +249,7 @@ def make_lognormal_kNrm_init_dstn(kLogInitMean, kLogInitStd, kNrmInitCount, RNG)
     kNrmInitDstn : DiscreteDistribution
         Discretized distribution of initial capital holdings for newborns.
     """
-    dstn = Lognormal(
+    dstn = LogNormal(
         mu=kLogInitMean,
         sigma=kLogInitStd,
         seed=RNG.integers(0, 2**31 - 1),
@@ -279,7 +279,7 @@ def make_lognormal_pLvl_init_dstn(pLogInitMean, pLogInitStd, pLvlInitCount, RNG)
     pLvlInitDstn : DiscreteDistribution
         Discretized distribution of initial permanent income for newborns.
     """
-    dstn = Lognormal(
+    dstn = LogNormal(
         mu=pLogInitMean,
         sigma=pLogInitStd,
         seed=RNG.integers(0, 2**31 - 1),
@@ -2142,6 +2142,12 @@ IndShockConsumerType_IncShkDstn_default = {
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
     "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
     "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+    "PermShk_inf": None,  # Lower bound of log permanent shocks, in standard deviations (None --> no bound)
+    "PermShk_sup": None,  # Upper bound of log permanent shocks, in standard deviations (None --> no bound)
+    "TranShk_inf": None,  # Lower bound of log transitory shocks while employed, in standard deviations (None --> no bound)
+    "TranShk_sup": None,  # Upper bound of log transitory shocks while employed, in standard deviations (None --> no bound)
+    "PermShk_tails": "tapered",  # Tails of bounded log permanent shocks: "tapered" to zero at each bound, or "pooled" at their means
+    "TranShk_tails": "tapered",  # Tails of bounded log transitory shocks while employed: "tapered" or "pooled"
 }
 
 # Default parameters to make aXtraGrid using make_assets_grid
@@ -2483,7 +2489,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if approx_inc_dstn:
             IncShkDstn = self.IncShkDstn[0]
         else:
-            TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).discretize(
+            TranShkDstn = LogNormalMeanOne(sigma=self.TranShkStd[0]).discretize(
                 N=200,
                 method="equiprobable",
                 tail_N=50,
@@ -2493,7 +2499,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             TranShkDstn = add_discrete_outcome_constant_mean(
                 TranShkDstn, p=self.UnempPrb, x=self.IncUnemp
             )
-            PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).discretize(
+            PermShkDstn = LogNormalMeanOne(sigma=self.PermShkStd[0]).discretize(
                 N=200,
                 method="equiprobable",
                 tail_N=50,

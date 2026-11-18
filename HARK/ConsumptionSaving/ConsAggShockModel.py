@@ -34,7 +34,7 @@ from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
 )
 from HARK.distributions import (
     MarkovProcess,
-    MeanOneLogNormal,
+    LogNormalMeanOne,
     Uniform,
     expected,
     combine_indep_dstns,
@@ -1865,11 +1865,11 @@ class CobbDouglasEconomy(Market):
         None
         """
         RNG = self.RNG
-        TranShkAggDstn = MeanOneLogNormal(
+        TranShkAggDstn = LogNormalMeanOne(
             sigma=self.TranShkAggStd, seed=RNG.integers(0, 2**31 - 1)
         )
         self.TranShkAggDstn = TranShkAggDstn.discretize(N=self.TranShkAggCount)
-        PermShkAggDstn = MeanOneLogNormal(
+        PermShkAggDstn = LogNormalMeanOne(
             sigma=self.PermShkAggStd, seed=RNG.integers(0, 2**31 - 1)
         )
         self.PermShkAggDstn = PermShkAggDstn.discretize(N=self.PermShkAggCount)
@@ -2144,11 +2144,11 @@ class SmallOpenEconomy(Market):
         None
         """
         RNG = self.RNG
-        TranShkAggDstn = MeanOneLogNormal(
+        TranShkAggDstn = LogNormalMeanOne(
             sigma=self.TranShkAggStd, seed=RNG.integers(0, 2**31 - 1)
         )
         self.TranShkAggDstn = TranShkAggDstn.discretize(N=self.TranShkAggCount)
-        PermShkAggDstn = MeanOneLogNormal(
+        PermShkAggDstn = LogNormalMeanOne(
             sigma=self.PermShkAggStd, seed=RNG.integers(0, 2**31 - 1)
         )
         self.PermShkAggDstn = PermShkAggDstn.discretize(N=self.PermShkAggCount)
@@ -2403,14 +2403,14 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         for i in range(StateCount):
             TranShkAggDstn.append(
-                MeanOneLogNormal(
+                LogNormalMeanOne(
                     sigma=self.TranShkAggStd[i], seed=RNG.integers(0, 2**31 - 1)
                 ).discretize(
                     N=self.TranShkAggCount,
                 )
             )
             PermShkAggDstn.append(
-                MeanOneLogNormal(
+                LogNormalMeanOne(
                     sigma=self.PermShkAggStd[i], seed=RNG.integers(0, 2**31 - 1)
                 ).discretize(
                     N=self.PermShkAggCount,
