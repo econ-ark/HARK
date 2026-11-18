@@ -569,6 +569,15 @@ class LimitBoundsTests(unittest.TestCase):
         self.assertAlmostEqual(dstn.limit["supremum"][0], 1.5 * scale)
         self.assertGreaterEqual(dstn.limit["supremum"][0], np.max(dstn.atoms))
 
+    def test_constant_mean_outcome_with_probability_one(self):
+        # As for the atoms, np.errstate governs the division by 1 - p: the bounds
+        # are not finite, and nothing is raised
+        base = Uniform(bot=0.5, top=1.5).discretize(5)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            dstn = add_discrete_outcome_constant_mean(base, x=0.2, p=1.0)
+        self.assertFalse(np.all(np.isfinite(dstn.atoms)))
+        self.assertFalse(np.isfinite(dstn.limit["supremum"][0]))
+
     def test_make_univariate_keeps_component_bounds(self):
         perm = Uniform(bot=0.8, top=1.2).discretize(3)
         tran = Uniform(bot=0.5, top=1.5).discretize(4)

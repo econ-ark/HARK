@@ -333,7 +333,9 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         p,
         "add_discrete_outcome_constant_mean",
         sort,
-        scale=(1 - p * x) / (1 - p),
+        # In numpy's arithmetic, as the atoms' scale above is, so that np.errstate
+        # governs a probability of one here as it does there
+        scale=np.float64(1 - p * x) / (1 - p),
     )
 
 
