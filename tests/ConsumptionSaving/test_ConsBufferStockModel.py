@@ -1,3 +1,4 @@
+from copy import deepcopy
 import json
 import unittest
 import warnings
@@ -6,9 +7,12 @@ from dataclasses import replace
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsBufferStockModel import (
+    _extend_along_a_line,
     BufferStockConsumerType,
     calc_buffer_stock_conditions,
     paper_url,
+    solve_one_period_ConsBufferStock,
+    solve_one_period_ConsBufferStock_continuous,
 )
 from HARK import _log
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -1049,3 +1053,65 @@ class testBufferStockArtificialConstraint(unittest.TestCase):
                 agent.get_buffer_stock_conditions().existence == "established",
                 report.solution_exists,
             )
+
+
+class testBufferStockContinuousExpectation(unittest.TestCase):
+    """IncShkExpectation "continuous": the class's solver, with IndShock's
+    expectation against the laws in place of their atoms."""
+
+    def test_the_solver(self):
+        agent = make_agent(IncShkExpectation="continuous")
+        self.assertIs(
+            agent.solve_one_period, solve_one_period_ConsBufferStock_continuous
+        )
+        self.assertIn("PermShkQuadCount", agent.time_inv)
+        agent.assign_parameters(IncShkExpectation="atoms")
+        self.assertIs(agent.solve_one_period, solve_one_period_ConsBufferStock)
+
+    def test_the_cubic_keeps_its_linear_first_segment(self):
+        # On the continuous path the cubic's first segment, from the limit to the
+        # first gridpoint, is the chord between them; the line the class extends
+        # the function along above the grid keeps it
+        agent = make_agent(IncShkExpectation="continuous", CubicBool=True, cycles=3)
+        agent.solve()
+        unconstrained = agent.solution[0].cFunc.functions[0]
+        x, y = unconstrained.x_list, unconstrained.y_list
+        m = np.linspace(x[0], x[1], 11)[1:-1]
+        np.testing.assert_allclose(
+            unconstrained.derivative(m), (y[1] - y[0]) / (x[1] - x[0]), rtol=1e-10
+        )
+
+    def test_a_law_with_an_atom_is_refused(self):
+        # With positive income in the event the default permanent law has a
+        # point mass at its infimum
+        agent = make_agent(IncShkExpectation="continuous", IncUnemp=0.05)
+        with self.assertRaises(ValueError) as caught:
+            agent.solve()
+        self.assertIn("needs continuous laws", str(caught.exception))
+
+    def test_power_segment_kept_along_a_line(self):
+        # BufferStock's extension of the consumption function along a line above
+        # the grid rebuilds the cubic, and keeps its power segment
+        agent = IndShockConsumerType(
+            cycles=1,
+            T_cycle=1,
+            CubicBool=True,
+            BoroCnstArt=None,
+            CRRA=1.5,
+            IncShkExpectation="continuous",
+            PermShk_tails="jumpless",
+            TranShk_tails="jumpless",
+        )
+        agent.cycles = 3
+        agent.solve()
+        solution = deepcopy(agent.solution[0])
+        before = solution.cFunc.functions[0]
+        m = solution.mNrmKinks[0] + np.linspace(0.0, 1.0, 101) * (
+            before.x_list[2] - before.x_list[1]
+        )
+        _extend_along_a_line(solution, 0.02, agent.CRRA, True)
+        after = solution.cFunc.functions[0]
+        self.assertIsNot(after, before)
+        self.assertEqual(after.power_segments, before.power_segments)
+        np.testing.assert_array_equal(after(m), before(m))
+        np.testing.assert_array_equal(after.derivative(m), before.derivative(m))

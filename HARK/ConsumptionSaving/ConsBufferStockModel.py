@@ -82,7 +82,9 @@ from HARK import _log, set_verbosity_level
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     calc_boro_const_nat,
+    get_income_shock_laws,
     solve_one_period_ConsIndShock,
+    solve_one_period_ConsIndShock_continuous,
     IndShockConsumerType_aXtraGrid_default,
     IndShockConsumerType_constructors_default,
     IndShockConsumerType_kNrmInitDstn_default,
@@ -371,6 +373,102 @@ def solve_one_period_ConsBufferStock(
     MPC is never below that limit, this is a lower bound on the true function.
     When cFuncSlopeAboveGrid is None, the solver's extrapolation is kept.
     """
+    return _solve_one_period_ConsBufferStock(
+        solve_one_period_ConsIndShock,
+        {},  # no options: the laws' constraint is imposed in the body
+        solution_next,
+        IncShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        vFuncBool,
+        CubicBool,
+        WorstInc,
+        PermShkLawInf,
+        cFuncSlopeAboveGrid,
+    )
+
+
+def solve_one_period_ConsBufferStock_continuous(
+    solution_next,
+    IncShkDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    BoroCnstArt,
+    aXtraGrid,
+    vFuncBool,
+    CubicBool,
+    WorstInc,
+    PermShkLawInf,
+    cFuncSlopeAboveGrid,
+    PermShkQuadCount=4,
+    TranShkQuadCount=4,
+):
+    """
+    solve_one_period_ConsBufferStock with IndShock's continuous expectation
+    (IncShkExpectation "continuous"): the expectations over the income shocks
+    are taken against the laws IncShkDstn records, with PermShkQuadCount and
+    TranShkQuadCount Gauss-Legendre nodes a piece, instead of over its atoms.
+    The laws must be continuous: a law with an atom, such as
+    :class:`PointMassAtInfimum` or a discrete law, is refused. That solver
+    takes the natural constraint from the laws' infima, which are those the
+    class reads, and finds whether the consumption function has a kink there.
+    """
+    for law in get_income_shock_laws(IncShkDstn)[:2]:
+        base = getattr(law, "law", law)  # a rescaled law's own
+        if isinstance(base, (PointMassAtInfimum, DiscreteDistribution)):
+            raise ValueError(
+                'IncShkExpectation "continuous" needs continuous laws of the '
+                f"shocks, not {type(base).__name__}; with positive IncUnemp, "
+                "PermShkMinPrb=0 gives the permanent shock's law without its "
+                "point mass."
+            )
+    return _solve_one_period_ConsBufferStock(
+        solve_one_period_ConsIndShock_continuous,
+        dict(PermShkQuadCount=PermShkQuadCount, TranShkQuadCount=TranShkQuadCount),
+        solution_next,
+        IncShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        vFuncBool,
+        CubicBool,
+        WorstInc,
+        PermShkLawInf,
+        cFuncSlopeAboveGrid,
+    )
+
+
+def _solve_one_period_ConsBufferStock(
+    solver,
+    options,
+    solution_next,
+    IncShkDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    BoroCnstArt,
+    aXtraGrid,
+    vFuncBool,
+    CubicBool,
+    WorstInc,
+    PermShkLawInf,
+    cFuncSlopeAboveGrid,
+):
+    """The body of both solvers: solver is IndShock's, called with options."""
     if WorstInc > 0.0:
         # In the arithmetic of calc_boro_const_nat, so that equal constraints
         # are equal numbers
@@ -384,7 +482,7 @@ def solve_one_period_ConsBufferStock(
             BoroCnstArt is None or BoroCnstArt < BoroCnstNatLaw
         ):
             BoroCnstArt = BoroCnstNatLaw
-    solution = solve_one_period_ConsIndShock(
+    solution = solver(
         solution_next,
         IncShkDstn,
         LivPrb,
@@ -396,6 +494,7 @@ def solve_one_period_ConsBufferStock(
         aXtraGrid,
         vFuncBool,
         CubicBool,
+        **options,
     )
     if cFuncSlopeAboveGrid is not None:
         _extend_along_a_line(solution, cFuncSlopeAboveGrid, CRRA, CubicBool)
@@ -420,6 +519,12 @@ def _extend_along_a_line(solution, slope, CRRA, CubicBool):
             y[-1] - slope * x[-1],
             slope,
         )
+        if getattr(solution, "mNrmLinearEnd", None) is not None:
+            # the continuous expectation's linear first segment, from the limit
+            unconstrained.set_linear_segment(0)
+        for segment in getattr(solution.cFunc.functions[0], "power_segments", {}):
+            # and its power segment above a kink at the natural limit
+            unconstrained.set_power_segment(segment)
     else:
         # A point on the line makes the last segment's slope the limiting MPC
         unconstrained = LinearInterp(
@@ -1429,6 +1534,9 @@ BufferStockConsumerType_solving_default = {
     "BoroCnstArt": None,  # No artificial constraint: the natural one is in force
     "vFuncBool": False,
     "CubicBool": False,
+    "IncShkExpectation": "atoms",  # Expectation over the shocks' atoms or "continuous" laws
+    "PermShkQuadCount": 4,  # Gauss-Legendre nodes a piece of the continuous permanent shock
+    "TranShkQuadCount": 4,  # Gauss-Legendre nodes a piece of the continuous transitory shock
 }
 
 BufferStockConsumerType_defaults = {}
@@ -1555,6 +1663,10 @@ class BufferStockConsumerType(IndShockConsumerType):
     default_ = dict(IndShockConsumerType.default_)
     default_["params"] = BufferStockConsumerType_defaults
     default_["solver"] = solve_one_period_ConsBufferStock
+    expectation_solvers = {
+        "atoms": solve_one_period_ConsBufferStock,
+        "continuous": solve_one_period_ConsBufferStock_continuous,
+    }
     time_inv_ = IndShockConsumerType.time_inv_ + [
         "WorstInc",
         "PermShkLawInf",
