@@ -1066,6 +1066,53 @@ def calc_boro_const_nat_from_infima(m_nrm_min_next, inc_shk_dstn, rfree, perm_gr
     )
 
 
+def check_worst_transitory_point_mass(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
+    """
+    Halt where the continuous expectation would solve a model whose natural
+    borrowing limit binds while its worst transitory shock carries no
+    probability. Where no artificial constraint is given, or one below the
+    natural limit from the shock laws' infima, the worst realization of the
+    transitory shock, by its true law, must be a point mass, as an unemployment
+    event is: a zero-income event, or a positive benefit at or below every
+    employed income. Where an artificial constraint is at or above the natural
+    limit, the model is the artificial configuration, and is not checked.
+
+    The laws are read as get_income_shock_laws() returns them, and the employed
+    law's lowest value and the probability there by _law_end(), through the
+    laws' interface whatever their family.
+
+    Args:
+        inc_shk_dstn (DiscreteDistribution): Distribution of shocks to income.
+        boro_const_art (float or None): Artificial borrowing constraint.
+        boro_const_nat_inf (float): Natural borrowing constraint from the
+            shock laws' infima.
+
+    Raises:
+        ValueError: if the rule is violated.
+    """
+    if boro_const_art is not None and boro_const_art >= boro_const_nat_inf:
+        return
+    _, TranShkLaw, UnempPrb, IncUnemp = get_income_shock_laws(inc_shk_dstn)
+    if UnempPrb >= 1.0:
+        return  # always unemployed: the event is the only income
+    lowest, order = _law_end(TranShkLaw, upper=False)
+    if UnempPrb > 0.0 and IncUnemp <= lowest:
+        return  # the unemployment event, a point mass, is the worst
+    if order == 0:
+        return  # the employed law holds probability at its lowest value
+    worst = min(lowest, IncUnemp) if UnempPrb > 0.0 else lowest
+    raise ValueError(
+        "Where the natural borrowing limit binds (no artificial constraint, or "
+        'one below it), the continuous expectation (IncShkExpectation "continuous") '
+        "needs the worst transitory shock to carry probability, as an "
+        f"unemployment event does: here the lowest transitory shock, {worst:.6g}, "
+        "has none. Add an unemployment event (UnempPrb > 0) whose income is at or "
+        "below every employed income, impose an artificial constraint at or above "
+        f"the natural limit, {boro_const_nat_inf:.6g} (BoroCnstArt), or solve over "
+        'the atoms (IncShkExpectation "atoms").'
+    )
+
+
 def calc_m_nrm_min(boro_const_art, boro_const_nat):
     """Calculate the minimum normalized market resources this period.
 
@@ -2393,6 +2440,10 @@ def _solve_one_period_ConsIndShock(
         )
     if BoroCnstInf is not None:
         mNrmMinNow = max(mNrmMinNow, BoroCnstInf)
+    # Under the laws, where the natural limit binds, the worst transitory shock
+    # must be a point mass
+    if continuous:
+        check_worst_transitory_point_mass(IncShkDstn, BoroCnstArt, BoroCnstInf)
     # Whether the continuous expectation's consumption function has a kink: where
     # the lowest assets allowed leave next period's marginal value finite, so that
     # they are a constraint that binds, as an artificial one above the natural

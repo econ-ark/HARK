@@ -26,6 +26,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     _reaches_natural_limit,
     _worst_income_mass,
     calc_BegOfPrd_continuous,
+    calc_boro_const_nat,
     get_income_shock_laws,
     get_mNrm_kinks,
     solve_one_period_ConsIndShock,
@@ -564,12 +565,13 @@ class testIncShkExpectation(unittest.TestCase):
     def test_limit_with_finite_marginal_value(self):
         # Untruncated laws reach their infimum, zero, only through a tail: at the
         # natural limit, zero, the marginal value stays finite, so the limit binds
-        # as a constraint with a kink, and it makes no difference that no
-        # artificial constraint is set. Under the continuous expectation the
-        # laws are untruncated only with infinite bounds. With no unemployment
-        # event: with one, an employed law unbounded below would reach below
-        # unemployment income, which the solver refuses where the natural limit
-        # can bind
+        # as a constraint with a kink. Under the continuous expectation the laws
+        # are untruncated only with infinite bounds; here with no unemployment
+        # event, since an employed law unbounded below would reach below
+        # unemployment income. With an artificial constraint at the limit, the
+        # edge, the model is the artificial configuration and solves; with none,
+        # its worst transitory shock carries no probability, which the continuous
+        # expectation refuses where the natural limit binds
         unbounded = {
             "PermShk_inf": -np.inf,
             "PermShk_sup": np.inf,
@@ -577,9 +579,8 @@ class testIncShkExpectation(unittest.TestCase):
             "TranShk_sup": np.inf,
             "UnempPrb": 0.0,
         }
-        solutions = []
-        for constraint in (0.0, None):
-            agent = IndShockConsumerType(
+        agents = {
+            constraint: IndShockConsumerType(
                 cycles=1,
                 T_cycle=1,
                 CubicBool=True,
@@ -587,15 +588,54 @@ class testIncShkExpectation(unittest.TestCase):
                 IncShkExpectation="continuous",
                 **unbounded,
             )
+            for constraint in (0.0, None)
+        }
+        for agent in agents.values():
             agent.cycles = 3
+        agents[0.0].solve()
+        solution = agents[0.0].solution[0]
+        self.assertEqual(solution.mNrmMin, 0.0)
+        self.assertEqual(solution.mNrmKinks.size, 1)
+        self.assertGreater(solution.mNrmKinks[0], 0.0)
+        with self.assertRaisesRegex(ValueError, "worst transitory shock to carry"):
+            agents[None].solve()
+
+    def test_worst_transitory_point_mass(self):
+        # Where the natural limit binds (no artificial constraint, or one below
+        # it), the continuous expectation needs the worst transitory shock to be a
+        # point mass; the edge and an artificial constraint above the limit are
+        # the artificial configuration; the solver over atoms is not checked
+        def solve(**kwds):
+            agent = IndShockConsumerType(cycles=1, T_cycle=1, **kwds)
+            agent.cycles = 1
             agent.solve()
-            solutions.append(agent.solution[0])
-        for solution in solutions:
-            self.assertEqual(solution.mNrmMin, 0.0)
-            self.assertEqual(solution.mNrmKinks.size, 1)
-            self.assertGreater(solution.mNrmKinks[0], 0.0)
-        m = np.linspace(0.0, 20.0, 2001)
-        np.testing.assert_array_equal(solutions[0].cFunc(m), solutions[1].cFunc(m))
+            return agent
+
+        continuous = {"IncShkExpectation": "continuous"}
+        # an unemployment event, with a positive benefit or none
+        for benefit in (0.3, 0.0):
+            solve(BoroCnstArt=None, IncUnemp=benefit, **continuous)
+        # no unemployment event: the jumpless employed law has no mass at its end
+        for constraint in (None, -5.0):
+            with self.subTest(BoroCnstArt=constraint):
+                with self.assertRaisesRegex(
+                    ValueError, "worst transitory shock to carry"
+                ):
+                    solve(BoroCnstArt=constraint, UnempPrb=0.0, **continuous)
+        # a constraint at the natural limit from the laws' infima, the edge, as the
+        # solver computes it from the terminal period, or above it
+        agent = solve(BoroCnstArt=0.0, UnempPrb=0.0, **continuous)
+        limit = calc_boro_const_nat(
+            0.0,
+            agent.IncShkDstn[0],
+            agent.Rfree[0],
+            agent.PermGroFac[0],
+            use_infimum=True,
+        )
+        self.assertLess(limit, 0.0)
+        solve(BoroCnstArt=limit, UnempPrb=0.0, **continuous)
+        # over atoms the same model solves
+        solve(BoroCnstArt=None, UnempPrb=0.0)
 
     def test_natural_limit_rule(self):
         # The marginal value at the lowest assets is infinite where the worst
@@ -787,13 +827,27 @@ class testIncShkExpectation(unittest.TestCase):
     def test_natural_constraint_with_other_laws(self):
         # With no artificial constraint, the natural one binds with no kink where
         # CRRA >= d, the number of uniform laws setting the worst landing: d = 1
-        # with unemployment at the worst, d = 2 without it; for CRRA below d, the
-        # natural limit binds as a constraint, with a kink
-        for UnempPrb, CRRA, kinked in (
-            (0.05, 2.0, False),
-            (0.0, 2.0, False),
-            (0.0, 1.5, True),
-        ):
+        # with unemployment at the worst. Without it, d = 2, the worst transitory
+        # shock carries no probability, which the continuous expectation refuses
+        # where the natural limit binds (the rule itself for d = 2:
+        # test_natural_limit_rule)
+        for CRRA in (2.0, 1.5):
+            with self.subTest(UnempPrb=0.0, CRRA=CRRA):
+                agent = IndShockConsumerType(
+                    cycles=1,
+                    T_cycle=1,
+                    CubicBool=True,
+                    BoroCnstArt=None,
+                    CRRA=CRRA,
+                    IncShkExpectation="continuous",
+                    **JUMPLESS_TAILS,
+                )
+                agent.IncShkDstn = [uniform_income(0.0)]
+                with self.assertRaisesRegex(
+                    ValueError, "worst transitory shock to carry"
+                ):
+                    agent.solve()
+        for UnempPrb, CRRA, kinked in ((0.05, 2.0, False),):
             with self.subTest(UnempPrb=UnempPrb, CRRA=CRRA):
                 solutions = []
                 for nodes in ((4, 4), (6, 6)) if not kinked else ((4, 4),):
