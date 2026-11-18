@@ -316,8 +316,17 @@ def make_TranShkLaw(TranShkStd, TranShk_inf, TranShk_sup, RNG):
 
 
 def _discretize(law, count):
+    """
+    A law's equiprobable discretization; a discrete law is its own. The class
+    reads a discrete law's atoms as its support, so the bounds the income
+    distribution records for it are its atoms' least and greatest, whatever law
+    it was discretized from.
+    """
     if isinstance(law, DiscreteDistribution):
-        return law
+        atoms = np.ravel(law.atoms)
+        limit = dict(law.limit or {})
+        limit.update(infimum=np.array([atoms.min()]), supremum=np.array([atoms.max()]))
+        return DiscreteDistribution(law.pmv, law.atoms, seed=law.seed, limit=limit)
     return law.discretize(count, method="equiprobable")
 
 

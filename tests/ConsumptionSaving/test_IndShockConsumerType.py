@@ -6,6 +6,7 @@ import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    KinkedRconsumerType,
     PerfForesightConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
@@ -1650,3 +1651,54 @@ class testKinkAttributes(unittest.TestCase):
             )
         # The terminal solution is not solved on a grid, and records nothing
         self.assertIsNone(agent.solution[-1].mNrmKink)
+
+
+class testEmployedFloor(unittest.TestCase):
+    """
+    Where the natural borrowing limit can bind (no artificial constraint at or
+    above it), the lowest employed transitory income, by its true law, must be
+    strictly above unemployment income, or the solve halts.
+    """
+
+    def assertHalts(self, agent_type=IndShockConsumerType, **kwds):
+        agent = agent_type(cycles=1, **kwds)
+        with self.assertRaises(ValueError) as caught:
+            agent.solve()
+        self.assertIn("strictly above unemployment income", str(caught.exception))
+
+    def test_the_default_laws_pass(self):
+        # The tapered default's employed floor is far above the benefit, 0.3
+        for BoroCnstArt in (None, 0.0):
+            agent = IndShockConsumerType(cycles=1, BoroCnstArt=BoroCnstArt)
+            agent.solve()
+            self.assertTrue(np.isfinite(agent.solution[0].mNrmMin))
+
+    def test_an_unbounded_employed_law_halts(self):
+        # Its infimum is zero, below the benefit
+        self.assertHalts(BoroCnstArt=None, TranShk_inf=-np.inf, TranShk_sup=np.inf)
+
+    def test_a_benefit_above_the_employed_floor_halts(self):
+        self.assertHalts(BoroCnstArt=None, IncUnemp=0.8)
+        self.assertHalts(KinkedRconsumerType, BoroCnstArt=None, IncUnemp=0.8)
+
+    def test_an_artificial_constraint_at_or_above_the_limit_exempts(self):
+        # With both laws unbounded the natural limit is zero, the default
+        # artificial constraint's level: the edge is exempt
+        agent = IndShockConsumerType(
+            cycles=1,
+            BoroCnstArt=0.0,
+            PermShk_inf=-np.inf,
+            PermShk_sup=np.inf,
+            TranShk_inf=-np.inf,
+            TranShk_sup=np.inf,
+        )
+        agent.solve()
+        agent = IndShockConsumerType(cycles=1, BoroCnstArt=0.0, IncUnemp=0.8)
+        agent.solve()
+        self.assertEqual(agent.solution[0].mNrmMin, 0.0)
+
+    def test_no_unemployment_is_not_checked(self):
+        agent = IndShockConsumerType(
+            cycles=1, BoroCnstArt=None, UnempPrb=0.0, TranShk_inf=-np.inf
+        )
+        agent.solve()
