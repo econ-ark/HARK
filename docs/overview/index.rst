@@ -39,6 +39,7 @@ Overview
    ../../examples/ConsRepAgentModel/RepAgentConsumerType.ipynb
    ../../examples/ConsIndShockModel/IndShockConsumerType.ipynb
    ../../examples/ConsIndShockModel/KinkedRconsumerType.ipynb
+   ../../examples/ConsIndShockModel/ConcavityViolations.ipynb
    ../../examples/ConsMarkovModel/MarkovConsumerType.ipynb
    ../../examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb
    ../../examples/ConsAggShockModel/AggShockConsumerType.ipynb
