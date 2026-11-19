@@ -18,9 +18,7 @@ aXtraCount = 8  # Number of points in the grid of "assets above minimum"
 
 # Artificial borrowing constraint; imposed minimum level of end-of period assets
 BoroCnstArt = 0.0
-CubicBool = (
-    True  # Use cubic spline interpolation when True, linear interpolation when False
-)
+CubicBool = False  # Cubic interpolation needs the continuous expectation
 vFuncBool = False  # Whether to calculate the value function during solution
 
 Rfree = [1.03]  # Interest factor on assets

@@ -285,9 +285,9 @@ class testBufferStockSolution(unittest.TestCase):
 
     def test_stable_points_at_the_papers_calibration(self):
         # The paper's calibration with seven equiprobable points of untruncated
-        # lognormals, 400 asset points up to 100, cubic interpolation. The values
-        # were computed independently with IndShockConsumerType. Truncating at 12
-        # standard deviations reproduces the untruncated discretization.
+        # lognormals, 400 asset points up to 100, linear interpolation, as cubic
+        # is refused over atoms. Truncating at 12 standard deviations reproduces
+        # the untruncated discretization.
         agent = make_agent(
             PermShk_inf=-12.0,
             PermShk_sup=12.0,
@@ -297,12 +297,11 @@ class testBufferStockSolution(unittest.TestCase):
             aXtraNestFac=3,
             aXtraExtra=None,
             aXtraMax=100.0,
-            CubicBool=True,
             tolerance=1e-10,
         )
         agent.solve()
-        self.assertAlmostEqual(agent.bilt["mNrmStE"], 1.37732, places=5)
-        self.assertAlmostEqual(agent.bilt["mNrmTrg"], 1.39103, places=5)
+        self.assertAlmostEqual(agent.bilt["mNrmStE"], 1.37736, places=5)
+        self.assertAlmostEqual(agent.bilt["mNrmTrg"], 1.39107, places=5)
 
     def test_stable_points(self):
         agent = make_agent()

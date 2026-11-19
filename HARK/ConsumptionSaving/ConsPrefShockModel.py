@@ -11,6 +11,7 @@ import numpy as np
 
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     ConsumerSolution,
     IndShockConsumerType,
     KinkedRconsumerType,
@@ -204,6 +205,7 @@ def solve_one_period_ConsPrefShock(
         shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
         unconditionally on the shock, just before it is revealed.
     """
+    check_cubic_pairing(CubicBool)
     # Define the current period utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
@@ -482,6 +484,7 @@ def solve_one_period_ConsKinkyPref(
         shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
         unconditionally on the shock, just before it is revealed.
     """
+    check_cubic_pairing(CubicBool)
     # Verifiy that there is actually a kink in the interest factor
     assert Rboro >= Rsave, (
         "Interest factor on debt less than interest factor on savings!"

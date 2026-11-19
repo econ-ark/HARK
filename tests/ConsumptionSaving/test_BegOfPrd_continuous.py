@@ -272,6 +272,13 @@ class NaturalConsumption(HARKinterpolator1D):
         return self._evaluate(m), self._der(m)
 
 
+# Next period's cubic policy is solved over atoms, whose MPC kinks at its knots,
+# for the expectation to be measured against; the pairing rule refuses that
+# solve, so it is made with the check disabled
+@mock.patch(
+    "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",
+    lambda *args, **kwargs: None,
+)
 class testBegOfPrdContinuous(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockConsumerType(

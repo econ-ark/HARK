@@ -69,7 +69,7 @@ class testMedShockConsumerType(unittest.TestCase):
 
     def test_cubic(self):
         CubicType = MedShockConsumerType(CubicBool=True)
-        self.assertRaises(NotImplementedError, CubicType.solve)
+        self.assertRaises(ValueError, CubicType.solve)
 
 
 class testMedExtMargConsumerType(unittest.TestCase):

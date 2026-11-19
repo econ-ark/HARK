@@ -37,6 +37,7 @@ from HARK.rewards import (
 )
 from HARK.utilities import make_grid_exp_mult
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     ConsumerSolution,
     utility,
     utility_inv,
@@ -119,6 +120,7 @@ class MedShockPolicyFunc(MetricObject):
                 cLvlGrid[i, j] = cLvl
 
         # Construct the consumption function and medical care function
+        check_cubic_pairing(xLvlCubicBool or MedShkCubicBool)
         if xLvlCubicBool:
             if MedShkCubicBool:
                 raise NotImplementedError("Bicubic interpolation not yet implemented")
@@ -821,6 +823,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.aXtraGrid = aXtraGrid
         self.vFuncBool = vFuncBool
         self.CubicBool = CubicBool
+        check_cubic_pairing(CubicBool)
 
         self.def_utility_funcs()
 

@@ -9,6 +9,7 @@ solve exists for.
 """
 
 import unittest
+from unittest import mock
 
 import numpy as np
 
@@ -134,7 +135,13 @@ class testStationaryLinear(unittest.TestCase):
 
 
 class testStationaryCubicAndValue(unittest.TestCase):
+    # These tests exercise the stationary solver's cubic branch, which the pairing
+    # rule makes unreachable over atoms, so they solve with the check disabled
     @classmethod
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
     def setUpClass(cls):
         cls.stock = solve_stock(CubicBool=True, vFuncBool=True)
         cls.anderson = solve_anderson(CubicBool=True, vFuncBool=True)

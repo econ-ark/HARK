@@ -1,5 +1,6 @@
 import pickle
 import unittest
+from unittest import mock
 from copy import deepcopy
 
 import numpy as np
@@ -41,6 +42,17 @@ class testKinkedRConsumerType(unittest.TestCase):
             KinkyExample.solution[0].cFunc(4).tolist(), 1.33927, places=HARK_PRECISION
         )
 
+    def test_cubic_refused(self):
+        # Cubic Hermite interpolation is refused with a sum over discrete shock atoms
+        CubicExample = KinkedRconsumerType(cycles=0, CubicBool=True)
+        self.assertRaises(ValueError, CubicExample.solve)
+
+    # The two tests below exercise the cubic branch itself, which the pairing rule
+    # makes unreachable, so they solve with the check disabled
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
     def test_cubic_and_vFunc(self):
         CubicExample = KinkedRconsumerType(cycles=0, vFuncBool=True, CubicBool=True)
         CubicExample.solve()
@@ -53,6 +65,10 @@ class testKinkedRConsumerType(unittest.TestCase):
         # dip below cash-on-hand reached the fixed point): now -15.37090.
         self.assertAlmostEqual(vFunc(m), -15.37090, places=HARK_PRECISION)
 
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
     def test_cubic_kink_segment_is_the_45_degree_line(self):
         """Between the two zero-asset points the unconstrained consumption function is c = m
         (end-of-period assets stay at zero): slope one inside the segment, the borrowing- and

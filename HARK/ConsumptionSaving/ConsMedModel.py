@@ -19,6 +19,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     make_persistent_income_process_dict,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
@@ -553,6 +554,7 @@ def solve_one_period_ConsMedShock(
     solution_now : dict
         Solution to this period's consumption-saving problem, as a dictionary.
     """
+    check_cubic_pairing(CubicBool)
     # Define the utility functions for this period
     uCon = UtilityFuncCRRA(CRRA)
     uMed = UtilityFuncCRRA(CRRAmed)  # Utility function for normalized medical care
@@ -762,23 +764,18 @@ def solve_one_period_ConsMedShock(
 
     # Build the set of cFuncs by pLvl, gathered in a list
     xFunc_by_pLvl_and_MedShk = []  # Initialize the empty list of lists of 1D xFuncs
-    if CubicBool:
-        raise NotImplementedError(
-            "Cubic spline interpolation has not been implemented yet!"
-        )
 
-    # Basic version: use linear interpolation within a pLvl and MedShk
-    else:
-        # Loop over pLvl and then MedShk within that
-        for i in range(pLvlCount):
-            temp_list = []
-            pLvl_i = p_for_interpolation[0, i, 0]
-            mLvlMin_i = BoroCnstNat(pLvl_i)
-            for j in range(MedCount):
-                m_temp = m_for_interpolation[:, i, j] - mLvlMin_i
-                x_temp = x_for_interpolation[:, i, j]
-                temp_list.append(LinearInterp(m_temp, x_temp))
-            xFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
+    # Linear interpolation within a pLvl and MedShk, looping over pLvl and then
+    # MedShk within that
+    for i in range(pLvlCount):
+        temp_list = []
+        pLvl_i = p_for_interpolation[0, i, 0]
+        mLvlMin_i = BoroCnstNat(pLvl_i)
+        for j in range(MedCount):
+            m_temp = m_for_interpolation[:, i, j] - mLvlMin_i
+            x_temp = x_for_interpolation[:, i, j]
+            temp_list.append(LinearInterp(m_temp, x_temp))
+        xFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
 
     # Combine the nested list of linear xFuncs into a single function
     pLvl_temp = p_for_interpolation[0, :, 0]

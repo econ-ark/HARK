@@ -265,11 +265,16 @@ class testIncShkExpectation(unittest.TestCase):
         np.testing.assert_array_equal(direct.cFunc(m), agent.solution[0].cFunc(m))
 
     def test_back_to_atoms(self):
+        # Over the atoms the cubic is refused (check_cubic_pairing); the linear
+        # solution is the atoms' own, bit for bit
         agent = deepcopy(self.agent)
         agent.IncShkExpectation = "atoms"
-        agent.solve()
+        with self.assertRaises(ValueError):
+            agent.solve()
         self.assertIs(agent.solve_one_period, solve_one_period_ConsIndShock)
-        fresh = IndShockConsumerType(cycles=0, CubicBool=True, **BOUNDS)
+        agent.CubicBool = False
+        agent.solve()
+        fresh = IndShockConsumerType(cycles=0, **BOUNDS)
         fresh.solve()
         m = np.linspace(0.0, 20.0, 2001)
         np.testing.assert_array_equal(

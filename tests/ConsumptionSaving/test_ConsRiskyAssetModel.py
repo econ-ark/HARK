@@ -31,28 +31,15 @@ class testBasicRiskyAssetConsumerType(unittest.TestCase):
 
 
 class testCubicRiskyAssetConsumerType(unittest.TestCase):
-    def setUp(self):
-        self.agent = IndShockRiskyAssetConsumerType(CubicBool=True)
-        self.agent.solve()
-
-    def test_solution(self):
-        cFunc = self.agent.solution[0].cFunc
-        mNrm = 10.0
-        self.assertAlmostEqual(cFunc(mNrm).tolist(), 5.637216, places=HARK_PRECISION)
-
-    def test_simulation(self):
-        self.agent.T_sim = 10
-        self.agent.track_vars = ["mNrm", "cNrm", "aNrm"]
-        self.agent.make_shock_history()
-        self.agent.initialize_sim()
-        self.agent.simulate()
+    def test_cubic_refused(self):
+        # Cubic Hermite interpolation is refused with a sum over discrete shock atoms
+        agent = IndShockRiskyAssetConsumerType(CubicBool=True)
+        self.assertRaises(ValueError, agent.solve)
 
 
 class testNonIndeptRiskyAssetConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = IndShockRiskyAssetConsumerType(
-            IndepDstnBool=False, CubicBool=True, vFuncBool=True
-        )
+        self.agent = IndShockRiskyAssetConsumerType(IndepDstnBool=False, vFuncBool=True)
         self.agent.solve()
 
     def test_solution(self):
@@ -126,14 +113,12 @@ class testZeroIncShkPortChoiceConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockRiskyAssetConsumerType(
             RiskyShareFixed=None,
-            CubicBool=True,
             IncUnemp=0.0,
         )
         self.agent.solve()
 
         self.agent_alt = IndShockRiskyAssetConsumerType(
             RiskyShareFixed=None,
-            CubicBool=True,
             IncUnemp=0.0,
             IndepDstnBool=False,
         )
@@ -154,13 +139,11 @@ class testZeroIncShkPortChoiceConsumerType(unittest.TestCase):
 class testZeroIncShkRiskyAssetConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockRiskyAssetConsumerType(
-            CubicBool=True,
             IncUnemp=0.0,
         )
         self.agent.solve()
 
         self.agent_alt = IndShockRiskyAssetConsumerType(
-            CubicBool=True,
             IncUnemp=0.0,
             IndepDstnBool=False,
         )

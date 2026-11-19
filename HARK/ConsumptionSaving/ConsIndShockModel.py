@@ -52,7 +52,9 @@ from HARK.distributions import (
     scaled_law,
     step_values,
 )
+from HARK.interpolation import CubicInterp as CubicCoeffsInterp
 from HARK.interpolation import (
+    IdentityFunction,
     LinearInterp,
     LowerEnvelope,
     MargMargValueFuncCRRA,
@@ -72,7 +74,7 @@ from HARK.rewards import (
     UtilityFuncCRRA,
 )
 from HARK.stationary import KnotProblem, solve_stationary_problem
-from HARK.utilities import make_assets_grid
+from HARK.utilities import get_arg_names, make_assets_grid
 from scipy.optimize import newton
 
 from HARK import (
@@ -1939,6 +1941,74 @@ def _calc_BegOfPrd_IndShock_continuous(
     return tuple(total)
 
 
+CUBIC_PAIRING_MESSAGE = (
+    "CubicBool=True needs the expectation over the income shocks to be taken "
+    'against their continuous laws, IncShkExpectation="continuous", which '
+    "IndShockConsumerType and BufferStockConsumerType offer. Summed over discrete "
+    "atoms, the expectation puts an image of next period's kink, where its "
+    "borrowing constraint stops binding, into this period's consumption function "
+    "at each atom; a cubic Hermite segment is smooth and cannot follow a kink "
+    "inside it, so the consumption function violates concavity there. Use linear "
+    "interpolation (CubicBool=False), or the continuous expectation."
+)
+
+CUBIC_NEXT_PERIOD_MESSAGE = (
+    "CubicBool=True needs next period's consumption function to be cubic too, or "
+    "a single line, as the terminal period's c = m is. A piecewise linear "
+    "consumption function is kinked at each of its knots, and each kink leaves "
+    "its image in this period's consumption function, which a cubic Hermite "
+    "segment cannot follow. Solve next period with CubicBool=True, or this period "
+    "with CubicBool=False."
+)
+
+
+def _cubic_or_a_line(cFunc):
+    """
+    Whether a consumption function is smooth between the kinks a solution
+    records: a cubic Hermite interpolant, a single line (a linear interpolant of
+    one segment, or the identity), or a lower envelope of such functions, whose
+    kinks are where they cross.
+    """
+    if isinstance(cFunc, LowerEnvelope):
+        return all(_cubic_or_a_line(f) for f in cFunc.functions)
+    if isinstance(cFunc, (CubicInterp, CubicCoeffsInterp, IdentityFunction)):
+        return True
+    return isinstance(cFunc, LinearInterp) and np.size(cFunc.x_list) <= 2
+
+
+def check_cubic_pairing(CubicBool, continuous=False, cFunc_next=None):
+    """
+    Refuse cubic Hermite interpolation of the consumption function unless the
+    expectation over the income shocks is taken against their continuous laws,
+    and next period's consumption function is cubic too, or a single line. A sum
+    over discrete atoms puts an image of next period's borrowing-constraint kink
+    into this period's consumption function for every atom, and a piecewise
+    linear next period puts the image of each of its knots there; a cubic Hermite
+    segment cannot carry a kink inside it, so the function would violate
+    concavity there. Linear interpolation is concave by construction.
+
+    Parameters
+    ----------
+    CubicBool : bool
+        Whether cubic Hermite interpolation was requested.
+    continuous : bool, optional
+        Whether the expectation over the income shocks is taken against their
+        continuous laws. Default False.
+    cFunc_next : function, optional
+        Next period's consumption function, checked when continuous is True.
+
+    Returns
+    -------
+    None
+    """
+    if not CubicBool:
+        return
+    if not continuous:
+        raise ValueError(CUBIC_PAIRING_MESSAGE)
+    if cFunc_next is not None and not _cubic_or_a_line(cFunc_next):
+        raise ValueError(CUBIC_NEXT_PERIOD_MESSAGE)
+
+
 def solve_one_period_ConsIndShock(
     solution_next,
     IncShkDstn,
@@ -2145,6 +2215,7 @@ def _solve_one_period_ConsIndShock(
     continuous the pair (PermShkQuadCount, TranShkQuadCount), it is against the
     laws IncShkDstn records.
     """
+    check_cubic_pairing(CubicBool, continuous is not None, solution_next.cFunc)
     # Define the current period utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
@@ -2739,6 +2810,7 @@ def solve_one_period_ConsKinkedR(
         Solution to this period's consumption-saving problem with income risk.
 
     """
+    check_cubic_pairing(CubicBool)
     # Verifiy that there is actually a kink in the interest factor
     assert Rboro >= Rsave, (
         "Interest factor on debt less than interest factor on savings!"
@@ -4306,7 +4378,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
     vFuncBool: bool
         Whether to calculate the value function during solution.
     CubicBool: bool
-        Whether to use cubic spline interpoliation.
+        Whether to use cubic spline interpolation. It needs IncShkExpectation
+        "continuous" (see check_cubic_pairing).
     IncShkExpectation: str
         How the solver takes the expectation over the income shocks: "atoms", the
         default, sums over IncShkDstn's atoms; "continuous" integrates against
@@ -4741,6 +4814,20 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.construct("solution_terminal")
         # quiet silences the conditions report, but post_solve needs the conditions
         self.check_conditions(verbose=self.verbose)
+
+    def check_restrictions(self):
+        """
+        Check the perfect foresight model's restrictions, and refuse cubic
+        interpolation over discrete atoms (check_cubic_pairing) before any period
+        is solved, wherever the solver takes CubicBool. The solver checks it again
+        each period, with next period's consumption function.
+        """
+        super().check_restrictions()
+        if "CubicBool" in get_arg_names(self.solve_one_period):
+            check_cubic_pairing(
+                self.CubicBool,
+                getattr(self, "IncShkExpectation", "atoms") == "continuous",
+            )
 
     def assign_parameters(self, **kwds):
         """
