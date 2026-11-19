@@ -1547,8 +1547,10 @@ class test_post_state_hook(unittest.TestCase):
     get_controls(): default is a no-op; overrides fire at the right moment."""
 
     def test_default_behavior_unchanged_golden(self):
-        # Behavior golden captured on main at a25d3ae0 (pre-hook): the
-        # default no-op hook must leave simulations bit-identical.
+        # Behavior golden captured on main at a25d3ae0 (pre-hook), and captured
+        # again when the asset grid began at a binding artificial constraint
+        # (#1871) and when HARK's default income shocks became the power-tapered
+        # lognormal: the default no-op hook must leave simulations bit-identical.
         agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
         agent.track_vars = ["cNrm", "pLvl"]
         agent.solve()
@@ -1557,15 +1559,15 @@ class test_post_state_hook(unittest.TestCase):
         np.testing.assert_allclose(
             [float(x) for x in agent.history["cNrm"][3, :4]],
             [
-                1.1070787532288362,
-                0.9087055494949798,
-                1.1694416325917305,
-                0.9579870570215201,
+                1.1072591302396153,
+                0.9084574187740664,
+                1.1695747958100737,
+                0.9578385449740432,
             ],
             rtol=1e-10,
         )
         self.assertAlmostEqual(
-            float(np.nansum(agent.history["cNrm"])), 1582.2122805244605, places=9
+            float(np.nansum(agent.history["cNrm"])), 1582.23147886534, places=9
         )
 
     def test_override_fires_between_states_and_controls(self):
@@ -1591,17 +1593,19 @@ class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
     flags for the pre-draw and restores them."""
 
     def test_default_history_stream_unchanged_golden(self):
-        # Golden captured on main at a25d3ae0 (pre-kwarg).
+        # Golden captured on main at a25d3ae0 (pre-kwarg), and re-pinned when
+        # HARK's default income shocks became the power-tapered lognormal, which
+        # moved the atoms but not which are drawn.
         agent = IndShockConsumerType(AgentCount=50, T_sim=6, seed=99)
         agent.solve()
         agent.make_shock_history()
         np.testing.assert_allclose(
             [float(x) for x in agent.shock_history["PermShk"][2][:4]],
             [
-                1.0887560662509859,
-                0.9278094171517418,
-                0.9278094171517418,
-                1.1780702264015428,
+                1.088843810530376,
+                0.927713771906414,
+                0.927713771906414,
+                1.1782730413845595,
             ],
             rtol=1e-10,
         )

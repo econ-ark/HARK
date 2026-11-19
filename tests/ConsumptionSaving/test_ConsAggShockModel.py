@@ -44,7 +44,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.agents[0].solve()
         self.assertAlmostEqual(
             self.agents[0].solution[0].cFunc(10.0, self.economy.MSS),
-            3.24364,
+            3.24336,
             places=HARK_PRECISION,
         )
 
@@ -54,7 +54,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertAlmostEqual(self.economy.AFunc.slope, 1.05855, places=HARK_PRECISION)
+        self.assertAlmostEqual(self.economy.AFunc.slope, 1.05844, places=HARK_PRECISION)
 
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(self.economy.history["MaggNow"][10], 7.45632, place = HARK_PRECISION)
@@ -73,7 +73,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.agent.solve()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
-            2.57365,
+            2.57330,
             places=HARK_PRECISION,
         )
 

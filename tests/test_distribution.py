@@ -4,18 +4,23 @@ import warnings
 import numpy as np
 import xarray as xr
 
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    init_lifecycle,
+)
 from HARK.distributions import (
     Bernoulli,
     calc_expectation,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
-    Lognormal,
+    LogNormal,
     MarkovProcess,
-    MeanOneLogNormal,
+    LogNormalMeanOne,
     Normal,
     Uniform,
     Weibull,
+    add_discrete_outcome_constant_mean,
     calc_lognormal_style_pars_from_normal_pars,
     calc_normal_style_pars_from_lognormal_pars,
     combine_indep_dstns,
@@ -29,9 +34,9 @@ from HARK.distributions import (
     MultivariateNormal,
     MultivariateLogNormal,
     approx_lognormal_gauss_hermite,
-    MeanOneTruncatedLogNormal,
-    TruncatedLognormal,
-    TruncatedLogNormal,
+    LogNormalTruncatedMeanOne,
+    LogNormalTruncated,
+    LogNormalTruncated,
     truncated_normal_variance,
 )
 from tests import HARK_PRECISION
@@ -135,8 +140,8 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
 
-        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
-        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        PermShkDstn = LogNormalMeanOne().discretize(200, method="equiprobable")
+        TranShkDstn = LogNormalMeanOne().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
         ce8 = expected(lambda atoms: atoms[0] + atoms[1], IncShkDstn, vectorized=False)
@@ -188,8 +193,8 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
 
-        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
-        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        PermShkDstn = LogNormalMeanOne().discretize(200, method="equiprobable")
+        TranShkDstn = LogNormalMeanOne().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
         ce8 = expected(lambda atoms: atoms[0] + atoms[1], dstn=IncShkDstn)
@@ -395,10 +400,10 @@ class DistributionClassTests(unittest.TestCase):
     """
 
     def test_drawMeanOneLognormal(self):
-        MeanOneLogNormal().draw(1)[0]
+        LogNormalMeanOne().draw(1)[0]
 
     def test_Lognormal(self):
-        dist = Lognormal()
+        dist = LogNormal()
 
         dist.draw(1)[0]
 
@@ -408,14 +413,14 @@ class DistributionClassTests(unittest.TestCase):
         dist.draw(1)[0]
 
     def test_Lognormal_hermite_discretizer(self):
-        dstn = Lognormal(mu=0.5, sigma=0.2)
+        dstn = LogNormal(mu=0.5, sigma=0.2)
         discrete_dstn = dstn.discretize(9, method="hermite")
         exp_discrete = np.dot(discrete_dstn.pmv, discrete_dstn.atoms.T)
         self.assertAlmostEqual(dstn.mean(), exp_discrete)
         self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
 
     def test_Lognormal_from_mean_std(self):
-        dstn = Lognormal(mean=1.3, std=0.4)
+        dstn = LogNormal(mean=1.3, std=0.4)
         self.assertAlmostEqual(1.3, dstn.mean())
 
     def test_Normal(self):
@@ -544,6 +549,75 @@ class DistributionClassTests(unittest.TestCase):
         self.assertAlmostEqual(result.pmv[1], 0.5)  # P(1)
 
 
+class LimitBoundsTests(unittest.TestCase):
+    """
+    The bounds in a discretized distribution's limit are those of the true
+    distribution, which can lie beyond the outermost atoms, and they must
+    survive the operations that build income shocks.
+    """
+
+    def test_uniform_bounds_are_bot_and_top(self):
+        uni = Uniform(bot=0.9, top=0.94)
+        np.testing.assert_array_equal(uni.infimum, [0.9])
+        np.testing.assert_array_equal(uni.supremum, [0.94])
+        uni_discrete = uni.discretize(7)
+        np.testing.assert_array_equal(uni_discrete.limit["infimum"], [0.9])
+        np.testing.assert_array_equal(uni_discrete.limit["supremum"], [0.94])
+
+    def test_constant_mean_outcome_rescales_bounds(self):
+        base = Uniform(bot=0.5, top=1.5).discretize(5)
+        x, p = 0.2, 0.1
+        dstn = add_discrete_outcome_constant_mean(base, x=x, p=p)
+        scale = (1 - p * x) / (1 - p)
+        self.assertAlmostEqual(dstn.limit["infimum"][0], x)
+        self.assertAlmostEqual(dstn.limit["supremum"][0], 1.5 * scale)
+        self.assertGreaterEqual(dstn.limit["supremum"][0], np.max(dstn.atoms))
+
+    def test_constant_mean_outcome_with_probability_one(self):
+        # As for the atoms, np.errstate governs the division by 1 - p: the bounds
+        # are not finite, and nothing is raised
+        base = Uniform(bot=0.5, top=1.5).discretize(5)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            dstn = add_discrete_outcome_constant_mean(base, x=0.2, p=1.0)
+        self.assertFalse(np.all(np.isfinite(dstn.atoms)))
+        self.assertFalse(np.isfinite(dstn.limit["supremum"][0]))
+
+    def test_make_univariate_keeps_component_bounds(self):
+        perm = Uniform(bot=0.8, top=1.2).discretize(3)
+        tran = Uniform(bot=0.5, top=1.5).discretize(4)
+        joint = combine_indep_dstns(perm, tran)
+        for dim, component in enumerate((perm, tran)):
+            univariate = joint.make_univariate(dim)
+            np.testing.assert_array_equal(
+                univariate.limit["infimum"], component.limit["infimum"]
+            )
+            np.testing.assert_array_equal(
+                univariate.limit["supremum"], component.limit["supremum"]
+            )
+            self.assertIs(univariate.limit["dist"], component)
+
+    def test_make_univariate_without_bounds_uses_atoms(self):
+        # A joint distribution with the default limit has no bounds beyond its atoms
+        joint = DiscreteDistribution(
+            np.array([0.25, 0.75]), np.array([[1.0, 2.0], [3.0, 4.0]])
+        )
+        univariate = joint.make_univariate(1)
+        np.testing.assert_array_equal(univariate.limit["infimum"], [3.0])
+        np.testing.assert_array_equal(univariate.limit["supremum"], [4.0])
+        self.assertNotIn("dist", univariate.limit)
+
+    def test_degenerate_lognormal(self):
+        # A lognormal with sigma zero is the single point exp(mu), and its bounds
+        # say so: retirement's permanent shock in a life-cycle model is one
+        dstn = LogNormalMeanOne(0.0)
+        np.testing.assert_array_equal(dstn.infimum, [1.0])
+        np.testing.assert_array_equal(dstn.supremum, [1.0])
+        agent = IndShockConsumerType(**init_lifecycle)
+        retired = agent.IncShkDstn[agent.T_cycle - 1]
+        self.assertEqual(retired.limit["infimum"][0], 1.0)
+        self.assertEqual(retired.limit["supremum"][0], 1.0)
+
+
 class IndexDistributionClassTests(unittest.TestCase):
     """
     Tests for distribution.py sampling distributions
@@ -563,7 +637,7 @@ class IndexDistributionClassTests(unittest.TestCase):
 
     def test_IndexDistribution_approx(self):
         cd = IndexDistribution(
-            Lognormal, {"mu": [0.01, 0.5, 0.99], "sigma": [0.05, 0.05, 0.05]}, seed=0
+            LogNormal, {"mu": [0.01, 0.5, 0.99], "sigma": [0.05, 0.05, 0.05]}, seed=0
         )
 
         approx = cd.discretize(10)
@@ -573,7 +647,7 @@ class IndexDistributionClassTests(unittest.TestCase):
         self.assertAlmostEqual(draw[1], 2.70826, places=HARK_PRECISION)
 
     def test_IndexDistribution_seeds(self):
-        cd = IndexDistribution(Lognormal, {"mu": [1, 1], "sigma": [1, 1]})
+        cd = IndexDistribution(LogNormal, {"mu": [1, 1], "sigma": [1, 1]})
 
         draw_0 = cd[0].draw(1).tolist()
         draw_1 = cd[1].draw(1).tolist()
@@ -949,8 +1023,8 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         self.assertAlmostEqual(exp[3], si_b**2)
 
     def test_self_expected_value(self):
-        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
-        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        PermShkDstn = LogNormalMeanOne().discretize(200, method="equiprobable")
+        TranShkDstn = LogNormalMeanOne().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(
             PermShkDstn,
             TranShkDstn,
@@ -982,8 +1056,8 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
     def test_labels_parameter(self):
         """Test that labels=True uses dict indexing and labels=False uses integer indexing."""
-        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
-        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        PermShkDstn = LogNormalMeanOne().discretize(200, method="equiprobable")
+        TranShkDstn = LogNormalMeanOne().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
         IncShkDstn = DiscreteDistributionLabeled.from_unlabeled(
             IncShkDstn,
@@ -1396,7 +1470,7 @@ class test_shuffle_iid_fallback_warns(unittest.TestCase):
             mrkv.draw(state, shuffle=True)
 
 
-class TruncatedLognormalTests(unittest.TestCase):
+class LogNormalTruncatedTests(unittest.TestCase):
     """
     The truncated lognormal: closed forms, the mean-one variant, variance
     matching, and an equiprobable discretization whose bounds are the same at
@@ -1408,14 +1482,14 @@ class TruncatedLognormalTests(unittest.TestCase):
     perm_sd = 0.03162277660168379
 
     def test_reference_numbers_at_given_sigma(self):
-        tran = MeanOneTruncatedLogNormal(self.tran_sd, bot=-2.0, top=2.0)
+        tran = LogNormalTruncatedMeanOne(self.tran_sd, bot=-2.0, top=2.0)
         self.assertAlmostEqual(tran.mu, -0.0507940676, places=10)
         np.testing.assert_allclose(tran.infimum, [0.459586], atol=5e-7)
         np.testing.assert_allclose(tran.supremum, [1.965687], atol=5e-7)
         atoms = tran.discretize(5).atoms[0]
         ref = [0.609257, 0.792542, 0.951686, 1.143653, 1.502862]
         np.testing.assert_allclose(atoms, ref, atol=5e-7)
-        perm = MeanOneTruncatedLogNormal(self.perm_sd, bot=-2.0, top=2.0)
+        perm = LogNormalTruncatedMeanOne(self.perm_sd, bot=-2.0, top=2.0)
         self.assertAlmostEqual(perm.mu, -0.000386854826, places=12)
         np.testing.assert_allclose(perm.infimum, [0.938350], atol=5e-7)
         np.testing.assert_allclose(perm.supremum, [1.064876], atol=5e-7)
@@ -1431,7 +1505,7 @@ class TruncatedLognormalTests(unittest.TestCase):
         }
         for b, (v, sigma, mu, support) in ref.items():
             self.assertAlmostEqual(truncated_normal_variance(-b, b), v, places=10)
-            tran = MeanOneTruncatedLogNormal.from_sd_log(self.tran_sd, -b, b)
+            tran = LogNormalTruncatedMeanOne.from_sd_log(self.tran_sd, -b, b)
             self.assertAlmostEqual(tran.sigma, sigma, places=12)
             self.assertAlmostEqual(tran.mu, mu, places=10)
             np.testing.assert_allclose(
@@ -1447,7 +1521,7 @@ class TruncatedLognormalTests(unittest.TestCase):
     def test_closed_forms(self):
         from scipy import integrate
 
-        dstn = MeanOneTruncatedLogNormal(self.tran_sd, bot=-2.0, top=2.0)
+        dstn = LogNormalTruncatedMeanOne(self.tran_sd, bot=-2.0, top=2.0)
         lo, hi = dstn.infimum[0], dstn.supremum[0]
         self.assertAlmostEqual(integrate.quad(dstn.pdf, lo, hi)[0], 1.0, places=10)
         q = np.linspace(0.01, 0.99, 25)
@@ -1458,12 +1532,12 @@ class TruncatedLognormalTests(unittest.TestCase):
             self.assertAlmostEqual(float(dstn.moment(k)), quad, places=10)
             part = integrate.quad(lambda x: x**k * dstn.pdf(x), 0.8, 1.2)[0]
             self.assertAlmostEqual(float(dstn.partial_moment(k, 0.8, 1.2)), part, 10)
-        draws = MeanOneTruncatedLogNormal(0.2, seed=3).draw(400000)
-        self.assertTrue(np.all(draws >= MeanOneTruncatedLogNormal(0.2).infimum[0]))
+        draws = LogNormalTruncatedMeanOne(0.2, seed=3).draw(400000)
+        self.assertTrue(np.all(draws >= LogNormalTruncatedMeanOne(0.2).infimum[0]))
         self.assertAlmostEqual(np.mean(draws), 1.0, places=2)
 
     def test_same_bounds_for_every_discretization(self):
-        dstn = MeanOneTruncatedLogNormal(self.tran_sd, bot=-2.0, top=2.0)
+        dstn = LogNormalTruncatedMeanOne(self.tran_sd, bot=-2.0, top=2.0)
         for N in [5, 7, 40, 200]:
             approx = dstn.discretize(N)
             self.assertAlmostEqual(approx.atoms[0] @ approx.pmv, 1.0, places=14)
@@ -1474,24 +1548,24 @@ class TruncatedLognormalTests(unittest.TestCase):
 
     def test_untruncated_is_lognormal(self):
         for sigma in [0.1, 0.3633, 1.0]:
-            trunc = MeanOneTruncatedLogNormal(sigma, bot=None, top=None)
+            trunc = LogNormalTruncatedMeanOne(sigma, bot=None, top=None)
             np.testing.assert_array_equal(trunc.infimum, [0.0])
             np.testing.assert_array_equal(trunc.supremum, [np.inf])
             np.testing.assert_allclose(
                 trunc.discretize(7).atoms,
-                MeanOneLogNormal(sigma).discretize(7, tail_N=0).atoms,
+                LogNormalMeanOne(sigma).discretize(7, tail_N=0).atoms,
                 rtol=1e-14,
             )
 
     def test_defaults_and_degenerate(self):
-        dstn = TruncatedLogNormal(mu=0.1, sigma=0.2)
+        dstn = LogNormalTruncated(mu=0.1, sigma=0.2)
         self.assertEqual((dstn.bot, dstn.top), (-3.0, 3.0))
         np.testing.assert_allclose(dstn.infimum, [np.exp(0.1 - 0.6)])
-        for point in [MeanOneTruncatedLogNormal(0.0), TruncatedLognormal(0.0, 0.0)]:
+        for point in [LogNormalTruncatedMeanOne(0.0), LogNormalTruncated(0.0, 0.0)]:
             self.assertIsInstance(point, DiscreteDistribution)
             np.testing.assert_array_equal(point.limit["infimum"], [1.0])
             np.testing.assert_array_equal(point.limit["supremum"], [1.0])
         with self.assertRaises(ValueError):
-            TruncatedLognormal(sigma=0.1, bot=1.0, top=1.0)
+            LogNormalTruncated(sigma=0.1, bot=1.0, top=1.0)
         with self.assertRaises(ValueError):
-            TruncatedLognormal(sigma=-0.1)
+            LogNormalTruncated(sigma=-0.1)

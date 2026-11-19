@@ -12,8 +12,10 @@ from HARK.distributions import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
-    MeanOneLogNormal,
-    Lognormal,
+    LogNormalMeanOne,
+    LogNormalPooledTailsMeanOne,
+    LogNormalTaperedMeanOne,
+    LogNormal,
     Uniform,
     make_tauchen_ar1,
 )
@@ -165,9 +167,104 @@ class BinaryIncShkDstn(DiscreteDistribution):
         super().__init__(pmv=probs, atoms=vals, seed=seed)
 
 
+# The laws a bounded income shock can follow, by how its tails are treated
+_SHOCK_TAILS = {
+    "tapered": LogNormalTaperedMeanOne,
+    "pooled": LogNormalPooledTailsMeanOne,
+}
+
+
+# The default bounds of an income shock's log, in standard deviations of the
+# underlying normal, by how its tails are treated: the tapered law is zero at
+# +-3, its tapers starting at +-2; the pooled law pools each tail beyond +-2 at
+# its mean. A bound left None takes its default; an infinite one is no bound.
+SHOCK_BOUND_DEFAULT = {"tapered": 3.0, "pooled": 2.0}
+
+
+def _shock_bounds(inf, sup, tails):
+    """
+    The bounds of an income shock's log, in standard deviations, for the
+    treatment of its tails: a bound left None takes SHOCK_BOUND_DEFAULT's value
+    for tails, below and above, and an infinite bound is no bound (None here).
+    """
+    bound = SHOCK_BOUND_DEFAULT[tails]
+    inf = -bound if inf is None else float(inf)
+    sup = bound if sup is None else float(sup)
+    return (None if np.isneginf(inf) else inf), (None if np.isposinf(sup) else sup)
+
+
+def _check_tails(tails):
+    """Refuse a treatment of the tails other than those in _SHOCK_TAILS."""
+    if tails not in _SHOCK_TAILS:
+        raise ValueError(
+            "The tails of a bounded income shock must be one of "
+            + ", ".join(repr(name) for name in _SHOCK_TAILS)
+            + ", not "
+            + repr(tails)
+            + "."
+        )
+
+
+def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="tapered"):
+    """
+    The law of a mean-one lognormal shock whose log has standard deviation
+    sigma, and its equiprobable discretization with n_approx atoms.
+
+    With bot or top given, in standard deviations of the underlying normal
+    (None leaves the lognormal's tail on that side), the tails are treated at
+    those bounds as tails says:
+
+    - "tapered", the default: each tail is tapered to zero at its bound, which
+      is the law's infimum or supremum (LogNormalTaperedMeanOne.from_sd_log);
+    - "pooled": each tail beyond its bound is pooled at its mean, a point with
+      the tail's probability, which is the law's infimum or supremum
+      (LogNormalPooledTailsMeanOne.from_sd_log). Each point is an atom of the
+      discretization, beside the n_approx atoms between the bounds, so the
+      lowest value has positive probability whatever n_approx is.
+
+    Either way the mean is one and sigma stays the log's standard deviation, and
+    the discretization records the law's own bounds as its infimum and
+    supremum. Without bounds, or with sigma = 0, the law is LogNormalMeanOne.
+
+    Parameters
+    ----------
+    sigma : float
+        Standard deviation of the log-shock.
+    n_approx : int
+        Number of points to use in the discrete approximation.
+    bot : float or None, optional
+        Lower bound of the log-shock, in standard deviations. The default is None.
+    top : float or None, optional
+        Upper bound of the log-shock, in standard deviations. The default is None.
+    tails : str, optional
+        How the tails are treated at the bounds: "tapered" (the default) or
+        "pooled".
+
+    Returns
+    -------
+    law : Distribution
+        The law of the shock.
+    approx : DiscreteDistribution
+        Its equiprobable discretization.
+    """
+    _check_tails(tails)
+    if (bot is None and top is None) or sigma == 0.0:
+        law = LogNormalMeanOne(sigma)
+        approx = law.discretize(
+            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
+        )
+        return law, approx
+    law = _SHOCK_TAILS[tails].from_sd_log(sigma, bot=bot, top=top)
+    approx = law.discretize(n_approx, method="equiprobable")
+    approx.limit["infimum"] = law.infimum
+    approx.limit["supremum"] = law.supremum
+    return law, approx
+
+
 class LognormPermIncShk(DiscreteDistribution):
     """
     A one-period distribution of a multiplicative lognormal permanent income shock.
+
     Parameters
     ----------
     sigma : float
@@ -178,6 +275,18 @@ class LognormPermIncShk(DiscreteDistribution):
         Whether to use Harmenberg's permanent-income-neutral measure. The default is False.
     seed : int, optional
         Random seed. The default is 0.
+    bot : float or None, optional
+        Lower bound of the log-shock, in standard deviations of the underlying
+        normal; None, the default, is no bound. With a bound, the lognormal's
+        tail on that side is treated as tails says, the mean stays one, and
+        sigma stays the log's standard deviation.
+    top : float or None, optional
+        Upper bound of the log-shock, as bot. The default is None.
+    tails : str, optional
+        How the tails are treated at the bounds: "tapered" (the default), to
+        zero at each bound (LogNormalTaperedMeanOne), or "pooled", each tail
+        beyond its bound at its mean (LogNormalPooledTailsMeanOne), which adds
+        an atom at each pooled point.
 
     Returns
     -------
@@ -186,11 +295,19 @@ class LognormPermIncShk(DiscreteDistribution):
 
     """
 
-    def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
+    def __init__(
+        self,
+        sigma,
+        n_approx,
+        neutral_measure=False,
+        seed=0,
+        bot=None,
+        top=None,
+        tails="tapered",
+    ):
         # Construct an auxiliary discretized normal
-        lognormal_dstn = MeanOneLogNormal(sigma)
-        logn_approx = lognormal_dstn.discretize(
-            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
+        lognormal_dstn, logn_approx = _discretize_mean_one_shock(
+            sigma, n_approx, bot, top, tails
         )
 
         limit = {
@@ -228,6 +345,17 @@ class MixtureTranIncShk(DiscreteDistribution):
         Number of points to use in the discrete approximation.
     seed : int, optional
         Random seed. The default is 0.
+    bot : float or None, optional
+        Lower bound of the lognormal part's log, in standard deviations of the
+        underlying normal; None, the default, is no bound. With a bound, the
+        lognormal's tail on that side is treated as tails says, keeping its
+        mean at one before the unemployment shock is added, and sigma stays the
+        log's standard deviation.
+    top : float or None, optional
+        Upper bound of the lognormal part's log, as bot. The default is None.
+    tails : str, optional
+        How the lognormal part's tails are treated at the bounds: "tapered"
+        (the default) or "pooled", as in LognormPermIncShk.
 
     Returns
     -------
@@ -236,11 +364,18 @@ class MixtureTranIncShk(DiscreteDistribution):
 
     """
 
-    def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-        dstn_orig = MeanOneLogNormal(sigma)
-        dstn_approx = dstn_orig.discretize(
-            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
-        )
+    def __init__(
+        self,
+        sigma,
+        UnempPrb,
+        IncUnemp,
+        n_approx,
+        seed=0,
+        bot=None,
+        top=None,
+        tails="tapered",
+    ):
+        dstn_approx = _discretize_mean_one_shock(sigma, n_approx, bot, top, tails)[1]
 
         if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
@@ -296,7 +431,7 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         tax_rate,
         seed=0,
     ):
-        dstn_approx = MeanOneLogNormal(sigma).discretize(
+        dstn_approx = LogNormalMeanOne(sigma).discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
 
@@ -304,9 +439,11 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
             dstn_approx = add_discrete_outcome_constant_mean(
                 dstn_approx, p=UnempPrb, x=IncUnemp
             )
-        # Rescale the transitory shock values to account for new features
+        # Rescale the transitory shock values, and their bounds, to account for new features
         TranShkMean_temp = (1.0 - tax_rate) * labor * wage
         dstn_approx.atoms *= TranShkMean_temp
+        for key in ("infimum", "supremum"):
+            dstn_approx.limit[key] = dstn_approx.limit[key] * TranShkMean_temp
         super().__init__(
             pmv=dstn_approx.pmv,
             atoms=dstn_approx.atoms,
@@ -343,6 +480,23 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
         Whether to use Hamenberg's permanent-income-neutral measure. The default is False.
     seed : int, optional
         Random seed. The default is 0.
+    PermShk_inf : float or None, optional
+        Lower bound of the log permanent shock, in standard deviations of the
+        underlying normal; None, the default, is no bound. See LognormPermIncShk.
+    PermShk_sup : float or None, optional
+        Upper bound of the log permanent shock, as PermShk_inf.
+    TranShk_inf : float or None, optional
+        Lower bound of the log transitory shock's lognormal part, in standard
+        deviations of the underlying normal; None, the default, is no bound. See
+        MixtureTranIncShk.
+    TranShk_sup : float or None, optional
+        Upper bound of the log transitory shock's lognormal part, as TranShk_inf.
+    PermShk_tails : str, optional
+        How the permanent shock's tails are treated at its bounds: "tapered"
+        (the default) or "pooled". See LognormPermIncShk.
+    TranShk_tails : str, optional
+        How the tails of the transitory shock's lognormal part are treated at
+        its bounds, as PermShk_tails.
 
     Returns
     -------
@@ -361,15 +515,29 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
         IncUnemp,
         neutral_measure=False,
         seed=0,
+        PermShk_inf=None,
+        PermShk_sup=None,
+        TranShk_inf=None,
+        TranShk_sup=None,
+        PermShk_tails="tapered",
+        TranShk_tails="tapered",
     ):
         perm_dstn = LognormPermIncShk(
-            sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
+            sigma=sigma_Perm,
+            n_approx=n_approx_Perm,
+            neutral_measure=neutral_measure,
+            bot=PermShk_inf,
+            top=PermShk_sup,
+            tails=PermShk_tails,
         )
         tran_dstn = MixtureTranIncShk(
             sigma=sigma_Tran,
             UnempPrb=UnempPrb,
             IncUnemp=IncUnemp,
             n_approx=n_approx_Tran,
+            bot=TranShk_inf,
+            top=TranShk_sup,
+            tails=TranShk_tails,
         )
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
@@ -514,7 +682,7 @@ def construct_lognormal_wage_dstn(
         W_mu = np.log(WageRteMean[t]) - 0.5 * W_sig**2
         B = IncUnemp if isinstance(IncUnemp, float) else IncUnemp[t]
         U = UnempPrb if isinstance(UnempPrb, float) else UnempPrb[t]
-        temp_dstn = Lognormal(mu=W_mu, sigma=W_sig, seed=RNG.integers(0, 2**31 - 1))
+        temp_dstn = LogNormal(mu=W_mu, sigma=W_sig, seed=RNG.integers(0, 2**31 - 1))
         temp_dstn_alt = add_discrete_outcome(temp_dstn.discretize(N), B, U)
         WageRteDstn.append(temp_dstn_alt)
     return WageRteDstn
@@ -533,6 +701,12 @@ def construct_lognormal_income_process_unemployment(
     IncUnempRet,
     RNG,
     neutral_measure=False,
+    PermShk_inf=None,
+    PermShk_sup=None,
+    TranShk_inf=None,
+    TranShk_sup=None,
+    PermShk_tails="tapered",
+    TranShk_tails="tapered",
 ):
     r"""
     Generates a list of discrete approximations to the income process for each
@@ -543,6 +717,19 @@ def construct_lognormal_income_process_unemployment(
     probability UnempPrb while working; they are mean one with a point mass at
     IncUnempRet with probability UnempPrbRet.  Retirement occurs
     after t=T_retire periods of working.
+
+    The lognormals can be bounded in the log: PermShk_inf and PermShk_sup bound
+    the log of :math:`\psi`, and TranShk_inf and TranShk_sup the log of the
+    lognormal part of :math:`\theta`, in standard deviations of the underlying
+    normal. PermShk_tails and TranShk_tails say how each shock's tails are
+    treated at its bounds: "tapered", the default, tapers each tail to zero at
+    its bound, which is the shock's infimum or supremum; "pooled" pools each
+    tail beyond its bound at its mean, a point with the tail's probability that
+    is the shock's infimum or supremum and an atom of the discretization. Either
+    way a bounded shock keeps its mean at one, and PermShkStd[t] or
+    TranShkStd[t] stays the standard deviation of its log. None, the default, is
+    no bound on that side; with no bounds the income process is as described
+    below.
 
     .. math::
         \begin{align*}
@@ -600,6 +787,26 @@ def construct_lognormal_income_process_unemployment(
         Random number generator for this type.
     neutral_measure : bool
         Indicator for whether the permanent-income-neutral measure should be used.
+    PermShk_inf : float or None
+        Lower bound of the log permanent shock, in standard deviations of the
+        underlying normal. None, the default, takes the default bound for the
+        treatment of the tails (SHOCK_BOUND_DEFAULT: -3 for the tapered law,
+        whose density is zero there, -2 for the pooled); -np.inf is no bound.
+    PermShk_sup : float or None
+        Upper bound of the log permanent shock, as PermShk_inf (np.inf is no
+        bound).
+    TranShk_inf : float or None
+        Lower bound of the log of the transitory shock's lognormal part, as
+        PermShk_inf.
+    TranShk_sup : float or None
+        Upper bound of the log of the transitory shock's lognormal part, as
+        PermShk_sup.
+    PermShk_tails : str
+        How the permanent shock's tails are treated at its bounds: "tapered"
+        (the default) or "pooled".
+    TranShk_tails : str
+        How the tails of the transitory shock's lognormal part are treated at
+        its bounds: "tapered" (the default) or "pooled".
 
     Returns
     -------
@@ -607,21 +814,35 @@ def construct_lognormal_income_process_unemployment(
         A list with T_cycle elements, each of which is a
         discrete approximation to the income process in a period.
     """
+    conditional = _build_lifecycle_conditional(
+        T_cycle,
+        T_retire,
+        UnempPrb,
+        IncUnemp,
+        UnempPrbRet,
+        IncUnempRet,
+        PermShkStd,
+        TranShkStd,
+        PermShkCount,
+        TranShkCount,
+        neutral_measure,
+    )
+    _check_tails(PermShk_tails)
+    _check_tails(TranShk_tails)
+    PermShk_inf, PermShk_sup = _shock_bounds(PermShk_inf, PermShk_sup, PermShk_tails)
+    TranShk_inf, TranShk_sup = _shock_bounds(TranShk_inf, TranShk_sup, TranShk_tails)
+    bounds = {
+        "PermShk_inf": PermShk_inf,
+        "PermShk_sup": PermShk_sup,
+        "TranShk_inf": TranShk_inf,
+        "TranShk_sup": TranShk_sup,
+    }
+    if any(bound is not None for bound in bounds.values()):
+        bounds.update({"PermShk_tails": PermShk_tails, "TranShk_tails": TranShk_tails})
+        conditional.update({key: [b] * T_cycle for key, b in bounds.items()})
     IncShkDstn = IndexDistribution(
         engine=BufferStockIncShkDstn,
-        conditional=_build_lifecycle_conditional(
-            T_cycle,
-            T_retire,
-            UnempPrb,
-            IncUnemp,
-            UnempPrbRet,
-            IncUnempRet,
-            PermShkStd,
-            TranShkStd,
-            PermShkCount,
-            TranShkCount,
-            neutral_measure,
-        ),
+        conditional=conditional,
         RNG=RNG,
         seed=RNG.integers(0, 2**31 - 1),
     )
@@ -741,6 +962,12 @@ def construct_markov_lognormal_income_process_unemployment(
     IncUnempRet,
     RNG,
     neutral_measure=False,
+    PermShk_inf=None,
+    PermShk_sup=None,
+    TranShk_inf=None,
+    TranShk_sup=None,
+    PermShk_tails="tapered",
+    TranShk_tails="tapered",
 ):
     """
     Generates a nested list of discrete approximations to the income process for each
@@ -794,6 +1021,13 @@ def construct_markov_lognormal_income_process_unemployment(
         Random number generator for this type.
     neutral_measure : bool
         Indicator for whether the permanent-income-neutral measure should be used.
+    PermShk_inf, PermShk_sup, TranShk_inf, TranShk_sup : float or None
+        The bounds of each shock's log, in standard deviations, in every state, as
+        in construct_lognormal_income_process_unemployment: None takes the default
+        for the tails (three standard deviations tapered, two pooled), and an
+        infinite bound is no bound.
+    PermShk_tails, TranShk_tails : str
+        How each shock's tails are treated at its bounds: "tapered" or "pooled".
 
     Returns
     -------
@@ -804,6 +1038,19 @@ def construct_markov_lognormal_income_process_unemployment(
     normal_length, retire_length = _split_lifecycle_lengths(T_cycle, T_retire)
 
     K = _validate_markov_state_dims(PermShkStd, TranShkStd, UnempPrb, IncUnemp)
+    _check_tails(PermShk_tails)
+    _check_tails(TranShk_tails)
+    PermShk_inf, PermShk_sup = _shock_bounds(PermShk_inf, PermShk_sup, PermShk_tails)
+    TranShk_inf, TranShk_sup = _shock_bounds(TranShk_inf, TranShk_sup, TranShk_tails)
+    bounds = {
+        "PermShk_inf": PermShk_inf,
+        "PermShk_sup": PermShk_sup,
+        "TranShk_inf": TranShk_inf,
+        "TranShk_sup": TranShk_sup,
+    }
+    bounded = any(bound is not None for bound in bounds.values())
+    if bounded:
+        bounds.update({"PermShk_tails": PermShk_tails, "TranShk_tails": TranShk_tails})
     _validate_markov_retirement(T_retire, K, UnempPrbRet, IncUnempRet)
     D = _validate_markov_unemployment_ndim(
         UnempPrb, IncUnemp, T_retire, UnempPrbRet, IncUnempRet
@@ -831,17 +1078,23 @@ def construct_markov_lognormal_income_process_unemployment(
         PermShkStd_k = PermShkStd[:, k].tolist()
         TranShkStd_k = TranShkStd[:, k].tolist()
 
+        conditional = {
+            "sigma_Perm": PermShkStd_k,
+            "sigma_Tran": TranShkStd_k,
+            "n_approx_Perm": PermShkCount_list,
+            "n_approx_Tran": TranShkCount_list,
+            "neutral_measure": neutral_measure_list,
+            "UnempPrb": UnempPrb_list,
+            "IncUnemp": IncUnemp_list,
+        }
+        if bounded:
+            # the same bounds in every period, as IndShock's constructor sets them
+            conditional.update(
+                {key: [b] * len(PermShkStd_k) for key, b in bounds.items()}
+            )
         IncShkDstn_k = IndexDistribution(
             engine=BufferStockIncShkDstn,
-            conditional={
-                "sigma_Perm": PermShkStd_k,
-                "sigma_Tran": TranShkStd_k,
-                "n_approx_Perm": PermShkCount_list,
-                "n_approx_Tran": TranShkCount_list,
-                "neutral_measure": neutral_measure_list,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-            },
+            conditional=conditional,
             RNG=RNG,
             seed=RNG.integers(0, 2**31 - 1),
         )
@@ -1560,7 +1813,7 @@ def make_pLvlGrid_by_simulation(
 
     # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
     if cycles == 1:
-        pLvlNow = Lognormal(pLogInitMean, sigma=pLogInitStd, seed=31382).draw(Agent_N)
+        pLvlNow = LogNormal(pLogInitMean, sigma=pLogInitStd, seed=31382).draw(Agent_N)
         pLvlGrid = []  # empty list of time-varying persistent income grids
         # Calculate distribution of persistent income in each period of lifecycle
         for t in range(T_cycle):
@@ -1574,7 +1827,7 @@ def make_pLvlGrid_by_simulation(
         T_long = (
             1000  # Number of periods to simulate to get to "stationary" distribution
         )
-        pLvlNow = Lognormal(mu=pLogInitMean, sigma=pLogInitStd, seed=31382).draw(
+        pLvlNow = LogNormal(mu=pLogInitMean, sigma=pLogInitStd, seed=31382).draw(
             Agent_N
         )
         t_cycle = np.zeros(Agent_N, dtype=int)
@@ -1583,7 +1836,7 @@ def make_pLvlGrid_by_simulation(
             LivPrb = LivPrbAll[t_cycle]
             draws = Uniform(seed=t).draw(Agent_N)
             who_dies = draws > LivPrb
-            pLvlNow[who_dies] = Lognormal(
+            pLvlNow[who_dies] = LogNormal(
                 pLogInitMean, pLogInitStd, seed=t + 92615
             ).draw(np.sum(who_dies))
             t_cycle[who_dies] = 0

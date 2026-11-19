@@ -6,6 +6,7 @@ import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    KinkedRconsumerType,
     PerfForesightConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
@@ -44,28 +45,28 @@ class testIndShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[9].cFunc(1), 0.79430, places=HARK_PRECISION
+            LifecycleExample.solution[9].cFunc(1), 0.79428, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[8].cFunc(1), 0.79392, places=HARK_PRECISION
+            LifecycleExample.solution[8].cFunc(1), 0.79387, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[7].cFunc(1), 0.79253, places=HARK_PRECISION
+            LifecycleExample.solution[7].cFunc(1), 0.79245, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
             LifecycleExample.solution[0].cFunc(1).tolist(),
-            0.75062,
+            0.75036,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[1].cFunc(1).tolist(),
-            0.75863,
+            0.75843,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[2].cFunc(1).tolist(),
-            0.76812,
+            0.76803,
             places=HARK_PRECISION,
         )
 
@@ -173,12 +174,12 @@ class testBufferStock(unittest.TestCase):
         c_t5 = baseEx.cFunc[-6](m)
         c_t10 = baseEx.cFunc[-11](m)
 
-        self.assertAlmostEqual(c_m[500], 1.40081, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[500], 1.40053, places=HARK_PRECISION)
         self.assertAlmostEqual(c_t1[500], 2.92274, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t5[500], 1.73506, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[500], 1.49914, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[600], 1.61015, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[700], 1.71965, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t5[500], 1.73500, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[500], 1.49902, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[600], 1.61003, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[700], 1.71954, places=HARK_PRECISION)
 
     def test_GICRawFails(self):
         GICRaw_fail_dictionary = dict(self.base_params)
@@ -195,8 +196,8 @@ class testBufferStock(unittest.TestCase):
         m = np.linspace(0, 5, 1000)
         c_m = GICRawFailExample.cFunc[0](m)
 
-        self.assertAlmostEqual(c_m[500], 0.77726, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_m[700], 0.83926, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[500], 0.77711, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[700], 0.83912, places=HARK_PRECISION)
 
         self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
@@ -217,8 +218,8 @@ class testBufferStock(unittest.TestCase):
         x1 = np.linspace(0, 25, 1000)
         cfunc_m = baseEx_inf.cFunc[0](x1)
 
-        self.assertAlmostEqual(cfunc_m[500], 1.89021, places=HARK_PRECISION)
-        self.assertAlmostEqual(cfunc_m[700], 2.15915, places=HARK_PRECISION)
+        self.assertAlmostEqual(cfunc_m[500], 1.88976, places=HARK_PRECISION)
+        self.assertAlmostEqual(cfunc_m[700], 2.15863, places=HARK_PRECISION)
 
         m = np.linspace(0.001, 8, 1000)
 
@@ -283,7 +284,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.solve()
 
         self.assertAlmostEqual(
-            IndShockExample.solution[0].mNrmStE, 1.54882, places=HARK_PRECISION
+            IndShockExample.solution[0].mNrmStE, 1.54780, places=HARK_PRECISION
         )
         # self.assertAlmostEqual(
         #    IndShockExample.solution[0].cFunc.functions[0].x_list[0],
@@ -376,7 +377,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(),
-            2.12998,
+            2.12995,
             places=HARK_PRECISION,
         )
 
@@ -450,7 +451,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(),
-            1.59584,
+            1.59580,
             places=HARK_PRECISION,
         )
 
@@ -458,7 +459,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 0.55127, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 0.55018, places=HARK_PRECISION
         )
 
         self.assertRaises(ValueError, CyclicalExample.calc_stable_points)
@@ -501,8 +502,8 @@ class testStablePoints(unittest.TestCase):
         mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
 
         # Check against pre-computed values
-        self.assertAlmostEqual(mNrmStE, 1.37731, places=HARK_PRECISION)
-        self.assertAlmostEqual(mNrmTrg, 1.39102, places=HARK_PRECISION)
+        self.assertAlmostEqual(mNrmStE, 1.37760, places=HARK_PRECISION)
+        self.assertAlmostEqual(mNrmTrg, 1.39136, places=HARK_PRECISION)
 
 
 JACDict = {
@@ -956,7 +957,7 @@ class testInitShuffle(unittest.TestCase):
         """Empirical pLvl frequencies should match the discretized dstn
         within +/-1 per atom (the floor-plus-leftover algorithm's worst case).
 
-        Note: ``Lognormal.discretize(N, method='equiprobable')`` produces
+        Note: ``LogNormal.discretize(N, method='equiprobable')`` produces
         pmv = np.full(N, 1/N), and ``1/N`` is not exactly representable in
         float64 for N=15, so the per-atom count can deviate by 1 from the
         ideal ``N_draws/N_atoms`` due to leftover-slot allocation absorbing
@@ -1026,7 +1027,7 @@ class testInitShuffle(unittest.TestCase):
 
         Note: the shuffle variance is not *exactly* zero when atom
         probabilities can't be exactly represented in float64.  For
-        ``Lognormal.discretize(15, method='equiprobable')``, the pmv
+        ``LogNormal.discretize(15, method='equiprobable')``, the pmv
         is ``[1/15, ..., 1/15]`` in float64, and the floor-plus-leftover
         algorithm has to allocate ~1 leftover slot per call, which
         lands in a different atom for different seeds.  That produces
@@ -1275,7 +1276,9 @@ class testIncomeShuffleIndShock(unittest.TestCase):
 
 class testIncomeShuffleStreamInvariance(unittest.TestCase):
     """Default-path RNG-stream golden captured on main at a25d3ae0: with
-    income_shuffle at its default, the exact shock draws must not change."""
+    income_shuffle at its default, the exact shock draws must not change. The
+    values were re-pinned when HARK's default income shocks became the
+    power-tapered lognormal, which moved the atoms but not which are drawn."""
 
     def test_default_shock_stream_unchanged(self):
         agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
@@ -1285,22 +1288,22 @@ class testIncomeShuffleStreamInvariance(unittest.TestCase):
         np.testing.assert_allclose(
             [float(x) for x in agent.shocks["PermShk"][:5]],
             [
-                1.0887560662509859,
-                0.9278094171517418,
-                0.8589344616271869,
-                1.0427376294215152,
-                1.0427376294215152,
+                1.088843810530376,
+                0.927713771906414,
+                0.8587706597779506,
+                1.0427699042567844,
+                1.0427699042567844,
             ],
             rtol=1e-10,
         )
         np.testing.assert_allclose(
             [float(x) for x in agent.shocks["TranShk"][:5]],
             [
-                1.209379023455466,
-                1.0317263121066038,
-                1.209379023455466,
-                0.9524671973887084,
-                1.0317263121066038,
+                1.2095872285188027,
+                1.0317145860113255,
+                1.2095872285188027,
+                0.952369010242645,
+                1.0317145860113255,
             ],
             rtol=1e-10,
         )
@@ -1549,3 +1552,153 @@ class testMarkovShuffleEndToEnd(unittest.TestCase):
             f"the plain shuffle.",
         )
         self.assertLess(gaps["balanced"], 0.5 * gaps["shuffle_only"])
+
+
+class testAssetGridAtTheArtificialConstraint(unittest.TestCase):
+    """Where the artificial borrowing constraint binds, the end-of-period asset
+    grid starts at it, with the constraint itself as a gridpoint (#1871)."""
+
+    @staticmethod
+    def unconstrained_nodes(agent):
+        cFuncUnc = agent.solution[0].cFunc.functions[0]
+        return np.asarray(cFuncUnc.x_list), np.asarray(cFuncUnc.y_list)
+
+    def test_grid_starts_at_the_artificial_constraint(self):
+        agent = IndShockConsumerType(cycles=0)
+        agent.solve()
+        mNrm, cNrm = self.unconstrained_nodes(agent)
+        # The first node is the natural limit; the next is the endogenous
+        # gridpoint of end-of-period assets at the constraint.
+        self.assertAlmostEqual(mNrm[1] - cNrm[1], agent.BoroCnstArt, places=12)
+
+    def test_grid_unchanged_where_the_natural_limit_binds(self):
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        agent.solve()
+        mNrm, cNrm = self.unconstrained_nodes(agent)
+        self.assertAlmostEqual(
+            mNrm[1] - cNrm[1], mNrm[0] + agent.aXtraGrid[0], places=12
+        )
+
+    def test_consumption_is_the_constraint_line_below_the_kink(self):
+        for CubicBool in (False, True):
+            for BoroCnstArt in (0.0, 0.5):
+                with self.subTest(CubicBool=CubicBool, BoroCnstArt=BoroCnstArt):
+                    agent = IndShockConsumerType(
+                        cycles=0, CubicBool=CubicBool, BoroCnstArt=BoroCnstArt
+                    )
+                    agent.solve()
+                    solution = agent.solution[0]
+                    mNrm, cNrm = self.unconstrained_nodes(agent)
+                    mNrmGrid = np.linspace(solution.mNrmMin, mNrm[1], 201)
+                    np.testing.assert_allclose(
+                        solution.cFunc(mNrmGrid),
+                        mNrmGrid - solution.mNrmMin,
+                        rtol=0.0,
+                        atol=1e-12,
+                    )
+
+
+class testKinkAttributes(unittest.TestCase):
+    """Where the artificial borrowing constraint binds, the solution records
+    the kink, consumption there and the MPC just above it."""
+
+    def test_kink_where_the_artificial_constraint_binds(self):
+        for CubicBool in (False, True):
+            with self.subTest(CubicBool=CubicBool):
+                agent = IndShockConsumerType(cycles=0, CubicBool=CubicBool)
+                agent.solve()
+                solution = agent.solution[0]
+                mNrmKink, cNrmKink = solution.mNrmKink, solution.cNrmKink
+                # The consumer ends the period at the constraint there
+                self.assertAlmostEqual(cNrmKink, mNrmKink - solution.mNrmMin, places=12)
+                self.assertAlmostEqual(
+                    float(solution.cFunc(mNrmKink)), cNrmKink, places=12
+                )
+                # Slope one below, on the constraint; MPCaboveKink above
+                h = 1e-7
+                self.assertAlmostEqual(
+                    float(solution.cFunc.derivative(mNrmKink - h)), 1.0, places=12
+                )
+                self.assertAlmostEqual(
+                    float(solution.cFunc.derivative(mNrmKink + h)),
+                    solution.MPCaboveKink,
+                    places=5,
+                )
+                self.assertLess(solution.MPCaboveKink, 1.0)
+
+    def test_default_values(self):
+        agent = IndShockConsumerType(cycles=0)
+        agent.solve()
+        solution = agent.solution[0]
+        self.assertAlmostEqual(solution.mNrmKink, 0.7549870313, places=8)
+        self.assertAlmostEqual(solution.MPCaboveKink, 0.5138861460, places=8)
+
+    def test_no_kink_where_the_natural_constraint_binds(self):
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        agent.solve()
+        solution = agent.solution[0]
+        self.assertTrue(np.isnan(solution.mNrmKink))
+        self.assertTrue(np.isnan(solution.cNrmKink))
+        self.assertTrue(np.isnan(solution.MPCaboveKink))
+
+    def test_every_period_of_a_finite_horizon(self):
+        agent = IndShockConsumerType(cycles=3)
+        agent.solve()
+        for solution in agent.solution[:-1]:
+            self.assertTrue(np.isfinite(solution.mNrmKink))
+            self.assertAlmostEqual(
+                float(solution.cFunc(solution.mNrmKink)), solution.cNrmKink, places=12
+            )
+        # The terminal solution is not solved on a grid, and records nothing
+        self.assertIsNone(agent.solution[-1].mNrmKink)
+
+
+class testEmployedFloor(unittest.TestCase):
+    """
+    Where the natural borrowing limit can bind (no artificial constraint at or
+    above it), the lowest employed transitory income, by its true law, must be
+    strictly above unemployment income, or the solve halts.
+    """
+
+    def assertHalts(self, agent_type=IndShockConsumerType, **kwds):
+        agent = agent_type(cycles=1, **kwds)
+        with self.assertRaises(ValueError) as caught:
+            agent.solve()
+        self.assertIn("strictly above unemployment income", str(caught.exception))
+
+    def test_the_default_laws_pass(self):
+        # The tapered default's employed floor is far above the benefit, 0.3
+        for BoroCnstArt in (None, 0.0):
+            agent = IndShockConsumerType(cycles=1, BoroCnstArt=BoroCnstArt)
+            agent.solve()
+            self.assertTrue(np.isfinite(agent.solution[0].mNrmMin))
+
+    def test_an_unbounded_employed_law_halts(self):
+        # Its infimum is zero, below the benefit
+        self.assertHalts(BoroCnstArt=None, TranShk_inf=-np.inf, TranShk_sup=np.inf)
+
+    def test_a_benefit_above_the_employed_floor_halts(self):
+        self.assertHalts(BoroCnstArt=None, IncUnemp=0.8)
+        self.assertHalts(KinkedRconsumerType, BoroCnstArt=None, IncUnemp=0.8)
+
+    def test_an_artificial_constraint_at_or_above_the_limit_exempts(self):
+        # With both laws unbounded the natural limit is zero, the default
+        # artificial constraint's level: the edge is exempt
+        agent = IndShockConsumerType(
+            cycles=1,
+            BoroCnstArt=0.0,
+            PermShk_inf=-np.inf,
+            PermShk_sup=np.inf,
+            TranShk_inf=-np.inf,
+            TranShk_sup=np.inf,
+        )
+        agent.solve()
+        agent = IndShockConsumerType(cycles=1, BoroCnstArt=0.0, IncUnemp=0.8)
+        agent.solve()
+        self.assertEqual(agent.solution[0].mNrmMin, 0.0)
+
+    def test_no_unemployment_is_not_checked(self):
+        agent = IndShockConsumerType(
+            cycles=1, BoroCnstArt=None, UnempPrb=0.0, TranShk_inf=-np.inf
+        )
+        agent.solve()

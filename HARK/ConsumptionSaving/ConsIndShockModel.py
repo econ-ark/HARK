@@ -32,8 +32,8 @@ from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
     income_wealth_dists_from_scf,
 )
 from HARK.distributions import (
-    Lognormal,
-    MeanOneLogNormal,
+    LogNormal,
+    LogNormalMeanOne,
     Uniform,
     add_discrete_outcome_constant_mean,
     cdf_invert,
@@ -158,6 +158,17 @@ class ConsumerSolution(MetricObject):
     MPCmax : float
         Supremum of the marginal propensity to consume this period.
         MPC --> MPCmax as m --> mNrmMin.
+    mNrmKink : float or None
+        Where an artificial borrowing constraint binds, the normalized market
+        resources at the kink of the consumption function, below which the
+        consumer ends the period at the constraint. NaN where the natural
+        borrowing constraint binds, and None where the solver does not record it.
+    cNrmKink : float or None
+        Normalized consumption at the kink, mNrmKink minus the constraint on
+        end-of-period assets; NaN or None as for mNrmKink.
+    MPCaboveKink : float or None
+        The marginal propensity to consume just above the kink. Below it, on the
+        constraint, the MPC is one. NaN or None as for mNrmKink.
 
     """
 
@@ -173,6 +184,9 @@ class ConsumerSolution(MetricObject):
         hNrm=None,
         MPCmin=None,
         MPCmax=None,
+        mNrmKink=None,
+        cNrmKink=None,
+        MPCaboveKink=None,
     ):
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
@@ -184,6 +198,9 @@ class ConsumerSolution(MetricObject):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
+        self.mNrmKink = mNrmKink
+        self.cNrmKink = cNrmKink
+        self.MPCaboveKink = MPCaboveKink
 
     def append_solution(self, new_solution):
         """
@@ -223,6 +240,46 @@ class ConsumerSolution(MetricObject):
             self.mNrmMin.append(new_solution.mNrmMin)
 
 
+def find_kink(mNrm, cNrm, MPC, BoroCnstNat, mNrmMin):
+    """
+    Find the kink of a consumption function solved on an end-of-period asset
+    grid that starts at a binding artificial borrowing constraint, with the
+    constraint itself as a gridpoint. The unconstrained function's nodes are
+    then the natural borrowing constraint, with zero consumption, followed by
+    the endogenous gridpoints, the first of which is the kink: there the
+    consumer ends the period with assets exactly at the constraint.
+
+    Parameters
+    ----------
+    mNrm : np.array
+        Market resources at the unconstrained consumption function's nodes,
+        starting with the natural borrowing constraint.
+    cNrm : np.array
+        Consumption at those nodes.
+    MPC : np.array or None
+        The marginal propensity to consume at those nodes, for the cubic rule;
+        None for the linear rule, whose MPC just above the kink is the slope of
+        the segment that starts there.
+    BoroCnstNat : float
+        The natural borrowing constraint on end-of-period assets.
+    mNrmMin : float
+        The constraint in force, the larger of the natural and the artificial.
+
+    Returns
+    -------
+    mNrmKink, cNrmKink, MPCaboveKink : float
+        Market resources and consumption at the kink, and the MPC just above it;
+        each NaN where the natural borrowing constraint binds, so there is no kink.
+    """
+    if not BoroCnstNat < mNrmMin:
+        return np.nan, np.nan, np.nan
+    if MPC is None:
+        MPCaboveKink = (cNrm[2] - cNrm[1]) / (mNrm[2] - mNrm[1])
+    else:
+        MPCaboveKink = MPC[1]
+    return float(mNrm[1]), float(cNrm[1]), float(MPCaboveKink)
+
+
 # =====================================================================
 # == Functions for initializing newborns in consumption-saving models =
 # =====================================================================
@@ -249,7 +306,7 @@ def make_lognormal_kNrm_init_dstn(kLogInitMean, kLogInitStd, kNrmInitCount, RNG)
     kNrmInitDstn : DiscreteDistribution
         Discretized distribution of initial capital holdings for newborns.
     """
-    dstn = Lognormal(
+    dstn = LogNormal(
         mu=kLogInitMean,
         sigma=kLogInitStd,
         seed=RNG.integers(0, 2**31 - 1),
@@ -279,7 +336,7 @@ def make_lognormal_pLvl_init_dstn(pLogInitMean, pLogInitStd, pLvlInitCount, RNG)
     pLvlInitDstn : DiscreteDistribution
         Discretized distribution of initial permanent income for newborns.
     """
-    dstn = Lognormal(
+    dstn = LogNormal(
         mu=pLogInitMean,
         sigma=pLogInitStd,
         seed=RNG.integers(0, 2**31 - 1),
@@ -637,6 +694,55 @@ def calc_boro_const_nat(
     return boro_cnst_nat
 
 
+def check_employed_floor(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
+    """
+    Halt where the natural borrowing limit can bind with an unemployment event
+    whose income is not strictly below every employed income: where the
+    transitory shock has an unemployment event and no artificial constraint is
+    at or above the natural limit from the shock laws' infima, the infimum of
+    the employed transitory shock, by its true law, must be strictly above
+    unemployment income. Then the employed branch never reaches the natural
+    limit, and the unemployment event is the lowest income.
+
+    The event and the employed law are read from the income distribution's
+    limit, as IndShock's income constructor records them
+    (add_discrete_outcome_constant_mean); a distribution that records no
+    unemployment event is not checked.
+
+    Args:
+        inc_shk_dstn (DiscreteDistribution): Distribution of shocks to income.
+        boro_const_art (float or None): Artificial borrowing constraint.
+        boro_const_nat_inf (float): Natural borrowing constraint from the
+            shock laws' infima.
+
+    Raises:
+        ValueError: if the rule is violated.
+    """
+    limit = getattr(inc_shk_dstn, "limit", None) or {}
+    dists = limit.get("dist")
+    if limit.get("method") != "combine_indep_dstns" or dists is None or len(dists) != 2:
+        return
+    tran = getattr(dists[1], "limit", None) or {}
+    if tran.get("method") != "add_discrete_outcome_constant_mean":
+        return
+    p, x = float(tran["p"]), float(tran["x"])
+    if p <= 0.0:
+        return
+    if boro_const_art is not None and boro_const_art >= boro_const_nat_inf:
+        return
+    employed = tran["dist"]
+    floor = float(np.ravel(employed.limit["infimum"])[0]) * (1.0 - p * x) / (1.0 - p)
+    if not floor > x:
+        raise ValueError(
+            "Where the natural borrowing limit can bind (no artificial constraint "
+            "at or above it), the lowest employed transitory income must be "
+            f"strictly above unemployment income: here it is {floor:.6g}, against "
+            f"unemployment income {x:.6g}. Bound the transitory shock's law below "
+            "(TranShk_inf), lower IncUnemp, or impose an artificial constraint at "
+            "or above the natural limit (BoroCnstArt)."
+        )
+
+
 def calc_m_nrm_min(boro_const_art, boro_const_nat):
     """Calculate the minimum normalized market resources this period.
 
@@ -804,6 +910,14 @@ def solve_one_period_ConsIndShock(
     BoroCnstNat = calc_boro_const_nat(
         solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac
     )
+    # Where the natural limit can bind, unemployment must be the lowest income
+    check_employed_floor(
+        IncShkDstn,
+        BoroCnstArt,
+        calc_boro_const_nat(
+            solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, use_infimum=True
+        ),
+    )
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
     mNrmMinNow = calc_m_nrm_min(BoroCnstArt, BoroCnstNat)
@@ -827,8 +941,22 @@ def solve_one_period_ConsIndShock(
         np.array([0.0, 1.0]),
     )
 
-    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
-    aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    # Construct the end-of-period assets grid. Where the artificial borrowing
+    # constraint binds (BoroCnstNat < mNrmMinNow), the grid starts at that
+    # constraint, with the constraint itself as its first point. Gridpoints
+    # below it would build the unconstrained consumption function where the
+    # lower envelope below always takes the constraint line instead, so the
+    # expectations computed there would be wasted. At the constraint itself the
+    # end-of-period marginal value of assets is finite, so the first-order
+    # condition gives consumption there directly, and that point's endogenous
+    # gridpoint is the kink where the constraint stops binding: a node of the
+    # solution, not the crossing of two interpolants. Where the natural
+    # borrowing constraint binds, the grid stays above it, as marginal value
+    # is infinite at the natural limit itself.
+    if BoroCnstNat < mNrmMinNow:
+        aNrmNow = mNrmMinNow + np.insert(np.asarray(aXtraGrid), 0, 0.0)
+    else:
+        aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
 
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
@@ -842,7 +970,13 @@ def solve_one_period_ConsIndShock(
     cNrmNow = uFunc.derinv(EndOfPrdvP, order=(1, 0))
     mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
 
-    # Limiting consumption is zero as m approaches mNrmMin
+    # The unconstrained consumption function starts at the natural borrowing
+    # constraint, where consumption is zero, whichever constraint binds. Where
+    # the artificial constraint binds, this is the one point below the grid:
+    # it keeps the interpolant defined down to mNrmMinNow, where the lower
+    # envelope takes the constraint line instead. The kink is a node of this
+    # function, which is smooth there, with a single slope (the unconstrained
+    # MPC), so no interpolation node has to carry the kink's two slopes.
     c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
     m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
 
@@ -876,8 +1010,25 @@ def solve_one_period_ConsIndShock(
             cFuncLimitSlope,
         )
 
-    # Combine the constrained and unconstrained functions into the true consumption function.
-    # LowerEnvelope should only be used when BoroCnstArt is True
+    # Where the artificial constraint binds, the kink is the endogenous gridpoint
+    # of end-of-period assets at the constraint; record it, with the MPC above it
+    mNrmKink, cNrmKink, MPCaboveKink = find_kink(
+        m_for_interpolation,
+        c_for_interpolation,
+        MPC_for_interpolation if CubicBool else None,
+        BoroCnstNat,
+        mNrmMinNow,
+    )
+
+    # Combine the constrained and unconstrained functions into the true
+    # consumption function. The artificial constraint is applied here, as the
+    # lower envelope of two smooth functions, rather than inside one
+    # interpolant: at the kink the consumption function's slope jumps from one,
+    # below it, to the unconstrained MPC above it, and a cubic Hermite node
+    # carries only one slope. The piecewise linear rule does not need the
+    # envelope, since a linear interpolant can carry the kink at a node, but it
+    # is built the same way. Where the grid starts at the constraint, the two
+    # functions meet exactly at the kink's node.
     cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
 
     # Make the marginal value function and the marginal marginal value function
@@ -945,6 +1096,9 @@ def solve_one_period_ConsIndShock(
         hNrm=hNrmNow,
         MPCmin=MPCminNow,
         MPCmax=MPCmaxNow,
+        mNrmKink=mNrmKink,
+        cNrmKink=cNrmKink,
+        MPCaboveKink=MPCaboveKink,
     )
     return solution_now
 
@@ -1055,6 +1209,14 @@ def solve_one_period_ConsKinkedR(
         PermGroFac,
         use_infimum=False,
     )
+    # Where the natural limit can bind, unemployment must be the lowest income
+    check_employed_floor(
+        IncShkDstn,
+        BoroCnstArt,
+        calc_boro_const_nat(
+            solution_next.mNrmMin, IncShkDstn, Rboro, PermGroFac, use_infimum=True
+        ),
+    )
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
     mNrmMinNow = calc_m_nrm_min(BoroCnstArt, BoroCnstNat)
@@ -1079,7 +1241,11 @@ def solve_one_period_ConsKinkedR(
         np.array([0.0, 1.0]),
     )
 
-    # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
+    # Construct the end-of-period assets grid from the constraint in force,
+    # mNrmMinNow, the larger of the natural and artificial borrowing
+    # constraints, with two points at zero for the kink in the interest factor
+    # (where borrowing and saving rates differ). Unlike the standard solver's
+    # grid, it has no point at an artificial constraint other than zero.
     aNrmNow = np.sort(
         np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 1e-15]))),
     )
@@ -2142,6 +2308,12 @@ IndShockConsumerType_IncShkDstn_default = {
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
     "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
     "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+    "PermShk_inf": None,  # Lower bound of log permanent shocks, in standard deviations (None --> the default for the tails, -3 tapered or -2 pooled; -np.inf --> no bound)
+    "PermShk_sup": None,  # Upper bound of log permanent shocks, in standard deviations (None --> the default for the tails, 3 tapered or 2 pooled; np.inf --> no bound)
+    "TranShk_inf": None,  # Lower bound of log transitory shocks while employed, in standard deviations (None --> the default for the tails; -np.inf --> no bound)
+    "TranShk_sup": None,  # Upper bound of log transitory shocks while employed, in standard deviations (None --> the default for the tails; np.inf --> no bound)
+    "PermShk_tails": "tapered",  # Tails of bounded log permanent shocks: "tapered" to zero at each bound, or "pooled" at their means
+    "TranShk_tails": "tapered",  # Tails of bounded log transitory shocks while employed: "tapered" or "pooled"
 }
 
 # Default parameters to make aXtraGrid using make_assets_grid
@@ -2483,7 +2655,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if approx_inc_dstn:
             IncShkDstn = self.IncShkDstn[0]
         else:
-            TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).discretize(
+            TranShkDstn = LogNormalMeanOne(sigma=self.TranShkStd[0]).discretize(
                 N=200,
                 method="equiprobable",
                 tail_N=50,
@@ -2493,7 +2665,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             TranShkDstn = add_discrete_outcome_constant_mean(
                 TranShkDstn, p=self.UnempPrb, x=self.IncUnemp
             )
-            PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).discretize(
+            PermShkDstn = LogNormalMeanOne(sigma=self.PermShkStd[0]).discretize(
                 N=200,
                 method="equiprobable",
                 tail_N=50,
