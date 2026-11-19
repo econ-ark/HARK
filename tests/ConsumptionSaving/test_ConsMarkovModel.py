@@ -281,8 +281,8 @@ class testMarkovValueFunc(unittest.TestCase):
     def test_vFunc(self):
         agent = MarkovConsumerType(cycles=0, vFuncBool=True)
         agent.solve()
-        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.15152, places=4)
-        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.91514, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.15691, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.92049, places=4)
 
 
 class testRatchet(unittest.TestCase):

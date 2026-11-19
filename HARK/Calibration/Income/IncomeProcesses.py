@@ -962,6 +962,12 @@ def construct_markov_lognormal_income_process_unemployment(
     IncUnempRet,
     RNG,
     neutral_measure=False,
+    PermShk_inf=None,
+    PermShk_sup=None,
+    TranShk_inf=None,
+    TranShk_sup=None,
+    PermShk_tails="tapered",
+    TranShk_tails="tapered",
 ):
     """
     Generates a nested list of discrete approximations to the income process for each
@@ -1015,6 +1021,13 @@ def construct_markov_lognormal_income_process_unemployment(
         Random number generator for this type.
     neutral_measure : bool
         Indicator for whether the permanent-income-neutral measure should be used.
+    PermShk_inf, PermShk_sup, TranShk_inf, TranShk_sup : float or None
+        The bounds of each shock's log, in standard deviations, in every state, as
+        in construct_lognormal_income_process_unemployment: None takes the default
+        for the tails (three standard deviations tapered, two pooled), and an
+        infinite bound is no bound.
+    PermShk_tails, TranShk_tails : str
+        How each shock's tails are treated at its bounds: "tapered" or "pooled".
 
     Returns
     -------
@@ -1025,6 +1038,19 @@ def construct_markov_lognormal_income_process_unemployment(
     normal_length, retire_length = _split_lifecycle_lengths(T_cycle, T_retire)
 
     K = _validate_markov_state_dims(PermShkStd, TranShkStd, UnempPrb, IncUnemp)
+    _check_tails(PermShk_tails)
+    _check_tails(TranShk_tails)
+    PermShk_inf, PermShk_sup = _shock_bounds(PermShk_inf, PermShk_sup, PermShk_tails)
+    TranShk_inf, TranShk_sup = _shock_bounds(TranShk_inf, TranShk_sup, TranShk_tails)
+    bounds = {
+        "PermShk_inf": PermShk_inf,
+        "PermShk_sup": PermShk_sup,
+        "TranShk_inf": TranShk_inf,
+        "TranShk_sup": TranShk_sup,
+    }
+    bounded = any(bound is not None for bound in bounds.values())
+    if bounded:
+        bounds.update({"PermShk_tails": PermShk_tails, "TranShk_tails": TranShk_tails})
     _validate_markov_retirement(T_retire, K, UnempPrbRet, IncUnempRet)
     D = _validate_markov_unemployment_ndim(
         UnempPrb, IncUnemp, T_retire, UnempPrbRet, IncUnempRet
@@ -1052,17 +1078,23 @@ def construct_markov_lognormal_income_process_unemployment(
         PermShkStd_k = PermShkStd[:, k].tolist()
         TranShkStd_k = TranShkStd[:, k].tolist()
 
+        conditional = {
+            "sigma_Perm": PermShkStd_k,
+            "sigma_Tran": TranShkStd_k,
+            "n_approx_Perm": PermShkCount_list,
+            "n_approx_Tran": TranShkCount_list,
+            "neutral_measure": neutral_measure_list,
+            "UnempPrb": UnempPrb_list,
+            "IncUnemp": IncUnemp_list,
+        }
+        if bounded:
+            # the same bounds in every period, as IndShock's constructor sets them
+            conditional.update(
+                {key: [b] * len(PermShkStd_k) for key, b in bounds.items()}
+            )
         IncShkDstn_k = IndexDistribution(
             engine=BufferStockIncShkDstn,
-            conditional={
-                "sigma_Perm": PermShkStd_k,
-                "sigma_Tran": TranShkStd_k,
-                "n_approx_Perm": PermShkCount_list,
-                "n_approx_Tran": TranShkCount_list,
-                "neutral_measure": neutral_measure_list,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-            },
+            conditional=conditional,
             RNG=RNG,
             seed=RNG.integers(0, 2**31 - 1),
         )

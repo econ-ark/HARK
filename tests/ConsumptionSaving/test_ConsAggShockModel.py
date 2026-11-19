@@ -73,7 +73,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.agent.solve()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
-            2.57365,
+            2.57330,
             places=HARK_PRECISION,
         )
 

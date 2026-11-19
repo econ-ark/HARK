@@ -17,6 +17,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     LognormPermIncShk,
     MixtureTranIncShk,
     construct_lognormal_income_process_unemployment,
+    construct_markov_lognormal_income_process_unemployment,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -258,3 +259,34 @@ class testDefaultBounds(unittest.TestCase):
         law = agent.IncShkDstn[0].limit["dist"][0].limit["dist"]
         self.assertIsInstance(law, LogNormalTaperedMeanOne)
         self.assertEqual((law.bot, law.top), (-3.0, 3.0))
+
+    def test_markov_states_are_bounded_as_indshock_is(self):
+        # A one-state Markov income process gets IndShock's laws and atoms, bounds
+        # and tails included, whether left at the default or given
+        common = dict(T_cycle=1, PermShkCount=7, TranShkCount=7, T_retire=0)
+        common.update(UnempPrbRet=None, IncUnempRet=None)
+        for kwds in ({}, {"PermShk_tails": "pooled", "TranShk_inf": -2.5}):
+            ind = construct_lognormal_income_process_unemployment(
+                PermShkStd=[0.1],
+                TranShkStd=[0.1],
+                UnempPrb=0.05,
+                IncUnemp=0.3,
+                RNG=np.random.default_rng(0),
+                **common,
+                **kwds,
+            )[0]
+            mrkv = construct_markov_lognormal_income_process_unemployment(
+                PermShkStd=np.array([[0.1]]),
+                TranShkStd=np.array([[0.1]]),
+                UnempPrb=np.array([0.05]),
+                IncUnemp=np.array([0.3]),
+                RNG=np.random.default_rng(0),
+                **common,
+                **kwds,
+            )[0][0]
+            for a, b in zip(ind.atoms, mrkv.atoms):
+                np.testing.assert_array_equal(a, b)
+            np.testing.assert_array_equal(ind.pmv, mrkv.pmv)
+            for law_i, law_m in zip(ind.limit["dist"], mrkv.limit["dist"]):
+                self.assertIs(type(law_i), type(law_m))
+            np.testing.assert_array_equal(ind.limit["infimum"], mrkv.limit["infimum"])
