@@ -6,6 +6,7 @@ their laws with solve_one_period_ConsIndShock_continuous.
 
 import pickle
 import unittest
+import warnings
 from copy import deepcopy
 from unittest import mock
 
@@ -24,6 +25,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     _mpc_transition,
     _natural_limit_assets,
     _reaches_natural_limit,
+    _refine_for_concavity,
     _worst_income_mass,
     calc_BegOfPrd_continuous,
     calc_boro_const_nat,
@@ -176,10 +178,12 @@ class testIncShkExpectation(unittest.TestCase):
             get_mNrm_kinks(solution), kink
         )  # read back, not searched
         self.assertEqual(solution.mNrmKink, kink[0])  # as the atoms' solver records it
-        # no concavity violation, and none of the shape-preserving cubic's tension
+        # no concavity violation, the plain cubic through the gridpoints, with no
+        # refinement needed
         m = np.linspace(kink[0] + 1e-6, 20.0, 200001)
         self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)
-        np.testing.assert_array_equal(solution.cFunc.functions[0].tension, 0.0)
+        refinement = solution.ConcavityRefinement
+        self.assertFalse(np.any(refinement["depth"]) or np.any(refinement["level"]))
 
     def test_no_concavity_violation_on_a_fine_grid(self):
         # 200 gridpoints, where over the atoms a plain cubic violates concavity
@@ -196,7 +200,6 @@ class testIncShkExpectation(unittest.TestCase):
         cFunc = agent.solution[0].cFunc
         m = np.linspace(0.8, 3.0, 200001)
         self.assertLessEqual(largest_rise(cFunc, m), 1e-12)
-        self.assertFalse(np.any(cFunc.functions[0].tension > 0.0))
 
     def test_value_function(self):
         agent = IndShockConsumerType(
@@ -329,13 +332,18 @@ class testIncShkExpectation(unittest.TestCase):
         self.assertEqual(float(solution.cFunc(np.array([limit]))[0]), 0.0)
         m = limit + np.r_[np.geomspace(1e-6, 0.1, 61), np.linspace(0.11, 20.0, 2000)]
         self.assertTrue(np.all(solution.cFunc(m) > 0.0))
+        # concave, the plain cubic, where a few segments' expectations were taken
+        # more accurately (and gridpoints added where that was not enough)
         self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)
+        self.assertTrue(np.any(solution.ConcavityRefinement["level"] > 0))
         # its points land in the transition of the solution itself
         first = agent.aXtraGrid[0]
         self.assertGreaterEqual(
             knots_in_transition(solution, True, first), TRANSITION_SPLIT[2]
         )
-        # accurate at the default nodes, four a piece, against six
+        # accurate at the default nodes, four a piece, against six: with the
+        # jumpless laws, within 1.2e-7 at worst, at the top of the range, where
+        # six are within 1e-8 of eight
         fine = IndShockConsumerType(
             cycles=0,
             CubicBool=True,
@@ -387,6 +395,90 @@ class testIncShkExpectation(unittest.TestCase):
         self.assertGreaterEqual(
             knots_in_transition(solution, False, first), TRANSITION_SPLIT[2]
         )
+
+    def test_refinement_for_concavity(self):
+        # A consumption function whose MPC falls sharply from 1 to 0.1 near
+        # d = 0.3: through gridpoints with its exact levels and slopes the data are
+        # concave, but on the coarse grid the cubic is not, until the grid is
+        # bisected where it fails; the grid then settles, started from its state
+        nodes = (4, 4)
+
+        def exact(a):
+            a = np.asarray(a, dtype=float)
+            c = 0.1 * a + 0.9 * (
+                a
+                - 0.02
+                * (np.logaddexp(0.0, (a - 0.3) / 0.02) - np.logaddexp(0.0, -15.0))
+            )
+            mpc = 0.1 + 0.9 / (1.0 + np.exp((a - 0.3) / 0.02))
+            return a, c, mpc
+
+        def expect(a, PermNodes, TranNodes):
+            return np.asarray(a, dtype=float), np.asarray(a, dtype=float), None
+
+        def endogenous(a, E1, E2):
+            return exact(a)
+
+        def violations(a):
+            m, c, mpc = exact(a)
+            x, y, d = np.r_[0.0, m], np.r_[0.0, c], np.r_[1.0, mpc]
+            S = np.diff(y) / np.diff(x)
+            bad = (S < (d[:-1] + 2.0 * d[1:]) / 3.0 - 1e-12) | (
+                S > (2.0 * d[:-1] + d[1:]) / 3.0 + 1e-12
+            )
+            return np.count_nonzero(bad[1:])
+
+        base = np.geomspace(0.01, 10.0, 12)
+        self.assertGreater(violations(base), 0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            a, E, state = _refine_for_concavity(
+                base,
+                expect(base, *nodes),
+                None,
+                expect,
+                endogenous,
+                nodes,
+                1.0,
+                1.0,
+                0.0,
+            )
+        self.assertEqual(violations(a), 0)
+        self.assertGreater(a.size, base.size)
+        self.assertTrue(np.all(np.diff(a) > 0.0))
+        np.testing.assert_array_equal(E[0], a)
+        self.assertTrue(np.any(state["depth"] > 0))
+        # started from its own state, it adds nothing more
+        a2, _, state2 = _refine_for_concavity(
+            base, expect(base, *nodes), state, expect, endogenous, nodes, 1.0, 1.0, 0.0
+        )
+        np.testing.assert_array_equal(a2, a)
+        np.testing.assert_array_equal(state2["depth"], state["depth"])
+
+    def test_refinement_warns_at_its_end(self):
+        # Where the data themselves are not concave, as with an MPC that rises,
+        # neither more nodes nor more gridpoints help: the refinement warns once
+        # it has run through its steps, rather than looping
+        def expect(a, PermNodes, TranNodes):
+            return np.asarray(a, dtype=float), np.asarray(a, dtype=float), None
+
+        def endogenous(a, E1, E2):
+            a = np.asarray(a, dtype=float)
+            return a, 0.5 * a + 0.05 * np.sin(4.0 * a), 0.5 + 0.2 * np.cos(4.0 * a)
+
+        base = np.linspace(0.1, 5.0, 8)
+        with self.assertWarns(UserWarning):
+            _refine_for_concavity(
+                base,
+                expect(base, 4, 4),
+                None,
+                expect,
+                endogenous,
+                (4, 4),
+                0.0,
+                0.7,
+                0.0,
+            )
 
     def test_transition_moves_continuously(self):
         # As the transition of next period's consumption function, where its MPC
@@ -1004,3 +1096,37 @@ class testIncShkExpectation(unittest.TestCase):
         # nor PrefShock's, whose pre_solve does not call IndShockConsumerType's
         with self.assertRaises(NotImplementedError):
             PrefShockConsumerType(IncShkExpectation="continuous").solve()
+
+
+class testTruncatedDefault(unittest.TestCase):
+    """
+    HARK's default income shocks, lognormals truncated at three standard
+    deviations: the continuous expectation solves on them, with the artificial
+    constraint and with the natural one, and the cubic is concave.
+    """
+
+    def test_artificial_constraint(self):
+        agent = IndShockConsumerType(
+            cycles=0, CubicBool=True, IncShkExpectation="continuous"
+        )
+        agent.solve()
+        self.assertLess(agent.solution_distance, agent.tolerance)
+        solution = agent.solution[0]
+        kink = solution.mNrmKinks[0]
+        m = np.linspace(kink + 1e-6, 20.0, 200001)
+        self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)
+
+    def test_natural_constraint(self):
+        agent = IndShockConsumerType(
+            cycles=0, CubicBool=True, BoroCnstArt=None, IncShkExpectation="continuous"
+        )
+        self.assertIsInstance(
+            get_income_shock_laws(agent.IncShkDstn[0])[0], LogNormalTruncatedMeanOne
+        )
+        agent.solve()
+        self.assertLess(agent.solution_distance, agent.tolerance)
+        solution = agent.solution[0]
+        limit = solution.mNrmMin
+        m = limit + np.r_[np.geomspace(1e-6, 0.1, 1001), np.linspace(0.1, 20.0, 200001)]
+        self.assertTrue(np.all(solution.cFunc(m) > 0.0))
+        self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)

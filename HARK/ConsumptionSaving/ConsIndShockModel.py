@@ -1737,6 +1737,7 @@ def calc_BegOfPrd_continuous(
     vFuncBool=False,
     PermShkQuadCount=4,
     TranShkQuadCount=4,
+    split_at_knots=False,
 ):
     """
     The expectations over next period's income shocks that a one-period solver
@@ -1755,14 +1756,17 @@ def calc_BegOfPrd_continuous(
     Gauss-Legendre nodes a piece, cut where the integrand is not smooth, except
     at the knots of next period's consumption function: at each unit step of the
     laws' standard-normal coordinates; in the transitory shock, where m' reaches
-    next period's kink (get_mNrm_kinks), at which marginal value is kinked; and
+    next period's kink (get_mNrm_kinks), at which marginal value is kinked, or
+    the end of its linear first segment (mNrmLinearEnd), where the cubic's
+    slope steps from that line's to the MPC; and
     in the permanent shock, where that point reaches the transitory law's unit
     steps within STEPS_WITHIN of its center, its ends, or its point. The kink
     leaves the permanent integrand a bump as wide as the transitory law, which
     those cuts resolve. The knots are not cut at, though linear interpolation
     kinks marginal value at each of them and a cubic kinks its slope: cutting
     at them as well moves the solved consumption function and its MPC by small
-    fractions of the grid's own error. Each asset's integrals are taken
+    fractions of the grid's own error; split_at_knots cuts at them too.
+    Each asset's integrals are taken
     on their own pieces. Where m' can land just above next period's minimum
     cash-on-hand, at which its consumption is zero, at the corner of the
     shocks' support, the integrand grows like an inverse power of the distance
@@ -1800,6 +1804,12 @@ def calc_BegOfPrd_continuous(
     TranShkQuadCount : int, optional
         Gauss-Legendre nodes a piece of the transitory shock's integral. The
         default is 4.
+    split_at_knots : bool, optional
+        Whether to cut the integrals at every knot of next period's consumption
+        function as well. Each asset's integrand is then evaluated at many more
+        points, in proportion to the knots its landing points cross, for the
+        small change described above; IndShock's solver does not use it. The
+        default is False.
 
     Returns
     -------
@@ -1813,9 +1823,20 @@ def calc_BegOfPrd_continuous(
     shape = np.shape(aNrm)
     base = Rfree * np.atleast_1d(np.asarray(aNrm, dtype=float)) / PermGroFac
     m_min = float(solution_next.mNrmMin)
-    # Where next period's marginal value is kinked: its kink. Its consumption
-    # function's knots are not cut at (see above)
-    breaks = np.unique(get_mNrm_kinks(solution_next))
+    # Where next period's marginal value is kinked: its kink, and the end of a
+    # linear first segment, from its limit. Its consumption function's other
+    # knots are not cut at (see above)
+    breaks = np.unique(
+        np.r_[
+            get_mNrm_kinks(solution_next), getattr(solution_next, "mNrmLinearEnd", [])
+        ]
+    )
+    if split_at_knots:
+        # and, where asked, every knot of its consumption function, where a cubic's
+        # second derivative steps: the expectations' accurate rule
+        part = getattr(solution_next.cFunc, "functions", [solution_next.cFunc])[0]
+        knots = np.asarray(getattr(part, "x_list", ()), dtype=float)
+        breaks = np.union1d(breaks, knots[knots > m_min])
     # The permanent shock's integral is cut where that point reaches the
     # transitory law's steps, or its point
     steps = _steps_in_values(TranShkLaw)
@@ -2145,6 +2166,128 @@ def _natural_limit_assets(solution_next, mNrmMin, first, CubicBool):
     return mNrmMin + points
 
 
+# The most times a segment of the asset grid is bisected so that the cubic
+# consumption function is concave
+REFINE_DEPTH = 6
+# The multiples of the nodes a piece to which a segment of the asset grid rises
+# where its data are not concave, the expectations not accurate enough. The
+# steps raise the nodes only: cutting the integrals at next period's knots as
+# well (split_at_knots) changes the expectations little, and multiplies the
+# points each asset's integrand is evaluated at by about the number of knots its
+# landing points cross
+REFINE_NODE_STEPS = (1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0)
+# The step to which a failing segment's accuracy rises before it is bisected:
+# twice the nodes a piece
+REFINE_FIRST_STEP = 2
+
+
+def _refine_for_concavity(
+    base, E_base, state, expect, endogenous, nodes, m_limit, mpc_limit, a_floor
+):
+    """
+    End-of-period assets, and the expectations there, for which the cubic Hermite
+    consumption function through the endogenous gridpoints is concave. A cubic
+    Hermite segment from (x0, y0, s0) to (x1, y1, s1), with secant S, is concave
+    if and only if (s0 + 2 s1)/3 <= S <= (2 s0 + s1)/3; its data are concave if
+    s0 >= S >= s1. Each segment of the cubic above the first, from the limit to
+    the first gridpoint, is checked:
+    - where the data are concave but the cubic is not, the segment of the base
+      grid holding it is bisected (in the distance from a_floor, geometrically
+      where that is positive), up to REFINE_DEPTH times;
+    - where the data are not concave, the expectations are not accurate enough:
+      that segment's gridpoints are taken again with more nodes a piece, the next
+      of REFINE_NODE_STEPS times nodes (and so where bisection is exhausted).
+    It stops when every segment is concave, or warns if none can be refined
+    further. state, from next period's solution, holds each base segment's
+    depth and node step there; the refinement starts from them and only
+    deepens, so that over an infinite horizon the grid and its accuracy settle.
+    expect(a, n) gives the expectations (E1, E2, E0) at assets a with n nodes a
+    piece of each shock; endogenous(a, E1, E2) the gridpoints' cash-on-hand,
+    consumption and MPC; E_base the expectations on base, with nodes a piece.
+    Returns the assets, their expectations and the state.
+    """
+    n = base.size - 1
+    depth, level = np.zeros(n, dtype=int), np.zeros(n, dtype=int)
+    if isinstance(state, dict) and np.size(state.get("depth")) == n:
+        depth = np.minimum(np.asarray(state["depth"], dtype=int), REFINE_DEPTH)
+        level = np.minimum(
+            np.asarray(state["level"], dtype=int), len(REFINE_NODE_STEPS) - 1
+        )
+    cache = {
+        (x, 0): tuple(None if e is None else e[i] for e in E_base)
+        for i, x in enumerate(base)
+    }
+
+    def node_count(step):
+        return tuple(int(np.ceil(q * REFINE_NODE_STEPS[step])) for q in nodes)
+
+    def points():
+        a, steps = [base[:1]], [np.array([level[0]])]
+        for j in range(n):
+            lo, hi = base[j] - a_floor, base[j + 1] - a_floor
+            t = np.arange(1, 2 ** depth[j]) / 2 ** depth[j]
+            inner = a_floor + (lo * (hi / lo) ** t if lo > 0.0 else lo + (hi - lo) * t)
+            a += [inner, base[j + 1 : j + 2]]
+            right = level[j + 1] if j + 1 < n else level[j]
+            steps += [np.full(inner.size, level[j]), np.array([max(level[j], right)])]
+        return np.concatenate(a), np.concatenate(steps)
+
+    for _ in range(n * (REFINE_DEPTH + len(REFINE_NODE_STEPS))):
+        a, steps = points()
+        for step in np.unique(steps):
+            todo = [x for x in a[steps == step] if (x, step) not in cache]
+            if todo:
+                parts = expect(np.array(todo), *node_count(step))
+                for i, x in enumerate(todo):
+                    cache[(x, step)] = tuple(None if e is None else e[i] for e in parts)
+        E = [
+            None
+            if cache[(a[0], steps[0])][k] is None
+            else np.array([cache[(x, st)][k] for x, st in zip(a, steps)])
+            for k in range(3)
+        ]
+        m, c, mpc = endogenous(a, E[0], E[1])
+        x = np.r_[m_limit, m]
+        y = np.r_[0.0, c]
+        d = np.r_[mpc_limit, mpc]
+        S = np.diff(y) / np.diff(x)
+        tol = 1e-12
+        bad = (S < (d[:-1] + 2.0 * d[1:]) / 3.0 - tol) | (
+            S > (2.0 * d[:-1] + d[1:]) / 3.0 + tol
+        )
+        bad[0] = False  # the first segment, from the limit: see the solver
+        if not np.any(bad):
+            break
+        data_concave = (d[:-1] >= S - tol) & (S >= d[1:] - tol)
+        changed = False
+        for k in np.flatnonzero(bad):
+            # the segment of the cubic between gridpoints k - 1 and k of a lies in
+            # base segment j
+            j = min(
+                max(int(np.searchsorted(base, a[k - 1], side="right")) - 1, 0), n - 1
+            )
+            # accuracy first, to REFINE_FIRST_STEP; then gridpoints where the
+            # data are concave; then more accuracy
+            if level[j] < REFINE_FIRST_STEP:
+                level[j] += 1
+                changed = True
+            elif data_concave[k] and depth[j] < REFINE_DEPTH:
+                depth[j] += 1
+                changed = True
+            elif level[j] < len(REFINE_NODE_STEPS) - 1:
+                level[j] += 1
+                changed = True
+        if not changed:
+            warnings.warn(
+                "The cubic consumption function is not concave on "
+                f"{int(np.sum(bad))} segment(s) after bisecting the asset grid "
+                f"{REFINE_DEPTH} times and taking the expectations with up to "
+                f"{node_count(len(REFINE_NODE_STEPS) - 1)} nodes a piece."
+            )
+            break
+    return a, E, {"depth": depth, "level": level}
+
+
 def _calc_BegOfPrd_IndShock_continuous(
     aNrm,
     solution_next,
@@ -2156,6 +2299,7 @@ def _calc_BegOfPrd_IndShock_continuous(
     vFuncBool,
     PermShkQuadCount,
     TranShkQuadCount,
+    split_at_knots=False,
 ):
     """
     IndShock's expectations against the laws IncShkDstn records: the employed
@@ -2180,6 +2324,7 @@ def _calc_BegOfPrd_IndShock_continuous(
             vFuncBool=vFuncBool,
             PermShkQuadCount=PermShkQuadCount,
             TranShkQuadCount=TranShkQuadCount,
+            split_at_knots=split_at_knots,
         )
         total = [
             None if part is None else t + prob * part for t, part in zip(total, parts)
@@ -2333,6 +2478,11 @@ def solve_one_period_ConsIndShock_continuous(
         included in the reported solution.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear interpolation.
+        The cubic is the plain cubic Hermite through the endogenous gridpoints;
+        where a segment of it would not be concave, that segment's expectations
+        are taken more accurately and the asset grid is refined there
+        (_refine_for_concavity), each solution recording where in
+        ConcavityRefinement, from which the period before starts.
     PermShkQuadCount : int, optional
         Gauss-Legendre nodes a piece of the permanent shock's integral. The
         default is 4.
@@ -2501,17 +2651,46 @@ def _solve_one_period_ConsIndShock(
                 aNrmNow,
             )
         aNrmExp = aNrmNow
-        E1, E2, E0 = _calc_BegOfPrd_IndShock_continuous(
-            aNrmExp,
-            solution_next,
-            IncShkDstn,
-            Rfree,
-            PermGroFac,
-            CRRA,
-            CubicBool,
-            vFuncBool,
-            *continuous,
-        )
+
+        def expect(a, PermNodes, TranNodes):
+            return _calc_BegOfPrd_IndShock_continuous(
+                a,
+                solution_next,
+                IncShkDstn,
+                Rfree,
+                PermGroFac,
+                CRRA,
+                CubicBool,
+                vFuncBool,
+                PermNodes,
+                TranNodes,
+            )
+
+        E1, E2, E0 = expect(aNrmExp, *continuous)
+        refinement = None
+        if CubicBool:
+            # Where the cubic through the endogenous gridpoints would not be
+            # concave: more accurate expectations, and more asset gridpoints
+            vPfacCont = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
+            vPPfacCont = DiscFacEff * Rfree * Rfree * PermGroFac ** (-CRRA - 1.0)
+
+            def endogenous(a, E1_, E2_):
+                c = uFunc.derinv(vPfacCont * E1_, order=(1, 0))
+                dcda = vPPfacCont * E2_ / uFunc.der(c, order=2)
+                return a + c, c, dcda / (dcda + 1.0)
+
+            aNrmNow, (E1, E2, E0), refinement = _refine_for_concavity(
+                aNrmNow,
+                (E1, E2, E0),
+                getattr(solution_next, "ConcavityRefinement", None),
+                expect,
+                endogenous,
+                continuous,
+                BoroCnstInf if not kinked else BoroCnstNat,
+                MPCmaxUnc,
+                mNrmMinNow,
+            )
+            aNrmExp = aNrmNow
     else:
         # The end-of-period assets grid, starting at a binding artificial
         # constraint (calc_aNrm_grid says why)
@@ -2563,7 +2742,9 @@ def _solve_one_period_ConsIndShock(
         MPC = dcda / (dcda + 1.0)
         MPC_for_interpolation = np.insert(MPC, 0, MPCmaxUnc)
 
-        # Construct the unconstrained consumption function as a cubic interpolation
+        # Construct the unconstrained consumption function as a cubic interpolation;
+        # under the continuous expectation, the grid is refined where it would not
+        # be concave
         cFuncNowUnc = CubicInterp(
             m_for_interpolation,
             c_for_interpolation,
@@ -2571,6 +2752,11 @@ def _solve_one_period_ConsIndShock(
             cFuncLimitIntercept,
             cFuncLimitSlope,
         )
+        if continuous and not kinked:
+            # From the limit to the first gridpoint, end-of-period assets stay
+            # between the limit and the lowest asset gridpoint, so consumption
+            # is the line c = m - mNrmMin to within that distance
+            cFuncNowUnc.set_linear_segment(0)
     else:
         # Construct the unconstrained consumption function as a linear interpolation
         cFuncNowUnc = LinearInterp(
@@ -2731,6 +2917,11 @@ def _solve_one_period_ConsIndShock(
         # period before splits there. Where the natural constraint binds,
         # consumption is zero at the limit, with no kink.
         solution_now.mNrmKinks = mNrmNow[:1] if kinked else np.array([])
+        if refinement is not None:
+            solution_now.ConcavityRefinement = refinement
+        if CubicBool and continuous and not kinked:
+            # where the linear first segment ends, its slope steps to the MPC
+            solution_now.mNrmLinearEnd = np.array([m_for_interpolation[1]])
     return solution_now
 
 

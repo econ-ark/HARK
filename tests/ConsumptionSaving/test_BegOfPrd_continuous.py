@@ -430,6 +430,18 @@ class testBegOfPrdContinuous(unittest.TestCase):
                 )
                 np.testing.assert_allclose(E1, exact[0], rtol=rtol)
                 np.testing.assert_allclose(E2, exact[1], rtol=rtol)
+        # cut at the knots as well, on request, the rule reaches the reference's
+        # accuracy
+        with self.subTest(split_at_knots=True):
+            E1, E2, _ = self.expectations(
+                solution,
+                self.tran,
+                PermShkQuadCount=8,
+                TranShkQuadCount=8,
+                split_at_knots=True,
+            )
+            np.testing.assert_allclose(E1, exact[0], rtol=1e-10)
+            np.testing.assert_allclose(E2, exact[1], rtol=1e-10)
 
     def test_solved_cubic_policy_with_other_laws(self):
         # against the reference split at every knot, which the rule is not (at
