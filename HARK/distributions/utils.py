@@ -629,3 +629,63 @@ def expected(func=None, dstn=None, args=(), vectorized=True, **kwargs):
     if kwargs:
         return dstn.expected(func, **kwargs)
     return dstn.expected(func)
+
+
+def employed_atoms(dstn):
+    """
+    Which atoms of a joint distribution of permanent and transitory income
+    shocks are not the unemployment event.
+
+    The event is the point that add_discrete_outcome_constant_mean added to the
+    transitory shock, as IndShock's income constructor records it in the
+    transitory component's limit. A distribution that records no such event of
+    positive probability has none.
+
+    Parameters
+    ----------
+    dstn : DiscreteDistribution
+        A joint distribution of (PermShk, TranShk), as combine_indep_dstns
+        records it.
+
+    Returns
+    -------
+    keep : np.ndarray or None
+        True at each atom whose transitory shock is not the unemployment income,
+        or None where the distribution records no unemployment event.
+    """
+    limit = getattr(dstn, "limit", None) or {}
+    dists = limit.get("dist")
+    if limit.get("method") != "combine_indep_dstns" or dists is None or len(dists) != 2:
+        return None
+    tran = getattr(dists[1], "limit", None) or {}
+    if tran.get("method") != "add_discrete_outcome_constant_mean":
+        return None
+    if not float(tran.get("p", 0.0)) > 0.0:
+        return None
+    keep = np.asarray(dstn.atoms)[1] != float(tran["x"])
+    return keep if keep.any() and not keep.all() else None
+
+
+def restrict_to_atoms(dstn, keep):
+    """
+    A discrete distribution restricted to the atoms where keep is True, its
+    probabilities renormalized. It draws from dstn's own random number
+    generator, so its draws continue dstn's stream.
+
+    Parameters
+    ----------
+    dstn : DiscreteDistribution
+        The distribution.
+    keep : np.ndarray
+        Which of its atoms to keep.
+
+    Returns
+    -------
+    part : DiscreteDistribution
+    """
+    pmv = np.asarray(dstn.pmv)[keep]
+    part = DiscreteDistribution(
+        pmv / pmv.sum(), np.asarray(dstn.atoms)[:, keep], seed=0
+    )
+    part._rng = dstn._rng
+    return part
