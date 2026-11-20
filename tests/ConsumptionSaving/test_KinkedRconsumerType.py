@@ -4,7 +4,10 @@ from copy import deepcopy
 
 import numpy as np
 
-from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    KinkedRconsumerType,
+)
 from tests import HARK_PRECISION
 
 
@@ -86,3 +89,64 @@ class testKinkedRConsumerType(unittest.TestCase):
         BoopType = KinkedRconsumerType()
         BasicType = KinkedRconsumerType(Rboro=BoopType.Rsave)
         BasicType.solve()
+
+
+class testKinkedRNaturalLimitFromTheInfima(unittest.TestCase):
+    """
+    KinkedR's natural borrowing constraint comes from the infima of the true
+    shock distributions, at the borrowing rate, where they are bounded below away
+    from zero, as IndShock's does, and binds on the atoms as an artificial
+    constraint does.
+    """
+
+    # HARK's lognormals bounded at three standard deviations of their logs,
+    # whatever HARK's default is
+    BOUNDED = dict(PermShk_inf=-3.0, PermShk_sup=3.0, TranShk_inf=-3.0, TranShk_sup=3.0)
+
+    def test_the_limit_at_the_borrowing_rate(self):
+        agent = KinkedRconsumerType(cycles=0, BoroCnstArt=None, **self.BOUNDED)
+        agent.solve()
+        perm_inf, tran_inf = np.ravel(agent.IncShkDstn[0].limit["infimum"])
+        kappa = agent.PermGroFac[0] * perm_inf / agent.Rboro
+        self.assertAlmostEqual(
+            agent.solution[0].mNrmMin, -tran_inf * kappa / (1.0 - kappa), places=10
+        )
+        self.assertEqual(agent.solution[0].MPCmax, 1.0)
+        # The atoms' own limit allows more borrowing than a draw from the true
+        # laws could repay
+        perm_min, tran_min = np.min(agent.IncShkDstn[0].atoms, axis=1)
+        kappa = agent.PermGroFac[0] * perm_min / agent.Rboro
+        atoms_limit = -tran_min * kappa / (1.0 - kappa)
+        self.assertLess(atoms_limit, agent.solution[0].mNrmMin - 0.2)
+
+    def test_equal_rates_take_the_indshock_solver(self):
+        m = np.linspace(0.0, 10.0, 201)
+        kinky = KinkedRconsumerType(cycles=1, Rboro=1.03, Rsave=1.03, BoroCnstArt=None)
+        kinky.solve()
+        plain = IndShockConsumerType(cycles=1, Rfree=[1.03], BoroCnstArt=None)
+        plain.solve()
+        self.assertEqual(kinky.solution[0].mNrmMin, plain.solution[0].mNrmMin)
+        np.testing.assert_allclose(
+            kinky.solution[0].cFunc(m), plain.solution[0].cFunc(m), rtol=1e-12
+        )
+
+    def test_laws_unbounded_below_keep_the_atoms_limit(self):
+        # A law unbounded below records an infimum of zero, where the infima would
+        # allow no borrowing at all; the atoms' limit stands, at the borrowing
+        # rate, with both shocks unbounded and with the permanent shock alone
+        unbounded = dict(
+            PermShk_inf=-np.inf,
+            PermShk_sup=np.inf,
+            TranShk_inf=-np.inf,
+            TranShk_sup=np.inf,
+        )
+        unbounded_perm = dict(PermShk_inf=-np.inf, PermShk_sup=np.inf)
+        for kwds in (unbounded, unbounded_perm):
+            agent = KinkedRconsumerType(cycles=0, BoroCnstArt=None, **kwds)
+            agent.solve()
+            perm_min, tran_min = np.min(agent.IncShkDstn[0].atoms, axis=1)
+            kappa = agent.PermGroFac[0] * perm_min / agent.Rboro
+            self.assertLess(agent.solution[0].mNrmMin, 0.0)
+            self.assertAlmostEqual(
+                agent.solution[0].mNrmMin, -tran_min * kappa / (1.0 - kappa), places=10
+            )
