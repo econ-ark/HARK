@@ -16,6 +16,7 @@ from HARK.distributions import (
     LogNormalTruncatedMeanOne,
     LogNormalTruncatedJumplessMeanOne,
     LogNormal,
+    PointMassAtInfimum,
     Uniform,
     make_tauchen_ar1,
 )
@@ -215,7 +216,9 @@ def _bounds_by_period(name, bound, T_cycle):
     return [None if bound is None else float(bound) for bound in bounds]
 
 
-def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="truncated"):
+def _discretize_mean_one_shock(
+    sigma, n_approx, bot=None, top=None, tails="truncated", infimum_prb=None
+):
     """
     The law of a mean-one lognormal shock whose log has standard deviation
     sigma, and its equiprobable discretization with n_approx atoms.
@@ -250,6 +253,13 @@ def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="trunc
     tails : str, optional
         How the tails are treated at the bounds: "truncated" (the default) or
         "jumpless".
+    infimum_prb : float or None, optional
+        The probability of the shock's infimum: with it, the law is the bounded
+        law with a point mass at its infimum (PointMassAtInfimum), so that its
+        lowest value has positive probability whatever n_approx is. None or
+        zero, the default, adds no point mass. It needs a lower bound, except
+        with sigma = 0, where the shock's single value already has probability
+        one.
 
     Returns
     -------
@@ -267,6 +277,11 @@ def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="trunc
     if top is not None and np.isposinf(top):
         top = None
     if (bot is None and top is None) or sigma == 0.0:
+        if infimum_prb and sigma > 0.0:
+            raise ValueError(
+                "A point mass at the shock's infimum needs a lower bound: an "
+                "unbounded lognormal's infimum is zero."
+            )
         law = LogNormalMeanOne(sigma)
         approx = law.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
@@ -285,6 +300,13 @@ def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="trunc
         )
     # The law refuses bounds it cannot have (the jumpless law has no upper one)
     law = _SHOCK_TAILS[tails].from_sd_log(sigma, bot=bot, top=top)
+    if infimum_prb:
+        if bot is None:
+            raise ValueError(
+                "A point mass at the shock's infimum needs a lower bound: an "
+                "unbounded lognormal's infimum is zero."
+            )
+        law = PointMassAtInfimum(law, infimum_prb)
     approx = law.discretize(n_approx, method="equiprobable")
     approx.limit["infimum"] = law.infimum
     approx.limit["supremum"] = law.supremum
@@ -317,6 +339,11 @@ class LognormPermIncShk(DiscreteDistribution):
         cut off at each bound (LogNormalTruncatedMeanOne); or "jumpless", cut
         off below with the density zero at the bound, and no upper bound
         (LogNormalTruncatedJumplessMeanOne).
+    infimum_prb : float or None, optional
+        The probability of the shock's infimum, which needs a lower bound: the
+        law is then the bounded law with a point mass at its infimum
+        (PointMassAtInfimum), an atom of the discretization whatever n_approx
+        is. None, the default, adds no point mass.
 
     Returns
     -------
@@ -334,10 +361,11 @@ class LognormPermIncShk(DiscreteDistribution):
         bot=None,
         top=None,
         tails="truncated",
+        infimum_prb=None,
     ):
         # Construct an auxiliary discretized normal
         lognormal_dstn, logn_approx = _discretize_mean_one_shock(
-            sigma, n_approx, bot, top, tails
+            sigma, n_approx, bot, top, tails, infimum_prb
         )
 
         limit = {
@@ -528,6 +556,10 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
     TranShk_tails : str, optional
         How the tails of the transitory shock's lognormal part are treated at
         its bounds, as PermShk_tails.
+    PermShkMinPrb : float or None, optional
+        The probability of the permanent shock's infimum, which needs a lower
+        bound; None, the default, adds no point mass there. See
+        LognormPermIncShk's infimum_prb.
 
     Returns
     -------
@@ -552,6 +584,7 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
         TranShk_sup=None,
         PermShk_tails="truncated",
         TranShk_tails="truncated",
+        PermShkMinPrb=None,
     ):
         perm_dstn = LognormPermIncShk(
             sigma=sigma_Perm,
@@ -560,6 +593,7 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
             bot=PermShk_inf,
             top=PermShk_sup,
             tails=PermShk_tails,
+            infimum_prb=PermShkMinPrb,
         )
         tran_dstn = MixtureTranIncShk(
             sigma=sigma_Tran,
@@ -738,6 +772,7 @@ def construct_lognormal_income_process_unemployment(
     TranShk_sup=None,
     PermShk_tails="truncated",
     TranShk_tails="truncated",
+    PermShkMinPrb=None,
 ):
     r"""
     Generates a list of discrete approximations to the income process for each
@@ -840,6 +875,12 @@ def construct_lognormal_income_process_unemployment(
     TranShk_tails : str
         How the tails of the transitory shock's lognormal part are treated at
         its bounds: "truncated" (the default) or "jumpless".
+    PermShkMinPrb : float or None
+        The probability of the permanent shock's infimum in each period whose
+        permanent shock has a lower bound: the law is then the bounded law with
+        a point mass at its infimum (PointMassAtInfimum), so that the shock's
+        lowest value has positive probability at every PermShkCount. None, the
+        default, adds no point mass.
 
     Returns
     -------
@@ -875,6 +916,8 @@ def construct_lognormal_income_process_unemployment(
         conditional.update(bounds)
         conditional["PermShk_tails"] = [PermShk_tails] * T_cycle
         conditional["TranShk_tails"] = [TranShk_tails] * T_cycle
+    if PermShkMinPrb:
+        conditional["PermShkMinPrb"] = [PermShkMinPrb] * T_cycle
     IncShkDstn = IndexDistribution(
         engine=BufferStockIncShkDstn,
         conditional=conditional,
@@ -1396,6 +1439,45 @@ def construct_lognormal_income_process_with_mvg_medical_expenses(
 
 
 ###############################################################################
+
+
+def _recorded_laws(IncShkDstn_t):
+    """
+    The laws behind one period's joint distribution of permanent and
+    transitory income shocks, read from the limit that IndShock's income
+    constructor records: the permanent shock's law, and the transitory shock's
+    law while employed, before the unemployment event is added.
+    """
+    limit = getattr(IncShkDstn_t, "limit", None) or {}
+    dists = limit.get("dist")
+    if limit.get("method") != "combine_indep_dstns" or len(dists) != 2:
+        raise ValueError(
+            "This income distribution does not record the laws its atoms come "
+            "from: build it with IndShock's income constructor."
+        )
+    perm, tran = dists
+    if tran.limit.get("method") == "add_discrete_outcome_constant_mean":
+        tran = tran.limit["dist"]
+    return perm.limit["dist"], tran.limit["dist"]
+
+
+def get_PermShkLaw_from_IncShkDstn(IncShkDstn):
+    """
+    The law of the permanent income shock in each period, read from the income
+    distribution that IndShock's income constructor builds: a list with one
+    law per period.
+    """
+    return [_recorded_laws(IncShkDstn_t)[0] for IncShkDstn_t in IncShkDstn]
+
+
+def get_TranShkLaw_from_IncShkDstn(IncShkDstn):
+    """
+    The law of the transitory income shock while employed in each period, with
+    mean one, before the unemployment event is added, read from the income
+    distribution that IndShock's income constructor builds: a list with one
+    law per period.
+    """
+    return [_recorded_laws(IncShkDstn_t)[1] for IncShkDstn_t in IncShkDstn]
 
 
 def get_PermShkDstn_from_IncShkDstn(IncShkDstn, RNG):

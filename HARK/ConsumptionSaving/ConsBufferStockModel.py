@@ -24,10 +24,18 @@ there. When the permanent shock takes its lowest value with positive
 probability, the consumer stays away from the borrowing limit and the MPC at
 the bottom is below one; without that point mass the limit can be reached and
 the MPC there is one (subsec:PositiveMinimumNoWorstEvent). With a positive
-``IncUnemp`` the class by default builds a law of the first kind: the truncated
-lognormal with a point mass at its infimum (:class:`PointMassAtInfimum`). The
-lowest value is then the law's infimum at every number of points of the
-discretization, as the lowest transitory income is the zero-income event's.
+``IncUnemp`` the class by default asks for a law of the first kind: the
+truncated lognormal with a point mass at its infimum
+(:class:`HARK.distributions.PointMassAtInfimum`). The lowest value is then the
+law's infimum at every number of points of the discretization, as the lowest
+transitory income is the zero-income event's.
+
+The class builds no law of its own. Its shocks are HARK's, from
+``IndShockConsumerType``'s income constructor,
+:func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`,
+which it asks for the paper's truncated lognormals by name; the laws it checks
+and reads, ``PermShkLaw`` and ``TranShkLaw``, are those the constructor
+records.
 
 Two borrowing constraints are distinguished, and everything that depends on
 which one is in force is written per scenario:
@@ -62,7 +70,6 @@ from dataclasses import asdict, dataclass, replace
 from typing import NamedTuple
 
 import numpy as np
-from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.stats import norm
 
@@ -84,18 +91,16 @@ from HARK.interpolation import (
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
 )
-from HARK.distributions import (
-    DiscreteDistribution,
-    DiscreteDistributionLabeled,
-    IndexDistribution,
-    MeanOneTruncatedLogNormal,
-    add_discrete_outcome_constant_mean,
-    combine_indep_dstns,
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkLaw_from_IncShkDstn,
+    get_TranShkLaw_from_IncShkDstn,
 )
+from HARK.distributions import DiscreteDistribution, PointMassAtInfimum
+from HARK.distributions.continuous import _quantile_expectation
 
 __all__ = [
     "paper_url",
-    "PointMassAtInfimum",
     "BufferStockConsumerType",
     "BufferStockConditions",
     "calc_buffer_stock_conditions",
@@ -143,101 +148,35 @@ def _law_bounds(law):
 
 
 def _law_expect(law, func):
-    """The expectation of func under a shock law, by quadrature of its quantile function."""
+    """
+    The expectation of func under a shock law: a sum over a discrete law's
+    atoms, the value at the point of a law whose infimum is its supremum (as
+    HARK records a lognormal with no variance), and otherwise by quadrature of
+    the law's quantile function.
+    """
     if isinstance(law, DiscreteDistribution):
         return float(np.dot(law.pmv, func(np.ravel(law.atoms))))
+    inf, sup = _law_bounds(law)
+    if inf == sup:
+        return float(np.ravel(func(np.array([inf])))[0])
     if isinstance(law, PointMassAtInfimum):
         return law.expect(func)
-    value, _ = quad(
-        lambda q: func(law.ppf(q)), 0.0, 1.0, limit=200, epsabs=1e-14, epsrel=1e-12
-    )
-    return float(value)
+    return _quantile_expectation(law, func)
 
 
 def _law_mass_at_infimum(law):
     """
     The probability that a shock law puts on its infimum: read from the atoms
-    of a discrete law, from infimum_prb where a law records one, and zero for a
-    continuous law.
+    of a discrete law, one for a law whose infimum is its supremum, from
+    infimum_prb where a law records one, and zero for a continuous law.
     """
     if isinstance(law, DiscreteDistribution):
         atoms = np.ravel(law.atoms)
         return float(np.sum(np.asarray(law.pmv)[atoms == atoms.min()]))
+    inf, sup = _law_bounds(law)
+    if inf == sup:
+        return 1.0
     return float(getattr(law, "infimum_prb", 0.0))
-
-
-class PointMassAtInfimum:
-    """
-    A shock law that takes its lowest value with positive probability.
-
-    With probability ``prb`` the shock is the infimum of a base law. Otherwise it
-    is a draw from the base law times (1 - prb * infimum) / (1 - prb), which
-    keeps the mean at one when the base law's mean is one, as the draws of the
-    transitory shock outside the zero-income event are scaled. The lowest value
-    is the base law's infimum, whatever the number of points of a
-    discretization, and the scaled draws are bounded away from it
-    (ass:shocksPositiveMinimum).
-
-    Parameters
-    ----------
-    base : distribution
-        A continuous law with mean one, a positive infimum below one and a
-        finite supremum, such as a MeanOneTruncatedLogNormal.
-    prb : float
-        The probability of the lowest value, strictly between zero and one.
-
-    Attributes
-    ----------
-    infimum, supremum : np.array
-        The bounds of the law: the base law's infimum, and its supremum scaled.
-    infimum_prb : float
-        The probability of the infimum.
-    """
-
-    def __init__(self, base, prb):
-        inf = float(np.ravel(base.infimum)[0])
-        sup = float(np.ravel(base.supremum)[0])
-        self.base = base
-        self.infimum_prb = float(prb)
-        self.scale = (1.0 - self.infimum_prb * inf) / (1.0 - self.infimum_prb)
-        self.infimum = np.array([inf])
-        self.supremum = np.array([self.scale * sup])
-
-    def ppf(self, q):
-        """The quantile function."""
-        q = np.asarray(q, dtype=float)
-        above = np.clip((q - self.infimum_prb) / (1.0 - self.infimum_prb), 0.0, 1.0)
-        return np.where(
-            q <= self.infimum_prb, self.infimum[0], self.scale * self.base.ppf(above)
-        )
-
-    def expect(self, func):
-        """The expectation of func under the law."""
-        rest = _law_expect(self.base, lambda x: func(self.scale * x))
-        return float(
-            self.infimum_prb * func(self.infimum[0]) + (1.0 - self.infimum_prb) * rest
-        )
-
-    def discretize(self, N, method="equiprobable", **kwds):
-        """
-        The lowest value with its probability, and N points for the rest of the
-        law: the base law's discretization, scaled.
-        """
-        rest = self.base.discretize(N, method=method, **kwds)
-        atoms = np.concatenate((self.infimum, self.scale * np.ravel(rest.atoms)))
-        pmv = np.concatenate(
-            ([self.infimum_prb], (1.0 - self.infimum_prb) * np.asarray(rest.pmv))
-        )
-        limit = {
-            "dist": self,
-            "method": method,
-            "N": N,
-            "infimum": self.infimum,
-            "supremum": self.supremum,
-        }
-        return DiscreteDistribution(
-            pmv, atoms, seed=self.base.random_seed(), limit=limit
-        )
 
 
 def _worst_income(UnempPrb, IncUnemp, TranShkLaw):
@@ -260,49 +199,89 @@ def _is_point_at_one(law):
 ###############################################################################
 
 
-def make_PermShkLaw(
-    PermShkStd, PermShk_inf, PermShk_sup, PermShkMinPrb, UnempPrb, IncUnemp, RNG
+def make_buffer_stock_IncShkDstn(
+    PermShkStd,
+    PermShkCount,
+    PermShk_inf,
+    PermShk_sup,
+    PermShk_tails,
+    PermShkMinPrb,
+    TranShkStd,
+    TranShkCount,
+    TranShk_inf,
+    TranShk_sup,
+    TranShk_tails,
+    UnempPrb,
+    IncUnemp,
+    RNG,
 ):
     """
-    The default law of the permanent shock: a mean-one lognormal truncated at
-    PermShk_inf and PermShk_sup standard deviations of its log, whose log has
-    standard deviation PermShkStd after the truncation.
+    The discretized joint distribution of the permanent shock and the transitory
+    shock, the latter including the zero-income event with probability UnempPrb
+    and income IncUnemp, as HARK's income constructor builds it
+    (construct_lognormal_income_process_unemployment) for the one period that
+    repeats. The employed draws are scaled by (1 - UnempPrb * IncUnemp) /
+    (1 - UnempPrb), so mean transitory income is one; when UnempPrb is zero there
+    is no such event. The laws are those PermShk_tails and TranShk_tails name,
+    by default the paper's: mean-one lognormals truncated at PermShk_inf and
+    PermShk_sup (TranShk_inf and TranShk_sup) standard deviations of their logs,
+    whose logs have standard deviation PermShkStd (TranShkStd) after the
+    truncation.
 
-    With positive income in the zero-income event the law is that lognormal
-    with a point mass at its infimum (:class:`PointMassAtInfimum`), so that the
-    lowest value of the permanent shock has positive probability
-    (ass:shocksPositiveMinimum), of probability PermShkMinPrb; when that is
-    None, the probability that a lognormal which is not truncated puts below
-    the bound, norm.cdf(PermShk_inf), so that the mass the truncation removes
-    at the bottom sits on the bound. PermShkMinPrb of zero gives the lognormal
-    itself, with which the borrowing limit can be reached (item:NoPointMass).
+    With positive income in the zero-income event the permanent shock's law has
+    a point mass at its infimum, so that its lowest value has positive
+    probability (ass:shocksPositiveMinimum), of probability PermShkMinPrb; when
+    that is None and the law is truncated, the probability that a lognormal
+    which is not truncated puts below the bound, norm.cdf(PermShk_inf), so that
+    the mass the truncation removes at the bottom sits on the bound.
+    PermShkMinPrb of zero gives the law with no point mass, with which the
+    borrowing limit can be reached (item:NoPointMass).
     """
-    law = MeanOneTruncatedLogNormal.from_sd_log(
-        PermShkStd, bot=PermShk_inf, top=PermShk_sup, seed=RNG.integers(0, 2**31 - 1)
-    )
-    positive_minimum = UnempPrb > 0.0 and IncUnemp > 0.0
-    if positive_minimum and not isinstance(law, DiscreteDistribution):
-        prb = norm.cdf(PermShk_inf) if PermShkMinPrb is None else PermShkMinPrb
-        if 0.0 < prb < 1.0:  # anything else is reported by check_restrictions
-            return PointMassAtInfimum(law, prb)
-    return law
+    prb = None
+    if UnempPrb > 0.0 and IncUnemp > 0.0:
+        if PermShkMinPrb is not None:
+            prb = PermShkMinPrb
+        elif PermShk_tails == "truncated" and PermShk_inf is not None:
+            prb = norm.cdf(PermShk_inf)
+        # Zero is no point mass; anything else outside (0, 1) is reported by
+        # check_restrictions
+        if prb is not None and not 0.0 < prb < 1.0:
+            prb = None
+    # An inadmissible UnempPrb is reported by check_restrictions, not here
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return construct_lognormal_income_process_unemployment(
+            T_cycle=1,
+            PermShkStd=[PermShkStd],
+            PermShkCount=PermShkCount,
+            TranShkStd=[TranShkStd],
+            TranShkCount=TranShkCount,
+            T_retire=0,
+            UnempPrb=UnempPrb,
+            IncUnemp=IncUnemp,
+            UnempPrbRet=0.0,
+            IncUnempRet=0.0,
+            RNG=RNG,
+            PermShk_inf=PermShk_inf,
+            PermShk_sup=PermShk_sup,
+            TranShk_inf=TranShk_inf,
+            TranShk_sup=TranShk_sup,
+            PermShk_tails=PermShk_tails,
+            TranShk_tails=TranShk_tails,
+            PermShkMinPrb=prb,
+        )
 
 
-def make_TranShkLaw(TranShkStd, TranShk_inf, TranShk_sup, RNG):
+def get_PermShkLaw(IncShkDstn):
+    """The law of the permanent shock, as HARK's income constructor records it."""
+    return get_PermShkLaw_from_IncShkDstn(IncShkDstn)[0]
+
+
+def get_TranShkLaw(IncShkDstn):
     """
-    The default law of the transitory draw when income is not zero: a mean-one
-    lognormal truncated at TranShk_inf and TranShk_sup standard deviations of its
-    log, whose log has standard deviation TranShkStd after the truncation.
+    The law of the transitory draw when income is not zero, with mean one, as
+    HARK's income constructor records it.
     """
-    return MeanOneTruncatedLogNormal.from_sd_log(
-        TranShkStd, bot=TranShk_inf, top=TranShk_sup, seed=RNG.integers(0, 2**31 - 1)
-    )
-
-
-def _discretize(law, count):
-    if isinstance(law, DiscreteDistribution):
-        return law
-    return law.discretize(count, method="equiprobable")
+    return get_TranShkLaw_from_IncShkDstn(IncShkDstn)[0]
 
 
 def get_PermShkLawInf(PermShkLaw):
@@ -316,30 +295,6 @@ def get_WorstInc(UnempPrb, IncUnemp, TranShkLaw):
     event can happen, otherwise the infimum of the transitory draw.
     """
     return _worst_income(UnempPrb, IncUnemp, TranShkLaw)[0]
-
-
-def make_buffer_stock_IncShkDstn(
-    PermShkLaw, TranShkLaw, PermShkCount, TranShkCount, UnempPrb, IncUnemp, RNG
-):
-    """
-    The discretized joint distribution of the permanent shock and the transitory
-    shock, the latter including the zero-income event with probability UnempPrb
-    and income IncUnemp; the employed draws are scaled by
-    (1 - UnempPrb * IncUnemp) / (1 - UnempPrb), so mean transitory income is one.
-    When UnempPrb is zero there is no such event, and no point is added for it.
-    """
-    perm = _discretize(PermShkLaw, PermShkCount)
-    tran = _discretize(TranShkLaw, TranShkCount)
-    # An inadmissible UnempPrb is reported by check_restrictions, not here
-    if UnempPrb != 0.0:
-        with np.errstate(divide="ignore", invalid="ignore"):
-            tran = add_discrete_outcome_constant_mean(tran, x=IncUnemp, p=UnempPrb)
-    joint = DiscreteDistributionLabeled.from_unlabeled(
-        combine_indep_dstns(perm, tran, seed=RNG.integers(0, 2**31 - 1)),
-        name="Permanent and transitory shocks to income, with the zero-income event",
-        var_names=["PermShk", "TranShk"],
-    )
-    return IndexDistribution(distributions=[joint], seed=RNG.integers(0, 2**31 - 1))
 
 
 ###############################################################################
@@ -1355,8 +1310,8 @@ BufferStockConsumerType_constructors_default = dict(
 )
 BufferStockConsumerType_constructors_default.update(
     {
-        "PermShkLaw": make_PermShkLaw,
-        "TranShkLaw": make_TranShkLaw,
+        "PermShkLaw": get_PermShkLaw,
+        "TranShkLaw": get_TranShkLaw,
         "PermShkLawInf": get_PermShkLawInf,
         "WorstInc": get_WorstInc,
         "IncShkDstn": make_buffer_stock_IncShkDstn,
@@ -1371,6 +1326,7 @@ BufferStockConsumerType_IncShkDstn_default = {
     "PermShk_inf": -3.0,  # Lower bound of log permanent shocks, in its standard deviations
     "PermShk_sup": 3.0,  # Upper bound of log permanent shocks, in its standard deviations
     "PermShkCount": 7,  # Points in the discretization of the permanent shock
+    "PermShk_tails": "truncated",  # The paper's laws: lognormals truncated at the bounds
     # With IncUnemp above zero, the probability of the permanent shock's lowest
     # value, its law's infimum; None for the mass the truncation removes there
     "PermShkMinPrb": None,
@@ -1378,6 +1334,7 @@ BufferStockConsumerType_IncShkDstn_default = {
     "TranShk_inf": -3.0,  # Lower bound of log transitory draws, in its standard deviations
     "TranShk_sup": 3.0,  # Upper bound of log transitory draws, in its standard deviations
     "TranShkCount": 7,  # Points in the discretization of the transitory draw
+    "TranShk_tails": "truncated",
 }
 
 BufferStockConsumerType_solving_default = {
@@ -1471,13 +1428,19 @@ class BufferStockConsumerType(IndShockConsumerType):
         artificial constraint that binds, PermGroFac times the permanent
         shock's lowest value must be below Rfree.
     PermShkLaw, TranShkLaw : distribution
-        The laws of the permanent shock and of the transitory draw. By default
-        mean-one truncated lognormals built from PermShkStd, PermShk_inf,
-        PermShk_sup and their transitory counterparts; with IncUnemp above zero
-        the permanent shock's default law is that lognormal with a point mass
-        at its infimum (:class:`PointMassAtInfimum`), unless PermShkMinPrb is
-        zero. To use another law, assign it to the attribute and call
-        update_income_process().
+        The laws of the permanent shock and of the transitory draw, as HARK's
+        income constructor records them; the class builds no law of its own. By
+        default mean-one lognormals truncated at PermShk_inf and PermShk_sup
+        standard deviations of their logs, whose logs have standard deviation
+        PermShkStd after the truncation, and their transitory counterparts; with
+        IncUnemp above zero the permanent shock's law is that lognormal with a
+        point mass at its infimum
+        (:class:`HARK.distributions.PointMassAtInfimum`), unless PermShkMinPrb
+        is zero.
+    PermShk_tails, TranShk_tails : str
+        How HARK's income constructor treats each law's tails at its bounds:
+        "truncated", the default and the paper's, or another treatment the
+        constructor offers.
     PermShkMinPrb : float or None
         With IncUnemp above zero, the probability of the permanent shock's
         lowest value in its default law: at least zero and below one. With a
@@ -1882,7 +1845,7 @@ class BufferStockConsumerType(IndShockConsumerType):
         the laws: the permanent shock's infimum and the worst income.
         """
         super().update_income_process()
-        self.construct("PermShkLawInf", "WorstInc")
+        self.construct("PermShkLaw", "TranShkLaw", "PermShkLawInf", "WorstInc")
 
     def pre_solve(self):
         self.check_restrictions()

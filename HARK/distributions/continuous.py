@@ -5,6 +5,7 @@ from math import factorial
 from typing import Any, Optional, Union
 
 import numpy as np
+from scipy.integrate import quad
 from scipy.special import erfc, ndtr, ndtri
 from scipy.stats import (
     rv_continuous,
@@ -1192,6 +1193,165 @@ def __getattr__(name):
         )
         return globals()[_RENAMED[name]]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def _quantile_expectation(law, func):
+    """
+    The expectation of func under a continuous law, by adaptive quadrature of
+    func(F^{-1}(q)) over the probabilities q between zero and one, split at the
+    probabilities of the law's breakpoints(), where its quantile function has a
+    kink or a jump.
+
+    Parameters
+    ----------
+    law : Distribution
+        A continuous law with a quantile function ppf (and a cdf, where it has
+        breakpoints()).
+    func : callable
+        The function whose expectation is taken; it must accept an array.
+
+    Returns
+    -------
+    float
+    """
+    points = None
+    if hasattr(law, "breakpoints"):
+        qs = np.ravel(law.cdf(np.asarray(law.breakpoints(), dtype=float)))
+        points = [float(q) for q in qs if 0.0 < q < 1.0] or None
+    value, _ = quad(
+        lambda q: func(law.ppf(q)),
+        0.0,
+        1.0,
+        limit=200,
+        epsabs=1e-14,
+        epsrel=1e-12,
+        points=points,
+    )
+    return float(value)
+
+
+class PointMassAtInfimum(Distribution):
+    """
+    A law that takes its lowest value with positive probability.
+
+    With probability ``prb`` the draw is the infimum of a base law. Otherwise it
+    is a draw from the base law times (1 - prb * infimum) / (1 - prb), which
+    keeps the mean at one when the base law's mean is one, as the draws of a
+    transitory shock are scaled around an unemployment event. The lowest value
+    is the base law's infimum at every number of points of a discretization,
+    and the scaled draws are bounded away from it.
+
+    A model needs such a law where a theory requires the worst value of a shock
+    to have positive probability, as the theory of buffer stock saving does for
+    the permanent shock when income in the zero-income event is positive.
+
+    Parameters
+    ----------
+    base : Distribution
+        A continuous law with a positive infimum, such as a
+        LogNormalTruncatedMeanOne.
+    prb : float
+        The probability of the infimum, strictly between zero and one.
+    seed : int, optional
+        Seed for the random number generator. The default is 0.
+
+    Attributes
+    ----------
+    infimum, supremum : np.ndarray
+        The bounds of the law: the base law's infimum, and its supremum scaled.
+    infimum_prb : float
+        The probability of the infimum.
+    scale : float
+        The factor on the base law's draws, (1 - prb * infimum) / (1 - prb).
+    """
+
+    def __init__(self, base, prb, seed=0):
+        inf = float(np.ravel(base.infimum)[0])
+        sup = float(np.ravel(base.supremum)[0])
+        prb = float(prb)
+        if not 0.0 < prb < 1.0:
+            raise ValueError(
+                "The probability of the infimum must be strictly between zero "
+                "and one, not " + str(prb) + "."
+            )
+        if not 0.0 < inf < np.inf:
+            raise ValueError(
+                "A point mass at the infimum needs a base law whose infimum is "
+                "positive, not " + str(inf) + "."
+            )
+        super().__init__(seed=seed)
+        self.base = base
+        self.infimum_prb = prb
+        self.scale = (1.0 - prb * inf) / (1.0 - prb)
+        self.infimum = np.array([inf])
+        self.supremum = np.array([self.scale * sup])
+
+    def ppf(self, q):
+        """The quantile function: the infimum up to infimum_prb."""
+        q = np.asarray(q, dtype=float)
+        above = np.clip((q - self.infimum_prb) / (1.0 - self.infimum_prb), 0.0, 1.0)
+        return np.where(
+            q <= self.infimum_prb, self.infimum[0], self.scale * self.base.ppf(above)
+        )
+
+    def cdf(self, x):
+        """The distribution function, which jumps by infimum_prb at the infimum."""
+        x = np.asarray(x, dtype=float)
+        rest = (1.0 - self.infimum_prb) * self.base.cdf(x / self.scale)
+        return np.where(x < self.infimum[0], 0.0, self.infimum_prb + rest)
+
+    def expect(self, func=None):
+        """
+        The expectation of func under the law: the infimum's share, and the base
+        law's by quadrature of its quantile function. With no func, the mean.
+        """
+        if func is None:
+            return self.mean()
+        rest = _quantile_expectation(self.base, lambda x: func(self.scale * x))
+        return float(
+            self.infimum_prb * func(self.infimum[0]) + (1.0 - self.infimum_prb) * rest
+        )
+
+    def mean(self):
+        """The mean, one when the base law's mean is one."""
+        base_mean = float(np.ravel(self.base.mean())[0])
+        return float(
+            self.infimum_prb * self.infimum[0]
+            + (1.0 - self.infimum_prb) * self.scale * base_mean
+        )
+
+    def rvs(self, size=None, random_state=None):
+        """Random draws, through the quantile function."""
+        rng = self._rng if random_state is None else random_state
+        return self.ppf(rng.uniform(size=size))
+
+    def _approx_equiprobable(self, N, endpoints=False):
+        """
+        The infimum with its probability, and the base law's equiprobable
+        discretization with N atoms, scaled, for the rest of the law.
+
+        Parameters
+        ----------
+        N : int
+            Number of atoms for the base law.
+        endpoints : bool, optional
+            Whether to add a zero-probability atom at the supremum, by default
+            False. The infimum is already an atom.
+
+        Returns
+        -------
+        DiscreteDistribution
+        """
+        rest = self.base.discretize(N, method="equiprobable")
+        atoms = np.concatenate((self.infimum, self.scale * np.ravel(rest.atoms)))
+        pmv = np.concatenate(
+            ([self.infimum_prb], (1.0 - self.infimum_prb) * np.asarray(rest.pmv))
+        )
+        if endpoints and np.isfinite(self.supremum[0]):
+            atoms = np.r_[atoms, self.supremum]
+            pmv = np.r_[pmv, 0.0]
+        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+        return DiscreteDistribution(pmv, atoms, seed=self.random_seed(), limit=limit)
 
 
 class Uniform(ContinuousFrozenDistribution):

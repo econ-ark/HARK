@@ -7,13 +7,17 @@ import numpy as np
 
 from HARK.ConsumptionSaving.ConsBufferStockModel import (
     BufferStockConsumerType,
-    PointMassAtInfimum,
     calc_buffer_stock_conditions,
     paper_url,
 )
 from HARK import _log
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-from HARK.distributions import DiscreteDistribution, LogNormal, LogNormalMeanOne
+from HARK.distributions import (
+    DiscreteDistribution,
+    LogNormal,
+    LogNormalMeanOne,
+    PointMassAtInfimum,
+)
 
 
 def make_agent(**kwds):
@@ -152,14 +156,29 @@ class testBufferStockRestrictions(unittest.TestCase):
         self.assertEqual(agent.solution[0].mNrmMin, 0.0)
 
     def assertLawRefused(self, fragment, **laws):
-        # A law of the user's own is assigned after construction
+        # The checks read the laws as they stand, so a law assigned by hand is
+        # refused as one from HARK's income constructor would be
         agent = make_agent()
         for name, law in laws.items():
             setattr(agent, name, law)
-        agent.update_income_process()
         with self.assertRaises(ValueError) as caught:
             agent.check_restrictions()
         self.assertIn(fragment, str(caught.exception))
+
+    def test_laws_from_the_parameters(self):
+        # The laws come from HARK's income constructor, so a law outside the
+        # paper's model is reached through its parameters: no upper bound, or
+        # no bounds at all
+        for fragment, params in (
+            ("PermShkLaw's supremum must be finite", {"PermShk_sup": None}),
+            (
+                "TranShkLaw's infimum must be positive",
+                {"TranShk_inf": None, "TranShk_sup": None},
+            ),
+        ):
+            with self.assertRaises(ValueError) as caught:
+                make_agent(**params).check_restrictions()
+            self.assertIn(fragment, str(caught.exception))
 
     def test_laws(self):
         self.assertLawRefused(
@@ -572,9 +591,8 @@ class testBufferStockSolution(unittest.TestCase):
         # discretization's lowest points. One period from the end, with a law
         # that has no point mass at its infimum and an artificial constraint
         # that does not yet bind:
-        agent = make_agent(IncUnemp=0.3, BoroCnstArt=-0.3, cycles=1)
-        agent.PermShkLaw = make_agent().PermShkLaw  # the truncated lognormal
-        agent.update_income_process()
+        agent = make_agent(IncUnemp=0.3, PermShkMinPrb=0.0, BoroCnstArt=-0.3, cycles=1)
+        self.assertNotIsInstance(agent.PermShkLaw, PointMassAtInfimum)
         agent.solve()
         infimum = agent.PermShkLaw.infimum[0]
         lowest_point = np.min(agent.PermShkDstn[0].atoms)
@@ -584,20 +602,18 @@ class testBufferStockSolution(unittest.TestCase):
         )
 
     def test_a_point_mass_at_the_worst_income(self):
-        # With positive income in the event and laws whose infima are atoms, the
-        # worst event has positive probability and the MPC at the bottom is
-        # below one, in the solution as in the record
-        agent = make_agent(IncUnemp=0.05)
-        agent.PermShkLaw = LogNormalMeanOne(0.1).discretize(7, method="equiprobable")
-        agent.TranShkLaw = LogNormalMeanOne(0.1).discretize(7, method="equiprobable")
-        agent.update_income_process()
+        # With positive income in the event and a permanent shock whose infimum
+        # is an atom, here of probability 0.05, the worst event has positive
+        # probability and the MPC at the bottom is below one, in the solution as
+        # in the record
+        agent = make_agent(IncUnemp=0.05, PermShkMinPrb=0.05)
+        self.assertEqual(agent.PermShkLaw.infimum_prb, 0.05)
         agent.solve()
         results = agent.bilt["BufferStockConditions"]
-        self.assertAlmostEqual(results.WorstPrb, 0.005 / 7.0, places=12)
+        worst = 0.005 * agent.PermShkLaw.infimum_prb
+        self.assertAlmostEqual(results.WorstPrb, worst, places=12)
         RPFac = agent.bilt["RPFac"]
-        self.assertAlmostEqual(
-            results.MPCmax, 1.0 - (0.005 / 7.0) ** 0.5 * RPFac, places=12
-        )
+        self.assertAlmostEqual(results.MPCmax, 1.0 - worst**0.5 * RPFac, places=12)
         self.assertLess(results.MPCmax, 1.0)
         self.assertAlmostEqual(agent.solution[0].MPCmax, results.MPCmax, places=8)
         self.assertAlmostEqual(

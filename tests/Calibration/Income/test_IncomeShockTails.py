@@ -16,6 +16,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
     LognormPermIncShk,
     MixtureTranIncShk,
     construct_lognormal_income_process_unemployment,
+    get_PermShkLaw_from_IncShkDstn,
+    get_TranShkLaw_from_IncShkDstn,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -24,6 +26,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.distributions import (
     LogNormalTruncatedJumplessMeanOne,
     LogNormalTruncatedMeanOne,
+    PointMassAtInfimum,
 )
 
 BOUNDS = {
@@ -124,6 +127,58 @@ class testIncomeShockTails(unittest.TestCase):
         # an infinite upper bound is no bound
         unbounded = LognormPermIncShk(0.1, 7, bot=-3.0, top=np.inf, tails="jumpless")
         np.testing.assert_array_equal(unbounded.atoms, shock.atoms)
+
+    def test_point_mass_at_the_permanent_shocks_infimum(self):
+        shock = LognormPermIncShk(
+            0.1, 7, bot=-3.0, top=3.0, tails="truncated", infimum_prb=0.002
+        )
+        law = shock.limit["dist"]
+        self.assertIsInstance(law, PointMassAtInfimum)
+        self.assertIsInstance(law.base, LogNormalTruncatedMeanOne)
+        atoms, pmv = shock.atoms[0], shock.pmv
+        self.assertEqual(len(atoms), 8)
+        self.assertEqual(atoms[0], shock.limit["infimum"][0])
+        self.assertEqual(pmv[0], 0.002)
+        self.assertAlmostEqual(np.dot(pmv, atoms), 1.0, places=14)
+        # the lowest value keeps its probability whatever the number of atoms
+        for n in (3, 25):
+            other = LognormPermIncShk(
+                0.1, n, bot=-3.0, top=3.0, tails="truncated", infimum_prb=0.002
+            )
+            self.assertEqual((other.atoms[0][0], other.pmv[0]), (atoms[0], pmv[0]))
+        # it needs a lower bound
+        with self.assertRaises(ValueError):
+            LognormPermIncShk(0.1, 7, infimum_prb=0.002)
+        # and through the constructor, whose laws can be read back
+        args = dict(
+            T_cycle=1,
+            PermShkStd=[0.1],
+            PermShkCount=7,
+            TranShkStd=[0.1],
+            TranShkCount=7,
+            T_retire=0,
+            UnempPrb=0.05,
+            IncUnemp=0.3,
+            UnempPrbRet=0.0,
+            IncUnempRet=0.0,
+            PermShk_inf=-3.0,
+            PermShk_sup=3.0,
+            TranShk_inf=-3.0,
+            TranShk_sup=3.0,
+            PermShk_tails="truncated",
+            TranShk_tails="truncated",
+        )
+        for prb, kind in (
+            (0.002, PointMassAtInfimum),
+            (None, LogNormalTruncatedMeanOne),
+        ):
+            IncShkDstn = construct_lognormal_income_process_unemployment(
+                RNG=np.random.default_rng(0), PermShkMinPrb=prb, **args
+            )
+            self.assertIsInstance(get_PermShkLaw_from_IncShkDstn(IncShkDstn)[0], kind)
+            tran = get_TranShkLaw_from_IncShkDstn(IncShkDstn)[0]
+            self.assertIsInstance(tran, LogNormalTruncatedMeanOne)
+            self.assertAlmostEqual(float(tran.mean()), 1.0, places=12)
 
     def test_one_sided_bound(self):
         shock = LognormPermIncShk(0.1, 7, bot=-3.0)
