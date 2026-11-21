@@ -17,7 +17,11 @@ labor income subject to independent and identically distributed shocks:
 The class also admits a shock whose law is bounded below but not above, such as
 the lognormal truncated below only. The paper's results assume bounded shocks
 (ass:shocks, and ass:shocksPositiveMinimum in its appendix), so for such a law
-the record reports them as not established, with that reason.
+the record reports them as not established, with that reason. Under the
+continuous expectation (IncShkExpectation "continuous") such laws are the
+default: HARK's income constructor then gives both shocks the jumpless truncated
+lognormal, cut off three standard deviations below, where its density is zero,
+and not above.
 
 The conditions on the parameters are computed from the true laws of the shocks,
 never from their discretization, and are reported with what the paper's
@@ -99,6 +103,8 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
+    _shock_bounds,
+    _shock_tails,
     construct_lognormal_income_process_unemployment,
     get_PermShkLaw_from_IncShkDstn,
     get_TranShkLaw_from_IncShkDstn,
@@ -216,6 +222,16 @@ def _is_point_at_one(law):
 ###############################################################################
 
 
+def _bounds_in_force(inf, sup, tails):
+    """
+    A shock's bounds as the class takes them: a bound left None is the default
+    for its tails (_shock_bounds), and no bound is an infinite one, so that the
+    income constructor reads it as none under either expectation.
+    """
+    inf, sup = _shock_bounds(inf, sup, tails)
+    return (-np.inf if inf is None else inf), (np.inf if sup is None else sup)
+
+
 def make_buffer_stock_IncShkDstn(
     PermShkStd,
     PermShkCount,
@@ -231,6 +247,7 @@ def make_buffer_stock_IncShkDstn(
     UnempPrb,
     IncUnemp,
     RNG,
+    IncShkExpectation="atoms",
 ):
     """
     The discretized joint distribution of the permanent shock and the transitory
@@ -240,25 +257,38 @@ def make_buffer_stock_IncShkDstn(
     repeats. The employed draws are scaled by (1 - UnempPrb * IncUnemp) /
     (1 - UnempPrb), so mean transitory income is one; when UnempPrb is zero there
     is no such event. The laws are those PermShk_tails and TranShk_tails name,
-    by default the paper's: mean-one lognormals truncated at PermShk_inf and
-    PermShk_sup (TranShk_inf and TranShk_sup) standard deviations of their logs,
-    whose logs have standard deviation PermShkStd (TranShkStd) after the
-    truncation.
+    at the bounds PermShk_inf and PermShk_sup (TranShk_inf and TranShk_sup) in
+    standard deviations of their logs, whose logs have standard deviation
+    PermShkStd (TranShkStd). Left None, they are the defaults for the
+    expectation IncShkExpectation (SHOCK_BOUND_DEFAULT): over the atoms the
+    paper's laws, mean-one lognormals truncated at three standard deviations;
+    under the continuous expectation the jumpless truncated lognormal, cut off
+    three standard deviations below and not above. The class applies them
+    itself, so its laws are bounded whatever HARK's own default laws are.
 
     With positive income in the zero-income event the permanent shock's law has
     a point mass at its infimum, so that its lowest value has positive
     probability (ass:shocksPositiveMinimum), of probability PermShkMinPrb; when
     that is None and the law is truncated, the probability that a lognormal
-    which is not truncated puts below the bound, norm.cdf(PermShk_inf), so that
-    the mass the truncation removes at the bottom sits on the bound.
-    PermShkMinPrb of zero gives the law with no point mass, with which the
-    borrowing limit can be reached (item:NoPointMass).
+    which is not truncated puts below the lower bound, norm.cdf of it, so that
+    the mass the truncation removes at the bottom sits on the bound. The
+    jumpless law, whose density is zero at its bound, gets no point mass unless
+    PermShkMinPrb gives one. PermShkMinPrb of zero gives the law with no point
+    mass, with which the borrowing limit can be reached (item:NoPointMass).
     """
+    # The tails and bounds in force: left None, the defaults for the expectation
+    # the class takes over the shocks (_shock_tails, _shock_bounds), so that its
+    # laws are bounded whatever HARK's own defaults are; an infinite bound is no
+    # bound, and is passed on as one
+    PermShk_tails = _shock_tails(PermShk_tails, IncShkExpectation)
+    TranShk_tails = _shock_tails(TranShk_tails, IncShkExpectation)
+    PermShk_inf, PermShk_sup = _bounds_in_force(PermShk_inf, PermShk_sup, PermShk_tails)
+    TranShk_inf, TranShk_sup = _bounds_in_force(TranShk_inf, TranShk_sup, TranShk_tails)
     prb = None
     if UnempPrb > 0.0 and IncUnemp > 0.0:
         if PermShkMinPrb is not None:
             prb = PermShkMinPrb
-        elif PermShk_tails == "truncated" and PermShk_inf is not None:
+        elif PermShk_tails == "truncated" and np.isfinite(PermShk_inf):
             prb = norm.cdf(PermShk_inf)
         # Zero is no point mass; anything else outside (0, 1) is reported by
         # check_restrictions
@@ -285,6 +315,7 @@ def make_buffer_stock_IncShkDstn(
             PermShk_tails=PermShk_tails,
             TranShk_tails=TranShk_tails,
             PermShkMinPrb=prb,
+            IncShkExpectation=IncShkExpectation,
         )
 
 
@@ -1507,18 +1538,21 @@ BufferStockConsumerType_IncShkDstn_default = {
     "UnempPrb": 0.005,  # Probability of the zero-income event
     "IncUnemp": 0.0,  # Income in that event, zero in the paper
     "PermShkStd": 0.1,  # Standard deviation of log permanent shocks, after truncation
-    "PermShk_inf": -3.0,  # Lower bound of log permanent shocks, in its standard deviations
-    "PermShk_sup": 3.0,  # Upper bound of log permanent shocks, in its standard deviations
+    # The bounds of the logs, in their standard deviations, and the treatment of
+    # the tails: None for HARK's defaults, the paper's laws truncated at -3 and 3
+    # over the atoms, the jumpless law cut off at -3 under the continuous expectation
+    "PermShk_inf": None,  # Lower bound of log permanent shocks
+    "PermShk_sup": None,  # Upper bound of log permanent shocks
     "PermShkCount": 7,  # Points in the discretization of the permanent shock
-    "PermShk_tails": "truncated",  # The paper's laws: lognormals truncated at the bounds
+    "PermShk_tails": None,
     # With IncUnemp above zero, the probability of the permanent shock's lowest
     # value, its law's infimum; None for the mass the truncation removes there
     "PermShkMinPrb": None,
     "TranShkStd": 0.1,  # Standard deviation of log transitory draws, after truncation
-    "TranShk_inf": -3.0,  # Lower bound of log transitory draws, in its standard deviations
-    "TranShk_sup": 3.0,  # Upper bound of log transitory draws, in its standard deviations
+    "TranShk_inf": None,  # Lower bound of log transitory draws
+    "TranShk_sup": None,  # Upper bound of log transitory draws
     "TranShkCount": 7,  # Points in the discretization of the transitory draw
-    "TranShk_tails": "truncated",
+    "TranShk_tails": None,
 }
 
 BufferStockConsumerType_solving_default = {
@@ -1617,17 +1651,25 @@ class BufferStockConsumerType(IndShockConsumerType):
     PermShkLaw, TranShkLaw : distribution
         The laws of the permanent shock and of the transitory draw, as HARK's
         income constructor records them; the class builds no law of its own. By
-        default mean-one lognormals truncated at PermShk_inf and PermShk_sup
-        standard deviations of their logs, whose logs have standard deviation
-        PermShkStd after the truncation, and their transitory counterparts; with
-        IncUnemp above zero the permanent shock's law is that lognormal with a
-        point mass at its infimum
+        default, over the atoms, the paper's laws: mean-one lognormals truncated
+        at three standard deviations of their logs, whose logs have standard
+        deviation PermShkStd after the truncation, and their transitory
+        counterparts; with IncUnemp above zero the permanent shock's law is that
+        lognormal with a point mass at its infimum
         (:class:`HARK.distributions.PointMassAtInfimum`), unless PermShkMinPrb
-        is zero.
-    PermShk_tails, TranShk_tails : str
-        How HARK's income constructor treats each law's tails at its bounds:
-        "truncated", the default and the paper's, or another treatment the
+        is zero. Under the continuous expectation, by default, the jumpless
+        truncated lognormals, cut off three standard deviations below and not
+        above, for which the paper's results are reported as not established.
+    PermShk_tails, TranShk_tails : str or None
+        How HARK's income constructor treats each law's tails at its bounds.
+        None, the default, is "truncated", the paper's, over the atoms and
+        "jumpless" under the continuous expectation; or another treatment the
         constructor offers.
+    PermShk_inf, PermShk_sup, TranShk_inf, TranShk_sup : float or None
+        The bounds of the logs, in their standard deviations: None, the default,
+        for the default of the treatment of the tails (three standard
+        deviations, and no upper bound for the jumpless law), an infinite bound
+        for none.
     PermShkMinPrb : float or None
         With IncUnemp above zero, the probability of the permanent shock's
         lowest value in its default law: at least zero and below one. With a
@@ -1635,7 +1677,8 @@ class BufferStockConsumerType(IndShockConsumerType):
         gives the lognormal itself, with which the limit can be reached and the
         MPC at the bottom is one (item:NoPointMass). None (the default) for the
         probability that a lognormal which is not truncated puts below the
-        bound, norm.cdf(PermShk_inf).
+        truncated law's lower bound (norm.cdf(-3) at the default bound), and no
+        point mass for the jumpless law.
     PermShkCount, TranShkCount : int
         The number of points in each law's equiprobable discretization. A point
         mass of a law is a point of its own, so the lowest values and their
