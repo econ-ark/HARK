@@ -167,27 +167,39 @@ class testBufferStockRestrictions(unittest.TestCase):
 
     def test_laws_from_the_parameters(self):
         # The laws come from HARK's income constructor, so a law outside the
-        # paper's model is reached through its parameters: no upper bound, or
-        # no bounds at all
-        for fragment, params in (
-            ("PermShkLaw's supremum must be finite", {"PermShk_sup": None}),
-            (
-                "TranShkLaw's infimum must be positive",
-                {"TranShk_inf": None, "TranShk_sup": None},
-            ),
-        ):
-            with self.assertRaises(ValueError) as caught:
-                make_agent(**params).check_restrictions()
-            self.assertIn(fragment, str(caught.exception))
+        # model is reached through its parameters: no bounds at all, so that the
+        # infimum is zero
+        with self.assertRaises(ValueError) as caught:
+            make_agent(TranShk_inf=None, TranShk_sup=None).check_restrictions()
+        self.assertIn("TranShkLaw's infimum must be positive", str(caught.exception))
 
     def test_laws(self):
         self.assertLawRefused(
-            "supremum must be finite", PermShkLaw=LogNormalMeanOne(0.1)
+            "infimum must be positive", PermShkLaw=LogNormalMeanOne(0.1)
         )
         self.assertLawRefused(
             "infimum must be positive", TranShkLaw=LogNormalMeanOne(0.1)
         )
         self.assertLawRefused("mean must be one", TranShkLaw=LogNormal(0.0, 0.1))
+
+    def test_a_law_with_no_upper_bound(self):
+        # Admitted, but the paper's results, which assume bounded shocks, are
+        # reported as not established
+        agent = make_agent(PermShk_sup=None)
+        self.assertEqual(agent.PermShkLaw.supremum[0], np.inf)
+        agent.check_restrictions()
+        agent.check_conditions()
+        results = agent.bilt["BufferStockConditions"]
+        bounded = make_agent()
+        bounded.check_conditions()
+        self.assertEqual(bounded.bilt["BufferStockConditions"].existence, "established")
+        self.assertEqual(results.existence, "not established")
+        self.assertIn("no upper bound", results.existence_basis)
+        self.assertIn("ass:shocks", results.existence_basis)
+        self.assertFalse(results.target_guaranteed)
+        self.assertFalse(results.pseudo_target_guaranteed)
+        agent.solve()
+        self.assertTrue(np.isfinite(agent.solution[0].cFunc(1.0)))
 
     def test_income_in_the_zero_income_event(self):
         agent = make_agent()

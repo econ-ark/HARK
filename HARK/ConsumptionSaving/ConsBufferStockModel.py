@@ -14,6 +14,11 @@ labor income subject to independent and identically distributed shocks:
 - otherwise a transitory draw with mean one, on a bounded interval inside the
   positive reals, scaled so that mean transitory income is one.
 
+The class also admits a shock whose law is bounded below but not above, such as
+the lognormal truncated below only. The paper's results assume bounded shocks
+(ass:shocks, and ass:shocksPositiveMinimum in its appendix), so for such a law
+the record reports them as not established, with that reason.
+
 The conditions on the parameters are computed from the true laws of the shocks,
 never from their discretization, and are reported with what the paper's
 theorems conclude from them. The theorems are sufficiency results, and the
@@ -486,7 +491,9 @@ class BufferStockConditions:
         the WRIC and the FVAC); "fails" when the paper shows that the limiting
         solution is degenerate, as when the WRIC fails, so that consumption goes
         to zero everywhere as the horizon extends; "not established" where the
-        paper proves nothing, as when the FVAC fails with the WRIC holding. With
+        paper proves nothing, as when the FVAC fails with the WRIC holding, or
+        when a shock's law has no upper bound, which every result of the paper
+        assumes (ass:shocks, ass:shocksPositiveMinimum). With
         positive income in the zero-income event the theorems are the
         appendix's, and need minimum human wealth to be finite: when the
         permanent shock takes its lowest value with positive probability,
@@ -1227,6 +1234,33 @@ def calc_buffer_stock_conditions(
         G * float(PermShkMin),
     )
     verdict = _VERDICTS[scenario](factors, holds, model)
+    unbounded = [
+        name
+        for name, law in (
+            ("permanent shock", PermShkLaw),
+            ("transitory draw", TranShkLaw),
+        )
+        if not np.isfinite(_law_bounds(law)[1])
+    ]
+    if unbounded:
+        # Every result of the paper assumes bounded shocks: none applies as
+        # written to a law with no upper bound
+        verdict = verdict._replace(
+            existence="not established",
+            existence_basis=(
+                "The law of the "
+                + " and the law of the ".join(unbounded)
+                + " "
+                + ("have" if len(unbounded) > 1 else "has")
+                + " no upper bound, and every result of the paper assumes "
+                "bounded shocks (ass:shocks; with positive income in the "
+                "zero-income event, ass:shocksPositiveMinimum), so no theorem "
+                "of the paper applies as written. For bounded shocks the paper "
+                "would conclude: " + verdict.existence_basis
+            ),
+            target_guaranteed=False,
+            pseudo_target_guaranteed=False,
+        )
     existence = verdict.existence
 
     conditions = {}
@@ -1562,8 +1596,10 @@ class BufferStockConsumerType(IndShockConsumerType):
                 f'on_no_solution must be "warn" or "raise", not {self.on_no_solution!r}.'
             )
 
-        # The laws: mean one, on a bounded interval inside the positive reals that
-        # contains one (ass:shocks)
+        # The laws: mean one, on an interval inside the positive reals that
+        # contains one, bounded below (ass:shocks). A law with no upper bound is
+        # admitted; the record then reports the paper's results, which assume
+        # one, as not established
         for name in ("PermShkLaw", "TranShkLaw"):
             law = getattr(self, name)
             inf, sup = _law_bounds(law)
@@ -1571,10 +1607,6 @@ class BufferStockConsumerType(IndShockConsumerType):
             if not inf > 0.0:
                 problems.append(
                     f"{name}'s infimum must be positive (ass:shocks), not {inf}."
-                )
-            if not np.isfinite(sup):
-                problems.append(
-                    f"{name}'s supremum must be finite (ass:shocks): its support must be bounded."
                 )
             if not inf <= 1.0 <= sup:
                 problems.append(
