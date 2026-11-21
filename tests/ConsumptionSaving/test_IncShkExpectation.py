@@ -40,6 +40,7 @@ from HARK.distributions import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     LogNormalMeanOne,
+    LogNormalTruncatedJumplessMeanOne,
     LogNormalTruncatedMeanOne,
     LogNormalTruncated,
     PointMassAtInfimum,
@@ -51,7 +52,8 @@ from HARK.interpolation import CubicInterp, LinearInterp
 from HARK.utilities import get_arg_names
 
 # The jumpless laws, bounded three standard deviations below, on which these
-# tests run; HARK's default is the truncated one (testTruncatedDefault, below)
+# tests run; with the continuous expectation HARK's default is the jumpless one
+# (testDefaultLaws, below)
 BOUNDS = {
     "PermShk_inf": -3.0,
     "TranShk_inf": -3.0,
@@ -67,6 +69,7 @@ TRUNCATED_BOUNDS = {
     "PermShk_tails": "truncated",
     "TranShk_tails": "truncated",
 }
+TRUNCATED_TAILS = {"PermShk_tails": "truncated", "TranShk_tails": "truncated"}
 JUMPLESS_TAILS = {"PermShk_tails": "jumpless", "TranShk_tails": "jumpless"}
 
 
@@ -227,7 +230,6 @@ class testIncShkExpectation(unittest.TestCase):
             PermShkStd=[0.0],
             IncShkExpectation="continuous",
             TranShk_inf=-3.0,
-            TranShk_sup=3.0,
         )
         agent.cycles = 5
         agent.solve()
@@ -361,20 +363,24 @@ class testIncShkExpectation(unittest.TestCase):
 
     def test_same_limit_as_the_atoms(self):
         # The natural borrowing constraint belongs to the model, from the laws'
-        # infima: the continuous expectation has the one 7 and 11 atoms have,
-        # in every period of a finite horizon
-        limits = []
-        for kwds in [
-            dict(PermShkCount=7, TranShkCount=7),
-            dict(PermShkCount=11, TranShkCount=11),
-            dict(IncShkExpectation="continuous"),
-        ]:
-            agent = IndShockConsumerType(cycles=2, BoroCnstArt=None, **kwds)
-            agent.solve()
-            # The last solution is the terminal period's
-            limits.append([s.mNrmMin for s in agent.solution[:-1]])
-        np.testing.assert_allclose(limits[1], limits[0], rtol=0, atol=1e-12)
-        np.testing.assert_allclose(limits[2], limits[0], rtol=0, atol=1e-12)
+        # infima: on one law, the continuous expectation has the one 7 and 11
+        # atoms have, in every period of a finite horizon
+        # with the bounds given: over the atoms a bound left None is no bound
+        for tails in (TRUNCATED_BOUNDS, BOUNDS):
+            limits = []
+            for kwds in [
+                dict(PermShkCount=7, TranShkCount=7),
+                dict(PermShkCount=11, TranShkCount=11),
+                dict(IncShkExpectation="continuous"),
+            ]:
+                agent = IndShockConsumerType(
+                    cycles=2, BoroCnstArt=None, **tails, **kwds
+                )
+                agent.solve()
+                # The last solution is the terminal period's
+                limits.append([s.mNrmMin for s in agent.solution[:-1]])
+            np.testing.assert_allclose(limits[1], limits[0], rtol=0, atol=1e-12)
+            np.testing.assert_allclose(limits[2], limits[0], rtol=0, atol=1e-12)
 
     def test_natural_constraint_linear(self):
         # The same with linear interpolation, where the transition is read off a
@@ -698,17 +704,18 @@ class testIncShkExpectation(unittest.TestCase):
         # period's minimum cash-on-hand, and the MPC falls from its value at the
         # kink like a power of the distance. With k the power with which the
         # permanent shock's probability approaches its lowest value (1 for the
-        # truncated law, 2 for the jumpless): for CRRA in [k - 1, k) the
+        # truncated law, 2 for the jumpless one, the default here): for CRRA in
+        # [k - 1, k) the
         # MPC leaves one with no step; for CRRA in [k - 2, k - 1) it steps down at
         # the kink and then falls like a power. No cubic follows either, so the
         # segment above the kink takes the power's shape, the asset grid takes
         # points close above the constraint, and the solution is concave
         cases = (
-            ({}, 0.8, True),
-            ({}, 0.5, True),
-            (JUMPLESS_TAILS, 1.5, True),
-            (JUMPLESS_TAILS, 1.2, True),
-            (JUMPLESS_TAILS, 0.5, False),
+            ({}, 1.5, True),
+            ({}, 1.2, True),
+            ({}, 0.8, False),
+            (TRUNCATED_TAILS, 0.8, True),
+            (TRUNCATED_TAILS, 0.5, True),
         )
         for tails, CRRA, no_step in cases:
             with self.subTest(tails=tails, CRRA=CRRA):
@@ -1187,35 +1194,126 @@ class testIncShkExpectation(unittest.TestCase):
             PrefShockConsumerType(IncShkExpectation="continuous").solve()
 
 
-class testTruncatedDefault(unittest.TestCase):
+class testDefaultLaws(unittest.TestCase):
     """
-    HARK's default income shocks, lognormals truncated at three standard
-    deviations: the continuous expectation solves on them, with the artificial
+    With the continuous expectation HARK's default income shocks are jumpless:
+    lognormals truncated below at three standard deviations whose density is
+    zero at the bound. The continuous expectation solves on them, and on the
+    truncated lognormals that are the atoms' default, with the artificial
     constraint and with the natural one, and the cubic is concave.
     """
 
-    def test_artificial_constraint(self):
-        agent = IndShockConsumerType(
-            cycles=0, CubicBool=True, IncShkExpectation="continuous"
+    laws = (
+        ({}, LogNormalTruncatedJumplessMeanOne),
+        (TRUNCATED_TAILS, LogNormalTruncatedMeanOne),
+    )
+
+    def test_the_default_is_jumpless(self):
+        agent = IndShockConsumerType(cycles=0, IncShkExpectation="continuous")
+        for law in get_income_shock_laws(agent.IncShkDstn[0])[:2]:
+            law = getattr(law, "law", law)  # the employed law is rescaled
+            self.assertIsInstance(law, LogNormalTruncatedJumplessMeanOne)
+            self.assertEqual((law.bot, law.top), (-3.0, np.inf))
+        # over the atoms the default law is the lognormal, unbounded
+        atoms = IndShockConsumerType(cycles=0)
+        self.assertIs(
+            type(get_income_shock_laws(atoms.IncShkDstn[0])[0]), LogNormalMeanOne
         )
-        agent.solve()
-        self.assertLess(agent.solution_distance, agent.tolerance)
-        solution = agent.solution[0]
-        kink = solution.mNrmKinks[0]
-        m = np.linspace(kink + 1e-6, 20.0, 200001)
-        self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)
+        # the default has no upper bound, so one given is refused
+        with self.assertRaises(ValueError):
+            IndShockConsumerType(
+                cycles=0, IncShkExpectation="continuous", PermShk_sup=3.0
+            )
+
+    def test_artificial_constraint(self):
+        for tails, law in self.laws:
+            with self.subTest(law=law.__name__):
+                agent = IndShockConsumerType(
+                    cycles=0, CubicBool=True, IncShkExpectation="continuous", **tails
+                )
+                self.assertIsInstance(
+                    get_income_shock_laws(agent.IncShkDstn[0])[0], law
+                )
+                agent.solve()
+                self.assertLess(agent.solution_distance, agent.tolerance)
+                solution = agent.solution[0]
+                kink = solution.mNrmKinks[0]
+                m = np.linspace(kink + 1e-6, 20.0, 200001)
+                self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)
 
     def test_natural_constraint(self):
-        agent = IndShockConsumerType(
-            cycles=0, CubicBool=True, BoroCnstArt=None, IncShkExpectation="continuous"
+        for tails, law in self.laws:
+            with self.subTest(law=law.__name__):
+                agent = IndShockConsumerType(
+                    cycles=0,
+                    CubicBool=True,
+                    BoroCnstArt=None,
+                    IncShkExpectation="continuous",
+                    **tails,
+                )
+                self.assertIsInstance(
+                    get_income_shock_laws(agent.IncShkDstn[0])[0], law
+                )
+                agent.solve()
+                self.assertLess(agent.solution_distance, agent.tolerance)
+                solution = agent.solution[0]
+                limit = solution.mNrmMin
+                m = (
+                    limit
+                    + np.r_[
+                        np.geomspace(1e-6, 0.1, 1001), np.linspace(0.1, 20.0, 200001)
+                    ]
+                )
+                self.assertTrue(np.all(solution.cFunc(m) > 0.0))
+                self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)
+
+    def test_no_jump_in_curvature_at_the_image_of_the_kink(self):
+        # From one level of assets the unemployed land on next period's kink at
+        # the permanent shock's lowest value: the lower end of the kink's image.
+        # A truncated law's density is positive at its bound, so the slope in
+        # assets of E2, the expectation of next period's second derivative of
+        # value, jumps there, and with it the second derivative of this
+        # period's consumption function. The jumpless law's density is zero at
+        # its bound, and the slope is continuous: what is left of the difference
+        # between its two sides falls with the square of the step
+        jump = {}
+        for tails, law in self.laws:
+            agent = IndShockConsumerType(
+                cycles=0, CubicBool=True, IncShkExpectation="continuous", **tails
+            )
+            agent.solve()
+            solution = agent.solution[0]
+            perm, _, _, benefit = get_income_shock_laws(agent.IncShkDstn[0])
+            image = (
+                (solution.mNrmKinks[0] - benefit)
+                * agent.PermGroFac[0]
+                * _bounds(perm)[0]
+                / agent.Rfree[0]
+            )
+            for h in (1e-3, 1e-4):
+                _, E2, _ = _calc_BegOfPrd_IndShock_continuous(
+                    image + h * np.arange(-2, 3),
+                    solution,
+                    agent.IncShkDstn[0],
+                    agent.Rfree[0],
+                    agent.PermGroFac[0],
+                    agent.CRRA,
+                    True,
+                    False,
+                    8,
+                    8,
+                    True,
+                )
+                below = (3 * E2[2] - 4 * E2[1] + E2[0]) / (2 * h)
+                above = (-3 * E2[2] + 4 * E2[3] - E2[4]) / (2 * h)
+                jump[law, h] = abs(above - below) / abs(below)
+        truncated, jumpless = (
+            LogNormalTruncatedMeanOne,
+            LogNormalTruncatedJumplessMeanOne,
         )
-        self.assertIsInstance(
-            get_income_shock_laws(agent.IncShkDstn[0])[0], LogNormalTruncatedMeanOne
-        )
-        agent.solve()
-        self.assertLess(agent.solution_distance, agent.tolerance)
-        solution = agent.solution[0]
-        limit = solution.mNrmMin
-        m = limit + np.r_[np.geomspace(1e-6, 0.1, 1001), np.linspace(0.1, 20.0, 200001)]
-        self.assertTrue(np.all(solution.cFunc(m) > 0.0))
-        self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)
+        # a jump of about one percent of the slope, whatever the step
+        self.assertGreater(jump[truncated, 1e-4], 1e-2)
+        self.assertAlmostEqual(jump[truncated, 1e-3] / jump[truncated, 1e-4], 1.0, 2)
+        # none: a difference smaller by four orders, falling with the step
+        self.assertLess(jump[jumpless, 1e-4], 1e-6)
+        self.assertLess(jump[jumpless, 1e-4], 0.02 * jump[jumpless, 1e-3])
