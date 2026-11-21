@@ -65,6 +65,32 @@ class FuncTest(unittest.TestCase):
         agent.initialize_sim()
         agent.simulate()
 
+    def test_mpc_at_target_in_unit_interval(self):
+        # At this interest rate, a search started at 0 found the negative root of the
+        # quadratic for the MPC at target, and the consumption function missed the
+        # target.
+        agent = Model.TractableConsumerType(
+            UnempPrb=0.005, DiscFac=1 / 1.10, Rfree=1.07, PermGroFac=1.0, CRRA=2.0
+        )
+        agent.solve()
+        MPCtarg = agent.MPCtarg
+        self.assertTrue(0.0 < MPCtarg < 1.0)
+        self.assertAlmostEqual(
+            float(agent.solution[0].cFunc(agent.mTarg)), agent.cTarg, places=8
+        )
+        # The MPC satisfies the differentiated Euler equation at the target
+        natural = (
+            agent.Beth
+            * agent.Rnrm
+            * (
+                (1.0 - agent.UnempPrb) * MPCtarg
+                + agent.UnempPrb
+                * (agent.cTargU / agent.cTarg) ** (-agent.CRRA - 1.0)
+                * agent.PFMPC
+            )
+        )
+        self.assertAlmostEqual(MPCtarg, natural / (1.0 + natural), places=10)
+
     def test_invalid(self):
         # Fail impatience conditions
         ThisType = Model.TractableConsumerType(PermGroFac=0.6)

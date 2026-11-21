@@ -408,13 +408,22 @@ class TractableConsumerType(AgentType):
         SSperturbance = mTarg * 0.1
 
         # Find the MPC, MMPC, and MMMPC at the target
-        def mpcTargFixedPointFunc(k):
-            return k * uPP(cTarg) - Beth * (
-                (1.0 - UnempPrb) * (1.0 - k) * k * Rnrm * uPP(cTarg)
-                + PFMPC * UnempPrb * (1.0 - k) * Rnrm * uPP(cTargU)
-            )
-
-        MPCtarg = newton(mpcTargFixedPointFunc, 0)
+        # The MPC k solves (1 + natural) * k = natural, with natural = naturalEmp * k +
+        # naturalUnemp; see TBS Appendix "E.1 The Consumption Function", where the ratio
+        # cTarg / cTargU is Pi. This is the quadratic
+        #     naturalEmp * k**2 + (1 + naturalUnemp - naturalEmp) * k - naturalUnemp = 0.
+        # naturalEmp and naturalUnemp are positive, so the quadratic is negative at k = 0
+        # and equals 1 at k = 1, and the product of its roots is negative: one root lies
+        # in (0, 1), and it is the MPC; the other root is negative.
+        naturalEmp = Beth * Rnrm * (1.0 - UnempPrb)
+        naturalUnemp = Beth * Rnrm * UnempPrb * PFMPC * Pi ** (CRRA + 1.0)
+        quadLinear = 1.0 + naturalUnemp - naturalEmp
+        quadRootDisc = np.sqrt(quadLinear**2.0 + 4.0 * naturalEmp * naturalUnemp)
+        # Two forms of that root; each is used where it adds numbers of the same sign
+        if quadLinear >= 0.0:
+            MPCtarg = 2.0 * naturalUnemp / (quadLinear + quadRootDisc)
+        else:
+            MPCtarg = (quadRootDisc - quadLinear) / (2.0 * naturalEmp)
 
         def mmpcTargFixedPointFunc(kk):
             return (
