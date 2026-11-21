@@ -14,6 +14,7 @@ from HARK.distributions import (
     IndexDistribution,
     LogNormalMeanOne,
     LogNormalTruncatedMeanOne,
+    LogNormalTruncatedJumplessMeanOne,
     LogNormal,
     Uniform,
     make_tauchen_ar1,
@@ -169,6 +170,7 @@ class BinaryIncShkDstn(DiscreteDistribution):
 # The laws a bounded income shock can follow, by how its tails are treated
 _SHOCK_TAILS = {
     "truncated": LogNormalTruncatedMeanOne,
+    "jumpless": LogNormalTruncatedJumplessMeanOne,
 }
 
 
@@ -224,7 +226,12 @@ def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="trunc
 
     - "truncated", the default: each tail is cut off at its bound, which is the
       law's infimum or supremum, and the law rescaled to mean one
-      (LogNormalTruncatedMeanOne.from_sd_log).
+      (LogNormalTruncatedMeanOne.from_sd_log);
+    - "jumpless": the lower tail is cut off at its bound, which is the law's
+      infimum, and the density brought to zero there by subtracting its
+      reflection in the bound, so that it has no jump; there is no upper bound,
+      and a finite one given is refused
+      (LogNormalTruncatedJumplessMeanOne.from_sd_log).
 
     The mean is one and sigma stays the log's standard deviation, and
     the discretization records the law's own bounds as its infimum and
@@ -241,7 +248,8 @@ def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="trunc
     top : float or None, optional
         Upper bound of the log-shock, in standard deviations. The default is None.
     tails : str, optional
-        How the tails are treated at the bounds: "truncated" (the default).
+        How the tails are treated at the bounds: "truncated" (the default) or
+        "jumpless".
 
     Returns
     -------
@@ -264,7 +272,15 @@ def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="trunc
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
         return law, approx
-    law = _SHOCK_TAILS[tails].from_sd_log(sigma, bot=bot, top=top)
+    if tails == "jumpless":
+        if top is not None:
+            raise ValueError(
+                "A jumpless shock is bounded below only: leave its upper bound "
+                "None or infinite, or choose other tails."
+            )
+        law = _SHOCK_TAILS[tails].from_sd_log(sigma, bot=bot)
+    else:
+        law = _SHOCK_TAILS[tails].from_sd_log(sigma, bot=bot, top=top)
     approx = law.discretize(n_approx, method="equiprobable")
     approx.limit["infimum"] = law.infimum
     approx.limit["supremum"] = law.supremum
@@ -294,7 +310,9 @@ class LognormPermIncShk(DiscreteDistribution):
         Upper bound of the log-shock, as bot (np.inf is no bound). The default is None.
     tails : str, optional
         How the tails are treated at the bounds: "truncated" (the default),
-        cut off at each bound (LogNormalTruncatedMeanOne).
+        cut off at each bound (LogNormalTruncatedMeanOne); or "jumpless", cut
+        off below with the density zero at the bound, and no upper bound
+        (LogNormalTruncatedJumplessMeanOne).
 
     Returns
     -------
@@ -363,7 +381,7 @@ class MixtureTranIncShk(DiscreteDistribution):
         Upper bound of the lognormal part's log, as bot. The default is None.
     tails : str, optional
         How the lognormal part's tails are treated at the bounds: "truncated"
-        (the default), as in LognormPermIncShk.
+        (the default) or "jumpless", as in LognormPermIncShk.
 
     Returns
     -------
@@ -502,7 +520,7 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
         Upper bound of the log transitory shock's lognormal part, as TranShk_inf.
     PermShk_tails : str, optional
         How the permanent shock's tails are treated at its bounds: "truncated"
-        (the default). See LognormPermIncShk.
+        (the default) or "jumpless". See LognormPermIncShk.
     TranShk_tails : str, optional
         How the tails of the transitory shock's lognormal part are treated at
         its bounds, as PermShk_tails.
@@ -732,10 +750,13 @@ def construct_lognormal_income_process_unemployment(
     lognormal part of :math:`\theta`, in standard deviations of the underlying
     normal. PermShk_tails and TranShk_tails say how each shock's tails are
     treated at its bounds: "truncated", the default, cuts each tail off at its
-    bound, which is the shock's infimum or supremum. A bounded shock keeps its
-    mean at one, and PermShkStd[t] or TranShkStd[t] stays the standard
-    deviation of its log. None, the default, or an infinite bound is no bound
-    on that side; with no bounds the income process is as described below.
+    bound, which is the shock's infimum or supremum; "jumpless" cuts the lower
+    tail off at its bound and brings the density to zero there, so that it has
+    no jump, and has no upper bound, so a finite upper bound given with it is
+    refused. In each case a bounded shock keeps its mean at one, and
+    PermShkStd[t] or TranShkStd[t] stays the standard deviation of its log.
+    None, the default, or an infinite bound is no bound on that side; with no
+    bounds the income process is as described below.
     Each bound is one number for every period, or a list with one for each
     period, as PermShkStd and TranShkStd are given.
 
@@ -811,10 +832,10 @@ def construct_lognormal_income_process_unemployment(
         TranShk_inf.
     PermShk_tails : str
         How the permanent shock's tails are treated at its bounds: "truncated"
-        (the default).
+        (the default) or "jumpless".
     TranShk_tails : str
         How the tails of the transitory shock's lognormal part are treated at
-        its bounds: "truncated" (the default).
+        its bounds: "truncated" (the default) or "jumpless".
 
     Returns
     -------
