@@ -24,7 +24,7 @@ in the HARK framework, as shown below.
 from copy import copy
 
 import numpy as np
-from scipy.optimize import brentq, newton
+from scipy.optimize import newton
 
 from HARK import AgentType, NullFunc
 from HARK.distributions import Bernoulli, Lognormal
@@ -501,23 +501,12 @@ class TractableConsumerType(AgentType):
 
         MMMPCtarg = newton(mmmpcTargFixedPointFunc, 0)
 
-        # Find the MPC at m=0
-        def f_temp(k):
-            return (
-                Beth
-                * Rnrm
-                * UnempPrb
-                * (PFMPC * Rnrm * ((1.0 - k) / k)) ** (-CRRA - 1.0)
-                * PFMPC
-            )
-
-        def mpcAtZeroFixedPointFunc(k):
-            return k - f_temp(k) / (1 + f_temp(k))
-
-        # self.MPCmax = newton(mpcAtZeroFixedPointFunc,0.5)
-        MPCmax = brentq(
-            mpcAtZeroFixedPointFunc, PFMPC, 0.99, xtol=0.00000001, rtol=0.00000001
-        )
+        # Find the MPC at m=0, the limit of the MPC as market resources go to zero. It
+        # solves k = natural / (1 + natural), where
+        #     natural = Beth * Rnrm * UnempPrb * PFMPC
+        #               * (PFMPC * Rnrm * (1 - k) / k) ** (-CRRA - 1).
+        # TBS Appendix "E.1 The Consumption Function" derives this and its solution:
+        MPCmax = PFMPC / (PFMPC + PatFacReturn * UnempPrb ** (1.0 / CRRA))
 
         # Make the initial list of Euler points: target and perturbation to either side
         mNrm_list = [

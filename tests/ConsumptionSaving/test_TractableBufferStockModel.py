@@ -91,6 +91,30 @@ class FuncTest(unittest.TestCase):
         )
         self.assertAlmostEqual(MPCtarg, natural / (1.0 + natural), places=10)
 
+    def test_mpc_at_zero_above_old_bracket(self):
+        # Here the MPC as market resources go to zero is 0.995. The search for it on
+        # [PFMPC, 0.99] raised a ValueError.
+        above = Model.TractableConsumerType(
+            UnempPrb=0.0005, DiscFac=1 / 1.10, Rfree=1.03, PermGroFac=1.0, CRRA=1.0
+        )
+        above.solve()
+        self.assertTrue(0.99 < above.MPCmax < 1.0)
+        # At both calibrations it satisfies the equation that defines it
+        for agent in (above, self.agent):
+            MPCmax = agent.MPCmax
+            natural = (
+                agent.Beth
+                * agent.Rnrm
+                * agent.UnempPrb
+                * agent.PFMPC
+                * (agent.PFMPC * agent.Rnrm * (1.0 - MPCmax) / MPCmax)
+                ** (-agent.CRRA - 1.0)
+            )
+            self.assertAlmostEqual(MPCmax, natural / (1.0 + natural), places=10)
+            self.assertAlmostEqual(
+                float(agent.solution[0].cFunc.derivative(0.0)), MPCmax, places=10
+            )
+
     def test_invalid(self):
         # Fail impatience conditions
         ThisType = Model.TractableConsumerType(PermGroFac=0.6)
