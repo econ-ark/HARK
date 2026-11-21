@@ -15,6 +15,7 @@ from scipy.stats import beta, gamma
 
 from HARK.Calibration.Income import IncomeProcesses
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    KINK_NEAR_ASSETS,
     TRANSITION_SPLIT,
     ConsumerSolution,
     IndShockConsumerType,
@@ -691,6 +692,94 @@ class testIncShkExpectation(unittest.TestCase):
         self.assertGreater(solution.mNrmKinks[0], 0.0)
         with self.assertRaisesRegex(ValueError, "worst transitory shock to carry"):
             agents[None].solve()
+
+    def test_power_segment_above_a_kink_at_the_natural_limit(self):
+        # Where the natural constraint binds, the lowest assets still land on next
+        # period's minimum cash-on-hand, and the MPC falls from its value at the
+        # kink like a power of the distance. With k the power with which the
+        # permanent shock's probability approaches its lowest value (1 for the
+        # truncated law, 2 for the jumpless): for CRRA in [k - 1, k) the
+        # MPC leaves one with no step; for CRRA in [k - 2, k - 1) it steps down at
+        # the kink and then falls like a power. No cubic follows either, so the
+        # segment above the kink takes the power's shape, the asset grid takes
+        # points close above the constraint, and the solution is concave
+        cases = (
+            ({}, 0.8, True),
+            ({}, 0.5, True),
+            (JUMPLESS_TAILS, 1.5, True),
+            (JUMPLESS_TAILS, 1.2, True),
+            (JUMPLESS_TAILS, 0.5, False),
+        )
+        for tails, CRRA, no_step in cases:
+            with self.subTest(tails=tails, CRRA=CRRA):
+                agent = IndShockConsumerType(
+                    cycles=1,
+                    T_cycle=1,
+                    CubicBool=True,
+                    BoroCnstArt=None,
+                    CRRA=CRRA,
+                    IncShkExpectation="continuous",
+                    **tails,
+                )
+                agent.cycles = 6
+                with warnings.catch_warnings():
+                    warnings.simplefilter("error")  # no segment left not concave
+                    agent.solve()
+                solution = agent.solution[0]
+                unconstrained = solution.cFunc.functions[0]
+                x = np.asarray(unconstrained.x_list)
+                floor, kink = solution.mNrmMin, solution.mNrmKinks[0]
+                # the constraint binds: positive consumption at the lowest assets
+                self.assertGreater(kink, floor + 0.1)
+                self.assertEqual(x[1], kink)
+                # the MPC above the kink, and the segment that carries its fall
+                self.assertEqual(list(unconstrained.power_segments), [1])
+                if no_step:
+                    self.assertEqual(solution.MPCaboveKink, 1.0)
+                else:
+                    self.assertLess(solution.MPCaboveKink, 0.9)
+                # the grid's points close above the constraint, in assets
+                assets = x[2:] - np.asarray(unconstrained.y_list)[2:] - floor
+                near = agent.aXtraGrid[0] * np.array(KINK_NEAR_ASSETS)
+                for point in near:
+                    self.assertLess(np.min(np.abs(assets / point - 1.0)), 1e-6)
+                # increasing and concave, from the kink up
+                m = np.unique(
+                    np.r_[
+                        kink + np.geomspace(1e-12, 1.0, 20001),
+                        np.linspace(kink, 30.0, 30001),
+                    ]
+                )
+                self.assertLessEqual(largest_rise(solution.cFunc, m), 1e-12)
+                mpc = solution.cFunc.derivative(m)
+                self.assertTrue(np.all(mpc > 0.0) and np.all(mpc <= 1.0))
+                self.assertGreater(mpc[1], 0.99 if no_step else 0.5)
+                # the line c = m - mNrmMin up to the kink
+                below = np.linspace(floor, kink, 11)
+                np.testing.assert_allclose(
+                    solution.cFunc(below), below - floor, rtol=0, atol=1e-12
+                )
+
+    def test_no_power_segment_elsewhere(self):
+        # The power segment belongs to a kink at the natural limit. Where the
+        # limit does not bind there is no kink, and above an artificial
+        # constraint's kink every landing point stays off next period's minimum
+        for constraint, kinks in ((None, 0), (0.0, 1), (-0.2, 1)):
+            with self.subTest(BoroCnstArt=constraint):
+                agent = IndShockConsumerType(
+                    cycles=1,
+                    T_cycle=1,
+                    CubicBool=True,
+                    BoroCnstArt=constraint,
+                    IncShkExpectation="continuous",
+                )
+                agent.cycles = 4
+                agent.solve()
+                solution = agent.solution[0]
+                self.assertEqual(solution.mNrmKinks.size, kinks)
+                self.assertFalse(
+                    getattr(solution.cFunc.functions[0], "power_segments", {})
+                )
 
     def test_worst_transitory_point_mass(self):
         # Where the natural limit binds (no artificial constraint, or one below

@@ -2166,6 +2166,14 @@ def _natural_limit_assets(solution_next, mNrmMin, first, CubicBool):
     return mNrmMin + points
 
 
+# Above a kink at the natural limit, the MPC falls from its value at the kink
+# like a power of the distance, most of it within the asset grid's first point
+# above the constraint (a thousandth, by default) where that power is small. The
+# grid also takes these multiples of that first point: one a decade, down to a
+# millionth of it, the nearest point the grid takes to a natural limit that
+# does not bind (_natural_limit_assets)
+KINK_NEAR_ASSETS = (1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1)
+
 # The most times a segment of the asset grid is bisected so that the cubic
 # consumption function is concave
 REFINE_DEPTH = 6
@@ -2182,7 +2190,16 @@ REFINE_FIRST_STEP = 2
 
 
 def _refine_for_concavity(
-    base, E_base, state, expect, endogenous, nodes, m_limit, mpc_limit, a_floor
+    base,
+    E_base,
+    state,
+    expect,
+    endogenous,
+    nodes,
+    m_limit,
+    mpc_limit,
+    a_floor,
+    power_segment=False,
 ):
     """
     End-of-period assets, and the expectations there, for which the cubic Hermite
@@ -2197,6 +2214,11 @@ def _refine_for_concavity(
     - where the data are not concave, the expectations are not accurate enough:
       that segment's gridpoints are taken again with more nodes a piece, the next
       of REFINE_NODE_STEPS times nodes (and so where bisection is exhausted).
+    With power_segment, the segment from the first gridpoint to the second is
+    not a cubic: its MPC leaves the first gridpoint's like a power of the
+    distance (CubicHermiteInterp.set_power_segment), as above a kink at the
+    natural borrowing constraint, and it is concave wherever its data strictly
+    are, so only its data are checked.
     It stops when every segment is concave, or warns if none can be refined
     further. state, from next period's solution, holds each base segment's
     depth and node step there; the refinement starts from them and only
@@ -2256,9 +2278,14 @@ def _refine_for_concavity(
             S > (2.0 * d[:-1] + d[1:]) / 3.0 + tol
         )
         bad[0] = False  # the first segment, from the limit: see the solver
+        data_concave = (d[:-1] >= S - tol) & (S >= d[1:] - tol)
+        if power_segment:
+            # the segment above the kink follows a power law, concave by
+            # construction where its data strictly are
+            bad[1] = not (d[1] > S[1] > d[2])
+            data_concave[1] = not bad[1]
         if not np.any(bad):
             break
-        data_concave = (d[:-1] >= S - tol) & (S >= d[1:] - tol)
         changed = False
         for k in np.flatnonzero(bad):
             # the segment of the cubic between gridpoints k - 1 and k of a lies in
@@ -2482,7 +2509,11 @@ def solve_one_period_ConsIndShock_continuous(
         where a segment of it would not be concave, that segment's expectations
         are taken more accurately and the asset grid is refined there
         (_refine_for_concavity), each solution recording where in
-        ConcavityRefinement, from which the period before starts.
+        ConcavityRefinement, from which the period before starts. Above a kink
+        at the natural borrowing constraint, where the MPC falls from its value
+        at the kink like a power of the distance, the segment from the kink to
+        the next gridpoint takes that power's shape instead
+        (CubicHermiteInterp.set_power_segment).
     PermShkQuadCount : int, optional
         Gauss-Legendre nodes a piece of the permanent shock's integral. The
         default is 4.
@@ -2606,6 +2637,38 @@ def _solve_one_period_ConsIndShock(
         PermGroFac,
         CRRA,
     )
+    # Where the natural limit itself is that constraint, the lowest assets still
+    # land on next period's minimum cash-on-hand, with too little probability to
+    # make marginal value infinite but enough to make its derivatives so. Next
+    # period's marginal value goes like m'^(-CRRA) there, and each derivative
+    # adds one to that power, so the rule is marginal value's
+    # (_reaches_natural_limit) with CRRA + 1 and CRRA + 2 in its place:
+    # - with CRRA + 1, the first derivative of end-of-period marginal value is
+    #   infinite at the constraint, and the MPC leaves one above the kink with
+    #   no step;
+    # - with CRRA + 2, the second is: the MPC falls from its value at the kink
+    #   like a power of the distance that the laws and CRRA set, which can be
+    #   any positive number. A cubic's MPC leaves a knot linearly, so the cubic
+    #   from the kink to the next gridpoint follows it only for powers near one,
+    #   however short that segment; the segment takes the power's shape instead
+    #   (CubicHermiteInterp.set_power_segment), and the asset grid takes points
+    #   close above the constraint (KINK_NEAR_ASSETS).
+    # An artificial constraint above the natural limit keeps every landing point
+    # off next period's minimum, and neither holds.
+    no_mpc_step, power_above_kink = (
+        bool(
+            kinked
+            and _reaches_natural_limit(
+                mNrmMinNow,
+                solution_next.mNrmMin,
+                get_income_shock_laws(IncShkDstn),
+                Rfree,
+                PermGroFac,
+                CRRA + order,
+            )
+        )
+        for order in (1.0, 2.0)
+    )
 
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = calc_patience_factor(Rfree, DiscFacEff, CRRA)
@@ -2636,6 +2699,13 @@ def _solve_one_period_ConsIndShock(
             # and its endogenous gridpoint is the kink where the constraint stops
             # binding, as in Deaton (1991) and BufferStockTheory
             aNrmNow = np.insert(aNrmNow, 0, mNrmMinNow)
+            if power_above_kink:
+                # and close above it, where the MPC falls from its value at the
+                # kink like a power of the distance
+                aNrmNow = np.union1d(
+                    aNrmNow,
+                    mNrmMinNow + np.asarray(aXtraGrid)[0] * np.array(KINK_NEAR_ASSETS),
+                )
         else:
             # Where the natural constraint binds, consumption stays close to
             # cash-on-hand down to the limit, then turns toward buffer-stock
@@ -2677,7 +2747,12 @@ def _solve_one_period_ConsIndShock(
             def endogenous(a, E1_, E2_):
                 c = uFunc.derinv(vPfacCont * E1_, order=(1, 0))
                 dcda = vPPfacCont * E2_ / uFunc.der(c, order=2)
-                return a + c, c, dcda / (dcda + 1.0)
+                mpc = dcda / (dcda + 1.0)
+                if no_mpc_step:
+                    # at the constraint itself the derivative of marginal value
+                    # is infinite, whatever number its integral's nodes give
+                    mpc[a == mNrmMinNow] = 1.0
+                return a + c, c, mpc
 
             aNrmNow, (E1, E2, E0), refinement = _refine_for_concavity(
                 aNrmNow,
@@ -2689,6 +2764,7 @@ def _solve_one_period_ConsIndShock(
                 BoroCnstInf if not kinked else BoroCnstNat,
                 MPCmaxUnc,
                 mNrmMinNow,
+                power_segment=power_above_kink,
             )
             aNrmExp = aNrmNow
     else:
@@ -2740,6 +2816,10 @@ def _solve_one_period_ConsIndShock(
             )
         dcda = EndOfPrdvPP / uFunc.der(np.array(cNrmNow), order=2)
         MPC = dcda / (dcda + 1.0)
+        if no_mpc_step:
+            # at the constraint itself the derivative of marginal value is
+            # infinite: the MPC leaves one above the kink with no step
+            MPC[0] = 1.0
         MPC_for_interpolation = np.insert(MPC, 0, MPCmaxUnc)
 
         # Construct the unconstrained consumption function as a cubic interpolation;
@@ -2757,6 +2837,16 @@ def _solve_one_period_ConsIndShock(
             # between the limit and the lowest asset gridpoint, so consumption
             # is the line c = m - mNrmMin to within that distance
             cFuncNowUnc.set_linear_segment(0)
+        if power_above_kink:
+            # Above a kink at the natural limit, the MPC falls from its value at
+            # the kink like a power of the distance: the segment from the kink
+            # to the next gridpoint takes that shape, where its data are
+            # strictly concave (_refine_for_concavity warns where they are not)
+            secant = (c_for_interpolation[2] - c_for_interpolation[1]) / (
+                m_for_interpolation[2] - m_for_interpolation[1]
+            )
+            if MPC_for_interpolation[1] > secant > MPC_for_interpolation[2]:
+                cFuncNowUnc.set_power_segment(1)
     else:
         # Construct the unconstrained consumption function as a linear interpolation
         cFuncNowUnc = LinearInterp(

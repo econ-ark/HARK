@@ -318,6 +318,103 @@ class TestCubicHermiteLinearSegment(unittest.TestCase):
         np.testing.assert_array_equal(h.derivative(t), g.derivative(t))
 
 
+class TestCubicHermitePowerSegment(unittest.TestCase):
+    """set_power_segment: a segment whose slope leaves its left knot's like a
+    power of the distance, the power set by the secant."""
+
+    power = 0.3
+
+    def function(self, x):
+        # the line y = x up to zero, then a slope 1 - x ** power, which leaves
+        # one like a power below one: its second derivative is infinite at zero
+        x = np.asarray(x, dtype=float)
+        above = np.maximum(x, 0.0)
+        return x - above ** (self.power + 1.0) / (self.power + 1.0)
+
+    def slope(self, x):
+        return 1.0 - np.maximum(np.asarray(x, dtype=float), 0.0) ** self.power
+
+    def setUp(self):
+        self.x = np.array([-1.0, 0.0, 0.5, 1.0])
+        self.y = self.function(self.x)
+        self.dydx = self.slope(self.x)
+        self.cubic = CubicHermiteInterp(self.x, self.y, self.dydx)
+        self.patched = CubicHermiteInterp(self.x, self.y, self.dydx)
+        self.patched.set_power_segment(1)
+        self.inside = np.linspace(0.0, 0.5, 41)[1:-1]
+
+    def test_reproduces_a_power(self):
+        """The segment recovers the power from the secant, and with it the
+        function and its slope."""
+        self.assertAlmostEqual(self.patched.power_segments[1], self.power, places=12)
+        np.testing.assert_allclose(
+            self.patched(self.inside), self.function(self.inside), rtol=0, atol=1e-14
+        )
+        np.testing.assert_allclose(
+            self.patched.derivative(self.inside),
+            self.slope(self.inside),
+            rtol=0,
+            atol=1e-13,
+        )
+        y, dydx = self.patched.eval_with_derivative(self.inside)
+        np.testing.assert_array_equal(y, self.patched(self.inside))
+        np.testing.assert_array_equal(dydx, self.patched.derivative(self.inside))
+
+    def test_concave_where_the_cubic_is_not(self):
+        """The data are concave, the cubic through them is not, and the power
+        segment's slope falls throughout."""
+        left, right = self.dydx[1], self.dydx[2]
+        secant = (self.y[2] - self.y[1]) / (self.x[2] - self.x[1])
+        self.assertTrue(left > secant > right)
+        self.assertFalse((left + 2.0 * right) / 3.0 <= secant)  # the cubic's test
+        self.assertTrue(np.any(np.diff(self.cubic.derivative(self.inside)) > 0.0))
+        self.assertTrue(np.all(np.diff(self.patched.derivative(self.inside)) < 0.0))
+        self.assertTrue(np.all(self.patched.derivative(self.inside) < left))
+        self.assertTrue(np.all(self.patched.derivative(self.inside) > right))
+
+    def test_knots_and_other_segments(self):
+        """The knots keep their levels and slopes, and the other segments their
+        cubics."""
+        np.testing.assert_array_equal(self.patched(self.x), self.y)
+        np.testing.assert_array_equal(self.patched.derivative(self.x), self.dydx)
+        elsewhere = np.array([-0.75, -0.25, 0.625, 0.875])
+        np.testing.assert_array_equal(self.patched(elsewhere), self.cubic(elsewhere))
+        np.testing.assert_array_equal(
+            self.patched.derivative(elsewhere), self.cubic.derivative(elsewhere)
+        )
+        # continuous into the knots from inside the segment
+        for knot, level in ((0.0, self.y[1]), (0.5, self.y[2])):
+            near = knot + (1e-12 if knot == 0.0 else -1e-12)
+            self.assertAlmostEqual(float(self.patched(near)), level, places=11)
+
+    def test_convex_data(self):
+        """Slopes that rise take the mirrored shape."""
+        g = CubicHermiteInterp(self.x, -self.y, -self.dydx)
+        g.set_power_segment(1)
+        np.testing.assert_allclose(
+            g(self.inside), -self.function(self.inside), rtol=0, atol=1e-14
+        )
+        self.assertTrue(np.all(np.diff(g.derivative(self.inside)) > 0.0))
+
+    def test_refusals(self):
+        """A segment outside the grid, and a secant that is not strictly between
+        the slopes at its knots."""
+        with self.assertRaises(IndexError):
+            self.patched.set_power_segment(3)
+        with self.assertRaises(ValueError):
+            self.patched.set_power_segment(0)  # the line: slopes and secant all one
+        self.assertEqual(list(self.patched.power_segments), [1])
+
+    def test_a_line_replaces_it(self):
+        """set_linear_segment on the same segment takes its place."""
+        self.patched.set_linear_segment(1)
+        self.assertEqual(self.patched.power_segments, {})
+        secant = (self.y[2] - self.y[1]) / (self.x[2] - self.x[1])
+        np.testing.assert_allclose(
+            self.patched(self.inside), secant * self.inside, rtol=0, atol=1e-14
+        )
+
+
 class TestLowerEnvelope(TestInterp1D):
     interpolator_ = LowerEnvelope
     tol = 1e-5
@@ -1035,9 +1132,12 @@ class testsCubicHermiteInterpSerialization(unittest.TestCase):
         self.probe = np.linspace(0.25, 15.0, 301)
 
     def make_interpolants(self):
-        # the last one has a segment replaced by its chord (set_linear_segment)
+        # the last two have a segment replaced: by its chord (set_linear_segment),
+        # and by a power of the distance from its left knot (set_power_segment)
         patched = CubicHermiteInterp(self.x, self.y, self.dydx, lower_extrap=True)
         patched.set_linear_segment(3)
+        power = CubicHermiteInterp(self.x, self.y, self.dydx, lower_extrap=True)
+        power.set_power_segment(5)
         return [
             CubicHermiteInterp(self.x, self.y, self.dydx),
             CubicHermiteInterp(self.x, self.y, self.dydx, lower_extrap=True),
@@ -1050,9 +1150,14 @@ class testsCubicHermiteInterpSerialization(unittest.TestCase):
                 lower_extrap=True,
             ),
             patched,
+            power,
         ]
 
     def compare(self, original, clone):
+        self.assertEqual(
+            getattr(original, "power_segments", {}),
+            getattr(clone, "power_segments", {}),
+        )
         np.testing.assert_array_equal(original(self.probe), clone(self.probe))
         np.testing.assert_array_equal(
             original.derivative(self.probe), clone.derivative(self.probe)
