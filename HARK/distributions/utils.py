@@ -729,15 +729,19 @@ def _coordinate(dstn):
     pieces between the edges, and coord is the inverse of value, which places
     the split points. A law supplies its own z, in which it is the standard
     normal restricted to an interval, through its method normal_coordinate(),
-    as the normal and lognormal laws, truncated or not, do; for any other law z
-    is its normal score, reached through its quantile function,
-    X = F^{-1}(Phi(z)), so the integrand is smooth in z wherever f and the law
-    are. A side without a bound is cut at Z_UNBOUNDED, and the edges are at
+    as the normal and lognormal laws, truncated or not, do. A law that is not
+    the standard normal in the z it supplies also gives that z's density under
+    it, through its method coordinate_density(), as the jumpless truncated
+    lognormal does. For any other law z is its normal score, reached through
+    its quantile function, X = F^{-1}(Phi(z)), so the integrand is smooth in z
+    wherever f and the law are. A side without a bound is cut at Z_UNBOUNDED, and the edges are at
     every multiple of Z_STEP between the ends and at the law's breakpoints(),
     the values at which it is not smooth.
     """
+    own_density = None
     if hasattr(dstn, "normal_coordinate"):
         bot, top, value, coord = dstn.normal_coordinate()
+        own_density = getattr(dstn, "coordinate_density", None)
     elif hasattr(dstn, "ppf") and hasattr(dstn, "cdf"):
         bot, top = -np.inf, np.inf
 
@@ -768,6 +772,8 @@ def _coordinate(dstn):
             if lo < z < hi and min(abs(z - e) for e in edges) > tol:
                 edges.append(float(z))
         edges.sort()
+    if own_density is not None:
+        return edges, value, coord, own_density
     mass = float(_normal_mass(lo, hi))
 
     def density(z):
@@ -859,8 +865,10 @@ def expected_continuous(
 
     - continuous laws, integrated in a standard-normal coordinate z: the one a
       law supplies through its method normal_coordinate(), as the normal and
-      lognormal laws, truncated or not, supply their own, or else the normal
-      score reached through its quantile function, X = F^{-1}(Phi(z));
+      lognormal laws, truncated or not, supply their own (with z's density
+      under the law, through coordinate_density(), where that is not the
+      standard normal's), or else the normal score reached through its
+      quantile function, X = F^{-1}(Phi(z));
     - mixtures, objects with ``weights`` and ``components``, integrated
       component by component;
     - discrete distributions, summed over their atoms.

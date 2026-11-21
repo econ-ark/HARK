@@ -10,6 +10,7 @@ from HARK.distributions import (
     LogNormalTruncated,
     LogNormalTruncatedJumpless,
     LogNormalTruncatedJumplessMeanOne,
+    expected_continuous,
 )
 from HARK.distributions import LogNormalTruncatedMeanOne
 from HARK.distributions.continuous import _JumplessNormal, _jumpless_normal
@@ -273,6 +274,39 @@ class LogNormalTruncatedJumplessTests(unittest.TestCase):
                 with self.subTest(bot=bot, count=count):
                     q = np.arange(1, count) / count
                     np.testing.assert_allclose(law.cdf(law.ppf(q)), q, rtol=1e-9)
+
+    def test_expected_continuous_integrates_it(self):
+        # In the coordinate the law supplies, with that coordinate's density
+        for sigma, bot in self.cases:
+            d = LogNormalTruncatedJumpless(mu=0.1, sigma=sigma, bot=bot)
+
+            def expect(func, nodes):
+                return float(expected_continuous(func, d, nodes=nodes))
+
+            # at the default four nodes a piece, as closely as a lognormal
+            # truncated below is integrated
+            self.assertAlmostEqual(expect(lambda x: np.ones_like(x[0]), 4), 1.0, 7)
+            self.assertAlmostEqual(expect(lambda x: x[0], 4) / d.moment(1), 1.0, 7)
+            # and to rounding with more
+            self.assertAlmostEqual(expect(lambda x: np.ones_like(x[0]), 8), 1.0, 13)
+            self.assertAlmostEqual(expect(lambda x: x[0], 8) / d.moment(1), 1.0, 11)
+            self.assertAlmostEqual(
+                expect(lambda x: x[0] ** -2.0, 8) / d.moment(-2.0), 1.0, 11
+            )
+            # a kink inside the support, cut at
+            kink = np.exp(d.mu + sigma * (bot + 0.4))
+            exact = quad(
+                lambda x: (kink - x) * d.pdf(x), d.infimum[0], kink, epsrel=1e-13
+            )[0]
+            split = float(
+                expected_continuous(
+                    lambda x: np.maximum(kink - x[0], 0.0),
+                    d,
+                    splits=[lambda: np.array([kink])],
+                    nodes=8,
+                )
+            )
+            self.assertAlmostEqual(split / exact, 1.0, places=10)
 
 
 class TruncatedLogNormalUnchangedTests(unittest.TestCase):

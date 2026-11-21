@@ -1072,6 +1072,37 @@ class LogNormalTruncatedJumpless(_LogNormalOfZ):
     def __init__(self, mu=0.0, sigma=1.0, bot=-3.0, top=None, seed=None):
         self._setup(mu, sigma, _jumpless_normal(_jumpless_bound(bot, top)), seed)
 
+    def normal_coordinate(self):
+        """
+        The underlying normal's coordinate z = (ln x - mu) / sigma, in which
+        expected_continuous() integrates this law. The law is not the standard
+        normal in it: its density there is coordinate_density().
+
+        Returns
+        -------
+        bot, top : float
+            The bounds of z: the truncation, and inf.
+        value : callable
+            The law's value at z.
+        coord : callable
+            The coordinate z of a value, -inf at values not above zero.
+        """
+        mu, sigma = self.mu, self.sigma
+        return (
+            self.bot,
+            np.inf,
+            lambda z: np.exp(mu + sigma * z),
+            _log_coordinate(mu, sigma),
+        )
+
+    def coordinate_density(self, z):
+        """
+        The density of the coordinate z = (ln x - mu) / sigma under this law:
+        the standard normal density less its reflection in the bound, zero at
+        the bound and below it.
+        """
+        return self._law.pdf(z)
+
 
 class LogNormalTruncatedJumplessMeanOne(LogNormalTruncatedJumpless):
     """
