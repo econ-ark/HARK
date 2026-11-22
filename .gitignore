@@ -309,3 +309,6 @@ sims-about/**
 
 # Code-duplication scan artifacts
 .jscpd-report/
+
+# Written by setuptools_scm at build and install time
+HARK/_version.py

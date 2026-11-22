@@ -1,12 +1,9 @@
 [build-system]
-requires = ["setuptools>=61.2", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "econ-ark"
-# Before changing the version, work through the "Before release" list in the
-# dev section of docs/CHANGELOG.md, if there is one.
-version = "0.17.2"
 authors = [{name = "Econ-ARK team", email = "econ-ark@jhuecon.org"}]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -27,9 +24,27 @@ classifiers = [
 description = "Heterogenous Agents Resources & toolKit"
 keywords = ["economics", "modelling", "modeling", "heterogeneity"]
 requires-python = ">=3.12"
-dynamic = ["dependencies", "optional-dependencies"]
+dynamic = ["version", "dependencies", "optional-dependencies"]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
+
+[tool.setuptools_scm]
+# The version comes from git. A release's version is its tag, such as 0.17.2;
+# every commit after a release gets its own development version, so pip can
+# tell an install from main apart from the release before it. On main the
+# development versions count toward the next minor release (0.18.0.dev270+g...);
+# on a release branch named for its series, 0.17 or release/0.17, toward the
+# series' next patch (0.17.3.dev...).
+# Before tagging a release, work through the "Before release" list in the dev
+# section of docs/CHANGELOG.md, if there is one.
+version_file = "HARK/_version.py"
+version_scheme = "release-branch-semver"
+# Only release tags count (0.17.2, 0.18.0rc1, ...), not tags such as
+# v0.17.0.post1-broadcasting-fix or pins for other projects.
+tag_regex = '^(?P<version>\d+\.\d+(?:\.\d+)?(?:(?:a|b|rc)\d+)?)$'
+
+[tool.setuptools_scm.scm.git]
+describe_command = ["git", "describe", "--dirty", "--tags", "--long", "--match", "[0-9]*.[0-9]*"]
 
 [tool.setuptools.dynamic.dependencies]
 file = "requirements/base.txt"
