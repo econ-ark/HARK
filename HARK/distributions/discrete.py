@@ -606,10 +606,22 @@ class DiscreteDistribution(Distribution):
             these = atoms_temp == val
             probs_to_keep[i] = np.sum(self.pmv[these])
 
-        # Make and return the univariate distribution
+        # Make the univariate distribution
         univariate_dstn = DiscreteDistribution(
             pmv=probs_to_keep, atoms=vals_to_keep, seed=seed
         )
+
+        # Keep the kept dimension's bounds, which may lie beyond its atoms, and
+        # its own distribution if this one was combined from independent ones
+        dim_count = self.atoms.shape[0]
+        for key in ("infimum", "supremum"):
+            bound = np.atleast_1d(self.limit.get(key, []))
+            if bound.size == dim_count:
+                univariate_dstn.limit[key] = bound[dim_to_keep : dim_to_keep + 1].copy()
+        component_dstns = self.limit.get("dist")
+        if isinstance(component_dstns, (list, tuple)):
+            if len(component_dstns) == dim_count:
+                univariate_dstn.limit["dist"] = component_dstns[dim_to_keep]
         return univariate_dstn
 
 
