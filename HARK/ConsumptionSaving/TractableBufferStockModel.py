@@ -24,7 +24,7 @@ in the HARK framework, as shown below.
 from copy import copy
 
 import numpy as np
-from scipy.optimize import brentq, newton
+from scipy.optimize import newton
 
 from HARK import AgentType, NullFunc
 from HARK.distributions import Bernoulli, Lognormal
@@ -408,13 +408,22 @@ class TractableConsumerType(AgentType):
         SSperturbance = mTarg * 0.1
 
         # Find the MPC, MMPC, and MMMPC at the target
-        def mpcTargFixedPointFunc(k):
-            return k * uPP(cTarg) - Beth * (
-                (1.0 - UnempPrb) * (1.0 - k) * k * Rnrm * uPP(cTarg)
-                + PFMPC * UnempPrb * (1.0 - k) * Rnrm * uPP(cTargU)
-            )
-
-        MPCtarg = newton(mpcTargFixedPointFunc, 0)
+        # The MPC k solves (1 + natural) * k = natural, with natural = naturalEmp * k +
+        # naturalUnemp; see TBS Appendix "E.1 The Consumption Function", where the ratio
+        # cTarg / cTargU is Pi. This is the quadratic
+        #     naturalEmp * k**2 + (1 + naturalUnemp - naturalEmp) * k - naturalUnemp = 0.
+        # naturalEmp and naturalUnemp are positive, so the quadratic is negative at k = 0
+        # and equals 1 at k = 1, and the product of its roots is negative: one root lies
+        # in (0, 1), and it is the MPC; the other root is negative.
+        naturalEmp = Beth * Rnrm * (1.0 - UnempPrb)
+        naturalUnemp = Beth * Rnrm * UnempPrb * PFMPC * Pi ** (CRRA + 1.0)
+        quadLinear = 1.0 + naturalUnemp - naturalEmp
+        quadRootDisc = np.sqrt(quadLinear**2.0 + 4.0 * naturalEmp * naturalUnemp)
+        # Two forms of that root; each is used where it adds numbers of the same sign
+        if quadLinear >= 0.0:
+            MPCtarg = 2.0 * naturalUnemp / (quadLinear + quadRootDisc)
+        else:
+            MPCtarg = (quadRootDisc - quadLinear) / (2.0 * naturalEmp)
 
         def mmpcTargFixedPointFunc(kk):
             return (
@@ -492,23 +501,12 @@ class TractableConsumerType(AgentType):
 
         MMMPCtarg = newton(mmmpcTargFixedPointFunc, 0)
 
-        # Find the MPC at m=0
-        def f_temp(k):
-            return (
-                Beth
-                * Rnrm
-                * UnempPrb
-                * (PFMPC * Rnrm * ((1.0 - k) / k)) ** (-CRRA - 1.0)
-                * PFMPC
-            )
-
-        def mpcAtZeroFixedPointFunc(k):
-            return k - f_temp(k) / (1 + f_temp(k))
-
-        # self.MPCmax = newton(mpcAtZeroFixedPointFunc,0.5)
-        MPCmax = brentq(
-            mpcAtZeroFixedPointFunc, PFMPC, 0.99, xtol=0.00000001, rtol=0.00000001
-        )
+        # Find the MPC at m=0, the limit of the MPC as market resources go to zero. It
+        # solves k = natural / (1 + natural), where
+        #     natural = Beth * Rnrm * UnempPrb * PFMPC
+        #               * (PFMPC * Rnrm * (1 - k) / k) ** (-CRRA - 1).
+        # TBS Appendix "E.1 The Consumption Function" derives this and its solution:
+        MPCmax = PFMPC / (PFMPC + PatFacReturn * UnempPrb ** (1.0 / CRRA))
 
         # Make the initial list of Euler points: target and perturbation to either side
         mNrm_list = [
