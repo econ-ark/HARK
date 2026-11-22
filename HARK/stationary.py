@@ -265,12 +265,13 @@ class KnotProblem(StationaryProblem):
 
     def __init__(self, aXtraGrid, cubic, seed_solution):
         self.aXtraGrid = np.asarray(aXtraGrid, dtype=float)
-        self.J = self.aXtraGrid.size
         self.cubic = bool(cubic)
         self.scalars = self._scalar_limits(seed_solution)
         self.S = self.scalars["hNrm"].size
         # One pass on the real grid from the seed gives, for every state, the
-        # fixed bottom knot and the asset nodes the solver works with.
+        # fixed bottom knot and the asset nodes the solver works with.  Their
+        # number is the solver's, not the grid's: a solver that adds a binding
+        # artificial constraint to the grid has one node more in that state.
         first = self.solve_one_period(
             self._with_scalars(copy(seed_solution)), self.aXtraGrid, cubic=self.cubic
         )
@@ -278,38 +279,41 @@ class KnotProblem(StationaryProblem):
         self.bottom = [
             (m[0], c[0], mpc[0] if mpc is not None else None) for m, c, mpc in knots
         ]
-        self.a_nodes = np.vstack([m[1:] - c[1:] for m, c, _ in knots])
+        self.a_nodes = [m[1:] - c[1:] for m, c, _ in knots]
+        self.sizes = [a.size for a in self.a_nodes]
         # Seed: perfect-foresight consumption at each node.
-        MPCmin = self.scalars["MPCmin"][:, None]
-        hNrm = self.scalars["hNrm"][:, None]
-        c0 = np.maximum(MPCmin * (self.a_nodes + hNrm) / (1.0 - MPCmin), 1e-10)
+        MPCmin, hNrm = self.scalars["MPCmin"], self.scalars["hNrm"]
+        c0 = [
+            np.maximum(MPCmin[i] * (a + hNrm[i]) / (1.0 - MPCmin[i]), 1e-10)
+            for i, a in enumerate(self.a_nodes)
+        ]
+        n = sum(self.sizes)
         self.warm_start = None
         if self.cubic:
             # The cubic pair is warm-started from the converged linear policy: a
             # valid policy gives a strictly increasing endogenous grid, which the
             # cubic interpolant needs, and the linear fixed point is close.
-            shape = c0.shape
             c_lin, self.warm_start = anderson_accelerate(
-                lambda v: self._sweep_from(np.reshape(v, shape), None),
-                np.ravel(c0),
+                lambda v: self._sweep_from(self._split(v), None),
+                self._pack(c0, None),
                 tol=1e-9,
                 maxit=10000,
                 lo=1e-10,
             )
-            c0 = np.reshape(c_lin, shape)
+            c0 = self._split(c_lin)
             # Seed the MPC with the slope of the linear policy along its own
             # endogenous grid; a constant seed makes the cubic continuation
             # overshoot between knots, which the solver rejects.
-            m0 = self.a_nodes + c0
-            mpc0 = np.vstack(
-                [np.clip(np.gradient(c0[i], m0[i]), 1e-6, 1.0) for i in range(self.S)]
-            )
+            mpc0 = [
+                np.clip(np.gradient(c0[i], self.a_nodes[i] + c0[i]), 1e-6, 1.0)
+                for i in range(self.S)
+            ]
             self.x0 = self._pack(c0, mpc0)
-            self.lo = np.concatenate([np.full(c0.size, 1e-10), np.full(c0.size, 1e-6)])
-            self.hi = np.concatenate([np.full(c0.size, np.inf), np.ones(c0.size)])
+            self.lo = np.concatenate([np.full(n, 1e-10), np.full(n, 1e-6)])
+            self.hi = np.concatenate([np.full(n, np.inf), np.ones(n)])
         else:
             self.x0 = self._pack(c0, None)
-            self.lo = np.full(c0.size, 1e-10)
+            self.lo = np.full(n, 1e-10)
         self.x_solution = None
 
     # ----- pieces the model supplies -------------------------------------
@@ -339,7 +343,9 @@ class KnotProblem(StationaryProblem):
     # ----- generic machinery ----------------------------------------------
 
     def describe(self):
-        return f"{type(self).__name__} ({self.S} state{'s' if self.S != 1 else ''}, {self.J} nodes)"
+        sizes = sorted(set(self.sizes))
+        nodes = "/".join(str(k) for k in self.sizes) if len(sizes) > 1 else sizes[0]
+        return f"{type(self).__name__} ({self.S} state{'s' if self.S != 1 else ''}, {nodes} nodes)"
 
     def _with_scalars(self, solution, scalars=None):
         scalars = self.scalars if scalars is None else scalars
@@ -435,14 +441,18 @@ class KnotProblem(StationaryProblem):
         )
 
     def _pack(self, c, mpc):
-        return (
-            np.ravel(c) if mpc is None else np.concatenate([np.ravel(c), np.ravel(mpc)])
-        )
+        """One vector from per-state knot values (and MPCs)."""
+        parts = list(c) if mpc is None else list(c) + list(mpc)
+        return np.concatenate([np.ravel(p) for p in parts])
+
+    def _split(self, v):
+        """Per-state arrays from one state-stacked vector of knot values."""
+        return np.split(np.asarray(v, dtype=float), np.cumsum(self.sizes)[:-1])
 
     def _unpack(self, x):
-        n = self.S * self.J
-        c = np.reshape(x[:n], (self.S, self.J))
-        mpc = np.reshape(x[n:], (self.S, self.J)) if self.cubic else None
+        n = sum(self.sizes)
+        c = self._split(x[:n])
+        mpc = self._split(x[n:]) if self.cubic else None
         return c, mpc
 
     def continuation(self, c, mpc=None, vFuncs=None):
@@ -471,8 +481,12 @@ class KnotProblem(StationaryProblem):
             self.continuation(c, mpc), self.aXtraGrid, cubic=cubic
         )
         knots = [self._knots_of(f) for f in self.cFuncs(solution)]
-        c_new = np.vstack([k[1][1:] for k in knots])
-        mpc_new = np.vstack([k[2][1:] for k in knots]) if cubic else None
+        c_new = [k[1][1:] for k in knots]
+        mpc_new = [k[2][1:] for k in knots] if cubic else None
+        if [k.size for k in c_new] != self.sizes:
+            raise ValueError(
+                "The solver's number of asset nodes changed between sweeps."
+            )
         return self._pack(c_new, mpc_new)
 
     def sweep(self, x):
@@ -497,8 +511,8 @@ class KnotProblem(StationaryProblem):
         above the line is a fixed point of the truncated grid, not a solution.
         """
         c, _ = self._unpack(x)
-        c_top = c[:, -1]
-        m_top = self.a_nodes[:, -1] + c_top
+        c_top = np.array([c_i[-1] for c_i in c])
+        m_top = np.array([a[-1] for a in self.a_nodes]) + c_top
         line = self.scalars["MPCmin"] * (m_top + self.scalars["hNrm"])
         excess = (c_top - line) / np.maximum(1.0, np.abs(line))
         worst = int(np.argmax(excess))
