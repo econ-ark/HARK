@@ -22,6 +22,7 @@ in the HARK framework, as shown below.
 """
 
 from copy import copy
+from warnings import warn
 
 import numpy as np
 
@@ -583,6 +584,23 @@ class TractableConsumerType(AgentType):
         -------
         none
         """
+        # The stable arm grows until it passes mLowerBnd below the target and mUpperBnd
+        # above it, by at most one point at each end per cycle. solve_agent stops after
+        # a fixed number of cycles, so where the growth patience factor is close to one
+        # the arm can stop short of a bound, and the consumption function between its
+        # last point and that bound is interpolated or extrapolated, not solved.
+        mNrm_arm = self.solution[0].mNrm_list
+        if mNrm_arm[0] > self.mLowerBnd or mNrm_arm[-1] < self.mUpperBnd:
+            warn(
+                "TractableConsumerType's stable arm stopped short of its bounds after "
+                f"{self.completed_cycles} cycles: its points "
+                f"run from m = {mNrm_arm[0]:.6g} to {mNrm_arm[-1]:.6g}, where they should "
+                f"pass {self.mLowerBnd:.6g} below the target and {self.mUpperBnd:.6g} "
+                "above it. Between its last points and those bounds the consumption "
+                "function is interpolated or extrapolated, not solved. This happens when "
+                f"the growth patience factor, here {self.PatFacGrowth:.6g}, is close to one."
+            )
+
         # Add bottom point to the stable arm points
         self.solution[0].mNrm_list.insert(0, 0.0)
         self.solution[0].cNrm_list.insert(0, 0.0)

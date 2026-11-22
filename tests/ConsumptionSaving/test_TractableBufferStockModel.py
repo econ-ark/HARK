@@ -3,6 +3,7 @@ A few small tests for the tractable buffer stock model.
 """
 
 import unittest
+import warnings
 import numpy as np
 import HARK.ConsumptionSaving.TractableBufferStockModel as Model
 
@@ -166,6 +167,21 @@ class FuncTest(unittest.TestCase):
             for terms in (terms1, terms2):
                 scale = sum(abs(x) for x in terms)
                 self.assertLess(abs(sum(terms)) / scale, 1e-12, msg=str(kwds))
+
+    def test_warns_when_the_stable_arm_stops_short(self):
+        # With the growth patience factor this close to one, the stable arm needs more
+        # points than the solver's cycles allow, and it stops short of its bounds
+        PermGroFacCmp = 1.0025 / (1.0 - 0.00625)
+        agent = Model.TractableConsumerType(DiscFac=0.9997 * PermGroFacCmp / 1.01)
+        with self.assertWarnsRegex(UserWarning, "stable arm stopped short"):
+            agent.solve()
+        arm = agent.solution[0].mNrm_list[1:]  # the first point is m = 0
+        self.assertTrue(arm[0] > agent.mLowerBnd and arm[-1] < agent.mUpperBnd)
+        # Where the arm reaches its bounds, nothing is said
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            Model.TractableConsumerType().solve()
+        self.assertFalse(any("stable arm" in str(w.message) for w in caught))
 
     def test_invalid(self):
         # Fail impatience conditions
