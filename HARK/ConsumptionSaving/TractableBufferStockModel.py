@@ -24,7 +24,6 @@ in the HARK framework, as shown below.
 from copy import copy
 
 import numpy as np
-from scipy.optimize import newton
 
 from HARK import AgentType, NullFunc
 from HARK.distributions import Bernoulli, Lognormal
@@ -425,81 +424,76 @@ class TractableConsumerType(AgentType):
         else:
             MPCtarg = (quadRootDisc - quadLinear) / (2.0 * naturalEmp)
 
-        def mmpcTargFixedPointFunc(kk):
-            return (
-                kk * uPP(cTarg)
-                + MPCtarg**2.0 * uPPP(cTarg)
-                - Beth
-                * (
-                    -(1.0 - UnempPrb) * MPCtarg * kk * Rnrm * uPP(cTarg)
-                    + (1.0 - UnempPrb)
-                    * (1.0 - MPCtarg) ** 2.0
-                    * kk
-                    * Rnrm**2.0
-                    * uPP(cTarg)
-                    - PFMPC * UnempPrb * kk * Rnrm * uPP(cTargU)
-                    + (1.0 - UnempPrb)
-                    * (1.0 - MPCtarg) ** 2.0
-                    * MPCtarg**2.0
-                    * Rnrm**2.0
-                    * uPPP(cTarg)
-                    + PFMPC**2.0
-                    * UnempPrb
-                    * (1.0 - MPCtarg) ** 2.0
-                    * Rnrm**2.0
-                    * uPPP(cTargU)
-                )
+        # The MMPC and MMMPC at the target, the slope and curvature of the MPC there,
+        # solve the equations from differentiating the Euler equation at the target
+        # once and twice more. Each equation is linear in its unknown, a + b * x = 0,
+        # so each is solved exactly, x = -a / b. Below, a collects the terms without
+        # the unknown and b its coefficient.
+        mmpc_a = MPCtarg**2.0 * uPPP(cTarg) - Beth * (
+            (1.0 - UnempPrb)
+            * (1.0 - MPCtarg) ** 2.0
+            * MPCtarg**2.0
+            * Rnrm**2.0
+            * uPPP(cTarg)
+            + PFMPC**2.0 * UnempPrb * (1.0 - MPCtarg) ** 2.0 * Rnrm**2.0 * uPPP(cTargU)
+        )
+        mmpc_b = uPP(cTarg) - Beth * (
+            -(1.0 - UnempPrb) * MPCtarg * Rnrm * uPP(cTarg)
+            + (1.0 - UnempPrb) * (1.0 - MPCtarg) ** 2.0 * Rnrm**2.0 * uPP(cTarg)
+            - PFMPC * UnempPrb * Rnrm * uPP(cTargU)
+        )
+        MMPCtarg = -mmpc_a / mmpc_b
+
+        mmmpc_a = (
+            3.0 * MPCtarg * MMPCtarg * uPPP(cTarg)
+            + MPCtarg**3.0 * uPPPP(cTarg)
+            - Beth
+            * (
+                -3.0
+                * (1.0 - UnempPrb)
+                * (1.0 - MPCtarg)
+                * MMPCtarg**2.0
+                * Rnrm**2.0
+                * uPP(cTarg)
+                - 3.0
+                * (1.0 - UnempPrb)
+                * (1.0 - MPCtarg)
+                * MPCtarg**2.0
+                * MMPCtarg
+                * Rnrm**2.0
+                * uPPP(cTarg)
+                + 3.0
+                * (1.0 - UnempPrb)
+                * (1.0 - MPCtarg) ** 3.0
+                * MPCtarg
+                * MMPCtarg
+                * Rnrm**3.0
+                * uPPP(cTarg)
+                - 3.0
+                * PFMPC**2.0
+                * UnempPrb
+                * (1.0 - MPCtarg)
+                * MMPCtarg
+                * Rnrm**2.0
+                * uPPP(cTargU)
+                + (1.0 - UnempPrb)
+                * (1.0 - MPCtarg) ** 3.0
+                * MPCtarg**3.0
+                * Rnrm**3.0
+                * uPPPP(cTarg)
+                + PFMPC**3.0
+                * UnempPrb
+                * (1.0 - MPCtarg) ** 3.0
+                * Rnrm**3.0
+                * uPPPP(cTargU)
             )
-
-        MMPCtarg = newton(mmpcTargFixedPointFunc, 0)
-
-        def mmmpcTargFixedPointFunc(kkk):
-            return (
-                kkk * uPP(cTarg)
-                + 3 * MPCtarg * MMPCtarg * uPPP(cTarg)
-                + MPCtarg**3 * uPPPP(cTarg)
-                - Beth
-                * (
-                    -(1 - UnempPrb) * MPCtarg * kkk * Rnrm * uPP(cTarg)
-                    - 3
-                    * (1 - UnempPrb)
-                    * (1 - MPCtarg)
-                    * MMPCtarg**2
-                    * Rnrm**2
-                    * uPP(cTarg)
-                    + (1 - UnempPrb) * (1 - MPCtarg) ** 3 * kkk * Rnrm**3 * uPP(cTarg)
-                    - PFMPC * UnempPrb * kkk * Rnrm * uPP(cTargU)
-                    - 3
-                    * (1 - UnempPrb)
-                    * (1 - MPCtarg)
-                    * MPCtarg**2
-                    * MMPCtarg
-                    * Rnrm**2
-                    * uPPP(cTarg)
-                    + 3
-                    * (1 - UnempPrb)
-                    * (1 - MPCtarg) ** 3
-                    * MPCtarg
-                    * MMPCtarg
-                    * Rnrm**3
-                    * uPPP(cTarg)
-                    - 3
-                    * PFMPC**2
-                    * UnempPrb
-                    * (1 - MPCtarg)
-                    * MMPCtarg
-                    * Rnrm**2
-                    * uPPP(cTargU)
-                    + (1 - UnempPrb)
-                    * (1 - MPCtarg) ** 3
-                    * MPCtarg**3
-                    * Rnrm**3
-                    * uPPPP(cTarg)
-                    + PFMPC**3 * UnempPrb * (1 - MPCtarg) ** 3 * Rnrm**3 * uPPPP(cTargU)
-                )
-            )
-
-        MMMPCtarg = newton(mmmpcTargFixedPointFunc, 0)
+        )
+        mmmpc_b = uPP(cTarg) - Beth * (
+            -(1.0 - UnempPrb) * MPCtarg * Rnrm * uPP(cTarg)
+            + (1.0 - UnempPrb) * (1.0 - MPCtarg) ** 3.0 * Rnrm**3.0 * uPP(cTarg)
+            - PFMPC * UnempPrb * Rnrm * uPP(cTargU)
+        )
+        MMMPCtarg = -mmmpc_a / mmmpc_b
 
         # Find the MPC at m=0, the limit of the MPC as market resources go to zero. It
         # solves k = natural / (1 + natural), where
