@@ -1284,6 +1284,19 @@ class TestValueFuncCRRA(unittest.TestCase):
         check = self.Y ** (1 - rho) / (1 - rho)
         self.assertTrue(np.all(np.isclose(output, check)))
 
+    def test_distance(self):
+        # The distance compares the inverse value functions and CRRA; an
+        # attribute missing from distance_criteria made every distance 1000.
+        x = np.linspace(0.0, 5.0, 11)
+        vFunc = ValueFuncCRRA(LinearInterp(x, x), 2.0)
+        self.assertEqual(vFunc.distance(ValueFuncCRRA(LinearInterp(x, x), 2.0)), 0.0)
+        self.assertAlmostEqual(
+            vFunc.distance(ValueFuncCRRA(LinearInterp(x, x + 0.01), 2.0)), 0.01
+        )
+        self.assertAlmostEqual(
+            vFunc.distance(ValueFuncCRRA(LinearInterp(x, x), 2.5)), 0.5
+        )
+
 
 class TestMargValueFuncCRRA(unittest.TestCase):
     def setUp(self):
