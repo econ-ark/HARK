@@ -1435,6 +1435,14 @@ class CubicHermiteInterp(_CubicInterpMixin, HARKinterpolator1D):
         called internally by HARKinterpolator1D.__call__ (etc).
         """
         out_bot, out_top = self.out_of_bounds(x)
+        return self._eval_helper(x, out_bot, out_top)
+
+    def _eval_helper(self, x, out_bot, out_top):
+        """
+        Evaluate at ``x``, given its masks of points below and above the grid.
+        Every evaluation goes through this method and :meth:`_der_helper`, so a
+        subclass that changes the extrapolation overrides these two.
+        """
         y = self._chs(x)
         self._fill_outbounds(x, out_bot, out_top, y=y)
         return y
@@ -1445,6 +1453,10 @@ class CubicHermiteInterp(_CubicInterpMixin, HARKinterpolator1D):
         in x. Only called internally by HARKinterpolator1D.derivative (etc).
         """
         out_bot, out_top = self.out_of_bounds(x)
+        return self._der_helper(x, out_bot, out_top)
+
+    def _der_helper(self, x, out_bot, out_top):
+        """The derivative counterpart of :meth:`_eval_helper`."""
         dydx = self._chs(x, nu=1)
         self._fill_outbounds(x, out_bot, out_top, dydx=dydx)
         return dydx
@@ -1455,9 +1467,8 @@ class CubicHermiteInterp(_CubicInterpMixin, HARKinterpolator1D):
         x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
         """
         out_bot, out_top = self.out_of_bounds(x)
-        y = self._chs(x)
-        dydx = self._chs(x, nu=1)
-        self._fill_outbounds(x, out_bot, out_top, y=y, dydx=dydx)
+        y = self._eval_helper(x, out_bot, out_top)
+        dydx = self._der_helper(x, out_bot, out_top)
         return y, dydx
 
     def der_interp(self, nu=1):
