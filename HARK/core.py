@@ -2457,16 +2457,24 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                     )
                     warned_nan = True
                 distance_history.append(solution_distance)
-                if stopping_rule == "contraction" and len(distance_history) >= 3:
+                if (
+                    stopping_rule == "contraction"
+                    and finite
+                    and len(distance_history) >= 3
+                ):
                     # The per-cycle contraction rate, floored over the last
                     # three ratios (the knot at which the distance is attained
                     # moves, which makes a single ratio jump around); the
-                    # distance still to travel is the geometric tail.
+                    # distance still to travel is the geometric tail. Only
+                    # ratios of finite distances count. A distance that is not
+                    # finite is left to the step rule below, which keeps going.
                     recent = distance_history[-4:]
                     ratios = [
                         recent[i] / recent[i - 1]
                         for i in range(1, len(recent))
-                        if recent[i - 1] > 0.0
+                        if np.isfinite(recent[i])
+                        and np.isfinite(recent[i - 1])
+                        and recent[i - 1] > 0.0
                     ]
                     contraction_rate = max(ratios) if ratios else np.nan
                     implied_distance = _implied_distance(

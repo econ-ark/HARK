@@ -1678,6 +1678,16 @@ class test_solve_agent_nonfinite_distance(unittest.TestCase):
         self.assertEqual(agent.completed_cycles, 3)
         self.assertEqual(agent.solution_distance, 0.0)
 
+    def test_nan_distance_does_not_stop_the_contraction_rule(self):
+        # under the contraction rule too: three finite distances, two nan ones
+        # (the iterate is nan for one cycle), then a zero one
+        agent = self._scripted_agent([1.0, 0.5, 0.25, np.nan, 0.25])
+        agent.stopping_rule = "contraction"
+        with self.assertWarns(UserWarning):
+            agent.solve()
+        self.assertEqual(agent.completed_cycles, 5)
+        self.assertEqual(agent.solution_distance, 0.0)
+
     def test_finite_and_infinite_distances_do_not_warn(self):
         # an inf distance always kept the solve going, so it is not warned about
         for values, cycles in (([1.0, 0.5, 0.5], 2), ([1.0, np.inf, 1.0], 3)):
