@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Optional, Union
 
 import numpy as np
@@ -11,7 +12,7 @@ from scipy.stats import (
 )
 from scipy.stats._distn_infrastructure import rv_continuous_frozen
 
-from HARK.distributions.base import Distribution, _renamed_class
+from HARK.distributions.base import Distribution
 from HARK.distributions.discrete import DiscreteDistribution
 
 
@@ -716,14 +717,40 @@ class LogNormalTruncatedMeanOne(LogNormalTruncated):
         return cls(sigma=sigma, bot=bot, top=top, seed=seed)
 
 
-# The names these classes had before: they still work, with a DeprecationWarning
-Lognormal = _renamed_class(LogNormal, "Lognormal")
-MeanOneLogNormal = _renamed_class(LogNormalMeanOne, "MeanOneLogNormal")
-TruncatedLognormal = _renamed_class(LogNormalTruncated, "TruncatedLognormal")
-TruncatedLogNormal = _renamed_class(LogNormalTruncated, "TruncatedLogNormal")
-MeanOneTruncatedLogNormal = _renamed_class(
-    LogNormalTruncatedMeanOne, "MeanOneTruncatedLogNormal"
-)
+# The names these classes had before they were renamed. Each is the class under
+# its new name, with a DeprecationWarning where it is looked up (__getattr__
+# below, and its counterpart in HARK.distributions); none is scheduled for removal.
+_RENAMED = {
+    "Lognormal": "LogNormal",
+    "MeanOneLogNormal": "LogNormalMeanOne",
+    "TruncatedLognormal": "LogNormalTruncated",
+    "TruncatedLogNormal": "LogNormalTruncated",
+    "MeanOneTruncatedLogNormal": "LogNormalTruncatedMeanOne",
+}
+
+
+def _renamed_message(old):
+    """The warning for a lookup of the old name old, which names the new one."""
+    return (
+        f"{old} is now called {_RENAMED[old]}. The name {old} still works and is "
+        "not scheduled for removal."
+    )
+
+
+def __getattr__(name):
+    # PEP 562: an old name, looked up in this module (by an import, an attribute
+    # access, or pickle loading an object stored under it), is the class itself
+    if name in _RENAMED:
+        warnings.warn(
+            _renamed_message(name),
+            DeprecationWarning,
+            stacklevel=2,
+            # an import from a package looks the name up twice, once inside the
+            # import machinery: both warnings name the line of the import
+            skip_file_prefixes=("<frozen importlib",),
+        )
+        return globals()[_RENAMED[name]]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class Uniform(ContinuousFrozenDistribution):

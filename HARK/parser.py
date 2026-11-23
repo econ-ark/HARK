@@ -1,9 +1,17 @@
+import os
 import warnings
 
 from HARK.distributions import Bernoulli, LogNormal, LogNormalMeanOne
 from sympy.utilities.lambdify import lambdify
 from sympy.parsing.sympy_parser import parse_expr
 import yaml
+
+# The directories of PyYAML and of HARK: a warning raised while PyYAML reads a tag
+# skips their frames, so that it names the line that loaded the YAML
+_YAML_AND_HARK = (
+    os.path.dirname(os.path.abspath(yaml.__file__)) + os.sep,
+    os.path.dirname(os.path.abspath(__file__)) + os.sep,
+)
 
 
 class ControlToken:
@@ -49,7 +57,7 @@ def renamed_tag_constructor(old, cls):
             f"The tag !{old} is now !{cls.__name__}. The old tag still works and "
             "is not scheduled for removal.",
             DeprecationWarning,
-            stacklevel=2,
+            skip_file_prefixes=_YAML_AND_HARK,
         )
         value = loader.construct_mapping(node)
         return (cls, value)
