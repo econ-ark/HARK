@@ -29,6 +29,8 @@ from HARK.distributions import (
     Uniform,
     expected,
     DiscreteDistribution,
+    employed_atoms,
+    restrict_to_atoms,
 )
 from HARK.interpolation import (
     CubicInterp,
@@ -834,6 +836,7 @@ init_indshk_markov = {
     "MrkvPrbsInit": np.array([1.0, 0.0]),  # Initial distribution of discrete state
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    "NewbornPermShk": True,  # Whether newborns have a permanent shock (and growth)
     # ADDITIONAL OPTIONAL PARAMETERS
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
@@ -1147,6 +1150,12 @@ class MarkovConsumerType(IndShockConsumerType):
                 # set current income distribution
                 IncShkDstnNow = self.IncShkDstn[0][j]
                 PermGroFacNow = self.PermGroFac[0][j]  # and permanent growth factor
+                # Born employed (the default): a newborn that draws a
+                # transitory shock draws it with the unemployment event left out
+                if self.NewbornTransShk and getattr(self, "NewbornEmployed", True):
+                    keep = employed_atoms(IncShkDstnNow)
+                    if keep is not None:
+                        IncShkDstnNow = restrict_to_atoms(IncShkDstnNow, keep)
 
                 # Draw income shocks from the discrete distribution
                 if getattr(self, "income_shuffle", False):
@@ -1175,6 +1184,8 @@ class MarkovConsumerType(IndShockConsumerType):
 
         if not self.NewbornTransShk:
             TranShkNow[newborn] = 1.0
+        if not getattr(self, "NewbornPermShk", True):
+            PermShkNow[newborn] = 1.0
 
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
