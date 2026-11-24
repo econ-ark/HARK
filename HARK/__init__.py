@@ -28,13 +28,23 @@ from .core import *
 # configured in pyproject.toml), which writes HARK/_version.py.
 try:
     from HARK._version import version as __version__
-except ImportError:  # a source tree that was never built or installed
-    from importlib.metadata import PackageNotFoundError, version as _dist_version
+except ImportError:  # a tree that was never built or installed
+    from importlib.metadata import PackageNotFoundError, distribution
+    from pathlib import Path as _Path
 
+    # The installed econ-ark's metadata gives the version only if that
+    # installation is the tree being imported, not, say, an older install
+    # beside a source tree on PYTHONPATH
+    __version__ = "0+unknown"
     try:
-        __version__ = _dist_version("econ-ark")
+        _dist = distribution("econ-ark")
+        if (
+            _Path(_dist.locate_file("HARK/__init__.py")).resolve()
+            == _Path(__file__).resolve()
+        ):
+            __version__ = _dist.version
     except PackageNotFoundError:
-        __version__ = "0+unknown"
+        pass
 import logging
 from HARK.helpers import install_examples
 

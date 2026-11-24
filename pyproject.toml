@@ -29,22 +29,36 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 [tool.setuptools_scm]
-# The version comes from git. A release's version is its tag, such as 0.17.2;
-# every commit after a release gets its own development version, so pip can
-# tell an install from main apart from the release before it. On main the
-# development versions count toward the next minor release (0.18.0.dev270+g...);
-# on a release branch named for its series, 0.17 or release/0.17, toward the
-# series' next patch (0.17.3.dev...).
+# The version comes from git. A release's version is its tag, such as 0.17.2,
+# and every commit after a tag gets a development version of its own, so pip
+# can tell an install from main apart from the release before it. The scheme is
+# setuptools_scm's default, guess-next-dev. After a release tag such as 0.17.2,
+# commits count toward its next patch (0.17.3.devN+g...), as on a maintenance
+# branch. Main starts each cycle with a tag such as 0.18.0.dev0, after which its
+# commits count toward that release (0.18.0.devN+g...), however HARK is
+# installed, from a commit's SHA included.
 # Before tagging a release, work through the "Before release" list in the dev
 # section of docs/CHANGELOG.md, if there is one.
 version_file = "HARK/_version.py"
-version_scheme = "release-branch-semver"
-# Only release tags count (0.17.2, 0.18.0rc1, ...), not tags such as
-# v0.17.0.post1-broadcasting-fix or pins for other projects.
-tag_regex = '^(?P<version>\d+\.\d+(?:\.\d+)?(?:(?:a|b|rc)\d+)?)$'
+version_scheme = "guess-next-dev"
+# Only release tags count (0.17.2, 0.18.0rc1, ...), and the .dev0 tags that
+# start a cycle on main, not tags such as v0.17.0.post1-broadcasting-fix or pins
+# for other projects.
+tag_regex = '^(?P<version>\d+\.\d+(?:\.\d+)?(?:(?:a|b|rc)\d+)?(?:\.dev0)?)$'
 
 [tool.setuptools_scm.scm.git]
-describe_command = ["git", "describe", "--dirty", "--tags", "--long", "--match", "[0-9]*.[0-9]*"]
+# git describe takes the nearest tag these patterns admit. They admit the tags
+# tag_regex accepts and no others, so the tag found is never one it rejects
+# (tests/test_version.py checks that the two agree).
+describe_command = [
+    "git", "describe", "--dirty", "--tags", "--long",
+    "--match", "[0-9]*.[0-9]*",
+    "--exclude", "*[!0-9]",
+    "--exclude", "*[!0-9.abcderv]*",
+    "--exclude", "*.dev[!0]*",
+    "--exclude", "*.dev0?*",
+    "--exclude", "*.*.*.[0-9]*",
+]
 
 [tool.setuptools.dynamic.dependencies]
 file = "requirements/base.txt"

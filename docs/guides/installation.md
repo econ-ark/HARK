@@ -129,6 +129,8 @@ If you want to make changes or contributions (yay!) to HARK, you'll need to have
 
 3.  Make sure to navigate to the HARK directory, and install HARK's requirements into the virtual environment with `pip install -r ./requirements/base.txt`. The requirements folder also contains `dev.txt` and `doc.txt` which install packages relevant to develoment and the documentation respectively.
 
+    HARK takes its version from git's tags. A clone without them, such as a shallow clone or a fork made before the latest release, builds a version below that release (`0.1.devN`, say), which pip and the projects that pin HARK then refuse or replace. Fetch them first: `git fetch --tags https://github.com/econ-ark/HARK.git`.
+
 4.  Install econ-ark locally: navigate to your local repository and then type:
 
 ```
