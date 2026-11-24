@@ -674,7 +674,20 @@ class testCRRANearOneWarning(unittest.TestCase):
 
 
 class testKinkAttributesFast(unittest.TestCase):
-    """The fast solver records the same kink as the standard one."""
+    """The fast solver records the same kink as the standard one, on the same
+    asset grid."""
+
+    def test_same_asset_grid_as_the_standard_solver(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import calc_aNrm_grid
+        from HARK.ConsumptionSaving.ConsIndShockModelFast import _calc_aNrm_grid
+
+        aXtra = np.array([0.001, 0.5, 2.0, 20.0])
+        for nat, cnst in ((-0.4, 0.0), (-0.4, -0.4), (0.1, 0.1)):
+            with self.subTest(BoroCnstNat=nat, mNrmMin=cnst):
+                np.testing.assert_array_equal(
+                    _calc_aNrm_grid(aXtra, nat, cnst),
+                    calc_aNrm_grid(aXtra, nat, cnst),
+                )
 
     def test_same_kink_as_the_standard_solver(self):
         for CubicBool in (False, True):

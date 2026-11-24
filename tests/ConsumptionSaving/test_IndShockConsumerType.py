@@ -1819,7 +1819,8 @@ class testKinkAttributes(unittest.TestCase):
 class testKinkChecksAndOneSentinel(unittest.TestCase):
     """find_kink refuses nodes laid out otherwise than it assumes; a solution
     marks a kink its solver does not record with NaN, as IndShock's does where
-    the natural constraint binds; one asset grid serves both IndShock solvers."""
+    the natural constraint binds; the asset grid starts at a binding constraint
+    (the fast solver's copy of the grid is tested with the fast solver)."""
 
     def test_find_kink_refuses_other_layouts(self):
         from HARK.ConsumptionSaving.ConsIndShockModel import find_kink
@@ -1862,9 +1863,8 @@ class testKinkChecksAndOneSentinel(unittest.TestCase):
                 for name in ("mNrmKink", "cNrmKink", "MPCaboveKink"):
                     self.assertTrue(np.all(np.isnan(getattr(agent.solution[0], name))))
 
-    def test_one_grid_for_both_solvers(self):
+    def test_asset_grid_starts_at_a_binding_constraint(self):
         from HARK.ConsumptionSaving.ConsIndShockModel import calc_aNrm_grid
-        from HARK.ConsumptionSaving.ConsIndShockModelFast import _calc_aNrm_grid
 
         aXtra = np.array([0.001, 0.5, 2.0, 20.0])
         for nat, cnst in ((-0.4, 0.0), (-0.4, -0.4), (0.1, 0.1)):
@@ -1875,7 +1875,4 @@ class testKinkChecksAndOneSentinel(unittest.TestCase):
                     expected = aXtra + nat
                 np.testing.assert_array_equal(
                     calc_aNrm_grid(aXtra, nat, cnst), expected
-                )
-                np.testing.assert_array_equal(
-                    _calc_aNrm_grid(aXtra, nat, cnst), expected
                 )
