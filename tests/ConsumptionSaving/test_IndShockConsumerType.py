@@ -1812,5 +1812,70 @@ class testKinkAttributes(unittest.TestCase):
             self.assertAlmostEqual(
                 float(solution.cFunc(solution.mNrmKink)), solution.cNrmKink, places=12
             )
-        # The terminal solution is not solved on a grid, and records nothing
-        self.assertIsNone(agent.solution[-1].mNrmKink)
+        # The terminal solution is not solved on a grid, and records no kink
+        self.assertTrue(np.isnan(agent.solution[-1].mNrmKink))
+
+
+class testKinkChecksAndOneSentinel(unittest.TestCase):
+    """find_kink refuses nodes laid out otherwise than it assumes; a solution
+    marks a kink its solver does not record with NaN, as IndShock's does where
+    the natural constraint binds; one asset grid serves both IndShock solvers."""
+
+    def test_find_kink_refuses_other_layouts(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import find_kink
+
+        nat, cnst = -0.5, 0.0
+        # The natural constraint with zero consumption, then the kink, where the
+        # consumer ends the period at the constraint, then the node above it
+        m = np.array([nat, 0.7, 1.0, 1.5])
+        c = np.array([0.0, 0.7, 0.85, 1.1])
+        np.testing.assert_allclose(find_kink(m, c, None, nat, cnst), (0.7, 0.7, 0.5))
+        np.testing.assert_allclose(
+            find_kink(m[:2], c[:2], np.array([1.0, 0.4]), nat, cnst), (0.7, 0.7, 0.4)
+        )
+        for label, mm, cc in (
+            ("too few nodes for the linear rule", m[:2], c[:2]),
+            ("first node above the natural constraint", m + [0.1, 0, 0, 0], c),
+            ("consumption not zero at the natural constraint", m, c + [0.1, 0, 0, 0]),
+            ("second node not at the constraint", m, c - [0, 0.1, 0, 0]),
+        ):
+            with self.subTest(label), self.assertRaises(ValueError):
+                find_kink(mm, cc, None, nat, cnst)
+        # Where the natural constraint binds there is no kink, whatever the nodes
+        self.assertTrue(np.all(np.isnan(find_kink(m[:1], c[:1], None, 0.0, 0.0))))
+
+    def test_one_sentinel_for_every_solver(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+        from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioConsumerType
+        from HARK.ConsumptionSaving.ConsPrefShockModel import PrefShockConsumerType
+
+        for agent_type, kwds in (
+            (KinkedRconsumerType, {"BoroCnstArt": 0.0}),
+            (PrefShockConsumerType, {}),
+            (PortfolioConsumerType, {}),
+            (MarkovConsumerType, {}),
+            (IndShockConsumerType, {"BoroCnstArt": None}),
+        ):
+            with self.subTest(agent_type.__name__):
+                agent = agent_type(cycles=1, **kwds)
+                agent.solve()
+                for name in ("mNrmKink", "cNrmKink", "MPCaboveKink"):
+                    self.assertTrue(np.all(np.isnan(getattr(agent.solution[0], name))))
+
+    def test_one_grid_for_both_solvers(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import calc_aNrm_grid
+        from HARK.ConsumptionSaving.ConsIndShockModelFast import _calc_aNrm_grid
+
+        aXtra = np.array([0.001, 0.5, 2.0, 20.0])
+        for nat, cnst in ((-0.4, 0.0), (-0.4, -0.4), (0.1, 0.1)):
+            with self.subTest(BoroCnstNat=nat, mNrmMin=cnst):
+                if nat < cnst:  # the artificial constraint binds: it is the first point
+                    expected = cnst + np.concatenate(([0.0], aXtra))
+                else:
+                    expected = aXtra + nat
+                np.testing.assert_array_equal(
+                    calc_aNrm_grid(aXtra, nat, cnst), expected
+                )
+                np.testing.assert_array_equal(
+                    _calc_aNrm_grid(aXtra, nat, cnst), expected
+                )

@@ -163,17 +163,18 @@ class ConsumerSolution(MetricObject):
     MPCmax : float
         Supremum of the marginal propensity to consume this period.
         MPC --> MPCmax as m --> mNrmMin.
-    mNrmKink : float or None
+    mNrmKink : float
         Where an artificial borrowing constraint binds, the normalized market
         resources at the kink of the consumption function, below which the
         consumer ends the period at the constraint. NaN where the natural
-        borrowing constraint binds, and None where the solver does not record it.
-    cNrmKink : float or None
+        borrowing constraint binds, and where the solver does not record the
+        kink, so that np.isnan() answers for every solver.
+    cNrmKink : float
         Normalized consumption at the kink, mNrmKink minus the constraint on
-        end-of-period assets; NaN or None as for mNrmKink.
-    MPCaboveKink : float or None
+        end-of-period assets; NaN as for mNrmKink.
+    MPCaboveKink : float
         The marginal propensity to consume just above the kink. Below it, on the
-        constraint, the MPC is one. NaN or None as for mNrmKink.
+        constraint, the MPC is one. NaN as for mNrmKink.
 
     """
 
@@ -189,9 +190,9 @@ class ConsumerSolution(MetricObject):
         hNrm=None,
         MPCmin=None,
         MPCmax=None,
-        mNrmKink=None,
-        cNrmKink=None,
-        MPCaboveKink=None,
+        mNrmKink=np.nan,
+        cNrmKink=np.nan,
+        MPCaboveKink=np.nan,
     ):
         # Change any missing function inputs to NullFunc
         self.cFunc = cFunc if cFunc is not None else NullFunc()
@@ -275,14 +276,87 @@ def find_kink(mNrm, cNrm, MPC, BoroCnstNat, mNrmMin):
     mNrmKink, cNrmKink, MPCaboveKink : float
         Market resources and consumption at the kink, and the MPC just above it;
         each NaN where the natural borrowing constraint binds, so there is no kink.
+
+    Raises
+    ------
+    ValueError
+        Where the artificial constraint binds but the nodes are not laid out as
+        described: the first is not the natural borrowing constraint with zero
+        consumption, the second does not end the period at the constraint, or,
+        under the linear rule, there are fewer than three.
     """
     if not BoroCnstNat < mNrmMin:
         return np.nan, np.nan, np.nan
+    if len(mNrm) < (2 if MPC is not None else 3):
+        raise ValueError(
+            "find_kink needs the natural borrowing constraint's node, the kink's, "
+            "and, under the linear rule, the node above it: "
+            f"{len(mNrm)} nodes given."
+        )
+    if mNrm[0] != BoroCnstNat or cNrm[0] != 0.0:
+        raise ValueError(
+            "find_kink needs the first node at the natural borrowing constraint, "
+            f"{BoroCnstNat}, with zero consumption, not at m = {mNrm[0]}, c = {cNrm[0]}."
+        )
+    if abs((mNrm[1] - cNrm[1]) - mNrmMin) > 1e-10 * max(1.0, abs(mNrm[1])):
+        raise ValueError(
+            "find_kink needs the second node to end the period at the constraint, "
+            f"{mNrmMin}: there m - c = {mNrm[1] - cNrm[1]}, so the grid does not "
+            "start at the constraint."
+        )
     if MPC is None:
         MPCaboveKink = (cNrm[2] - cNrm[1]) / (mNrm[2] - mNrm[1])
     else:
         MPCaboveKink = MPC[1]
     return float(mNrm[1]), float(cNrm[1]), float(MPCaboveKink)
+
+
+def calc_aNrm_grid(aXtraGrid, BoroCnstNat, mNrmMin):
+    """
+    The end-of-period asset grid of IndShockConsumerType's one-period solvers,
+    standard and fast. Written so that numba can compile it, as
+    ConsIndShockModelFast does for its solver.
+
+    Where the artificial borrowing constraint binds (BoroCnstNat < mNrmMin), the
+    grid starts at that constraint, with the constraint itself as its first
+    point. Gridpoints below it would build the unconstrained consumption
+    function where the lower envelope always takes the constraint line instead,
+    so the expectations computed there would be wasted. At the constraint itself
+    the end-of-period marginal value of assets is finite, so the first-order
+    condition gives consumption there directly, and that point's endogenous
+    gridpoint is the kink where the constraint stops binding: a node of the
+    solution, not the crossing of two interpolants (find_kink reads it).
+
+    Below the grid, the unconstrained consumption function starts at the natural
+    borrowing constraint, where consumption is zero, whichever constraint binds.
+    That point keeps the interpolant defined down to mNrmMin, and the function is
+    smooth at the kink, with a single slope there (the unconstrained MPC), so no
+    interpolation node has to carry the kink's two slopes. The artificial
+    constraint is applied afterwards, as the lower envelope of that function and
+    the constraint line: at the kink the slope jumps from one, below it, to the
+    unconstrained MPC above it, which a cubic Hermite node cannot carry. A
+    linear interpolant could, but it is built the same way.
+
+    Where the natural borrowing constraint binds, the grid stays above it, as
+    marginal value is infinite at the natural limit itself.
+
+    Parameters
+    ----------
+    aXtraGrid : np.array
+        End-of-period assets above the constraint in force.
+    BoroCnstNat : float
+        The natural borrowing constraint.
+    mNrmMin : float
+        The constraint in force, the larger of the natural and the artificial.
+
+    Returns
+    -------
+    aNrm : np.array
+        The end-of-period asset grid.
+    """
+    if BoroCnstNat < mNrmMin:
+        return mNrmMin + np.concatenate((np.zeros(1), aXtraGrid))
+    return aXtraGrid + BoroCnstNat
 
 
 # =====================================================================
@@ -1094,22 +1168,11 @@ def solve_one_period_ConsIndShock(
         np.array([0.0, 1.0]),
     )
 
-    # Construct the end-of-period assets grid. Where the artificial borrowing
-    # constraint binds (BoroCnstNat < mNrmMinNow), the grid starts at that
-    # constraint, with the constraint itself as its first point. Gridpoints
-    # below it would build the unconstrained consumption function where the
-    # lower envelope below always takes the constraint line instead, so the
-    # expectations computed there would be wasted. At the constraint itself the
-    # end-of-period marginal value of assets is finite, so the first-order
-    # condition gives consumption there directly, and that point's endogenous
-    # gridpoint is the kink where the constraint stops binding: a node of the
-    # solution, not the crossing of two interpolants. Where the natural
-    # borrowing constraint binds, the grid stays above it, as marginal value
-    # is infinite at the natural limit itself.
-    if BoroCnstNat < mNrmMinNow:
-        aNrmNow = mNrmMinNow + np.insert(np.asarray(aXtraGrid), 0, 0.0)
-    else:
-        aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    # The end-of-period assets grid, starting at a binding artificial constraint
+    # (calc_aNrm_grid says why)
+    aNrmNow = calc_aNrm_grid(
+        np.asarray(aXtraGrid, dtype=float), BoroCnstNat, mNrmMinNow
+    )
 
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
@@ -1124,12 +1187,8 @@ def solve_one_period_ConsIndShock(
     mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
 
     # The unconstrained consumption function starts at the natural borrowing
-    # constraint, where consumption is zero, whichever constraint binds. Where
-    # the artificial constraint binds, this is the one point below the grid:
-    # it keeps the interpolant defined down to mNrmMinNow, where the lower
-    # envelope takes the constraint line instead. The kink is a node of this
-    # function, which is smooth there, with a single slope (the unconstrained
-    # MPC), so no interpolation node has to carry the kink's two slopes.
+    # constraint, with zero consumption, whichever constraint binds (see
+    # calc_aNrm_grid)
     c_for_interpolation = np.insert(cNrmNow, 0, 0.0)
     m_for_interpolation = np.insert(mNrmNow, 0, BoroCnstNat)
 
@@ -1173,15 +1232,9 @@ def solve_one_period_ConsIndShock(
         mNrmMinNow,
     )
 
-    # Combine the constrained and unconstrained functions into the true
-    # consumption function. The artificial constraint is applied here, as the
-    # lower envelope of two smooth functions, rather than inside one
-    # interpolant: at the kink the consumption function's slope jumps from one,
-    # below it, to the unconstrained MPC above it, and a cubic Hermite node
-    # carries only one slope. The piecewise linear rule does not need the
-    # envelope, since a linear interpolant can carry the kink at a node, but it
-    # is built the same way. Where the grid starts at the constraint, the two
-    # functions meet exactly at the kink's node.
+    # The true consumption function: the lower envelope of the unconstrained
+    # function and the constraint line, which meet at the kink's node (see
+    # calc_aNrm_grid)
     cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
 
     # Make the marginal value function and the marginal marginal value function

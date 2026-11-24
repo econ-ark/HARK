@@ -25,6 +25,7 @@ from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    calc_aNrm_grid,
     find_kink,
     PerfForesightConsumerType,
     init_perfect_foresight,
@@ -484,6 +485,25 @@ def _np_tile(A, reps):  # pragma: nocover
     return A.repeat(reps[0]).reshape(A.size, -1).transpose()
 
 
+# The standard solver's end-of-period asset grid, compiled for this module's solver
+_calc_aNrm_grid = njit(cache=True)(calc_aNrm_grid)
+
+
+def _kink_of(solution, cubic):
+    """
+    The kink of a solution of this module's solver, by find_kink: as in the
+    standard solver, its nodes start at the natural borrowing constraint,
+    mNrm[0], and the kink, where the artificial constraint binds, is the next.
+    """
+    return find_kink(
+        solution.mNrm,
+        solution.cNrm,
+        solution.MPC if cubic else None,
+        solution.mNrm[0],
+        solution.mNrmMin,
+    )
+
+
 @njit(cache=True)
 def _np_insert(arr, obj, values, axis=-1):  # pragma: nocover
     return np.append(np.array(values), arr)
@@ -560,22 +580,8 @@ def _prepare_to_solveConsIndShockNumba(
     experience next period.
     """
 
-    # Construct the end-of-period assets grid. Where the artificial borrowing
-    # constraint binds (BoroCnstNat < mNrmMinNow), the grid starts at that
-    # constraint, with the constraint itself as its first point. Gridpoints
-    # below it would build the unconstrained consumption function where the
-    # lower envelope below always takes the constraint line instead, so the
-    # expectations computed there would be wasted. At the constraint itself the
-    # end-of-period marginal value of assets is finite, so the first-order
-    # condition gives consumption there directly, and that point's endogenous
-    # gridpoint is the kink where the constraint stops binding: a node of the
-    # solution, not the crossing of two interpolants. Where the natural
-    # borrowing constraint binds, the grid stays above it, as marginal value
-    # is infinite at the natural limit itself.
-    if BoroCnstNat < mNrmMinNow:
-        aNrmNow = mNrmMinNow + _np_insert(np.asarray(aXtraGrid), 0, 0.0)
-    else:
-        aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    # The end-of-period assets grid, as the standard solver's (calc_aNrm_grid)
+    aNrmNow = _calc_aNrm_grid(np.asarray(aXtraGrid), BoroCnstNat, mNrmMinNow)
     ShkCount = TranShkValsNext.size
     aNrm_temp = _np_tile(aNrmNow, (ShkCount, 1))
 
@@ -652,12 +658,7 @@ def _solveConsIndShockLinearNumba(
     mNrmNow = cNrmNow + aNrmNow
 
     # The unconstrained consumption function starts at the natural borrowing
-    # constraint, where consumption is zero, whichever constraint binds. Where
-    # the artificial constraint binds, this is the one point below the grid:
-    # it keeps the interpolant defined down to mNrmMinNow, where the lower
-    # envelope takes the constraint line instead. The kink is a node of this
-    # function, which is smooth there, with a single slope (the unconstrained
-    # MPC), so no interpolation node has to carry the kink's two slopes.
+    # constraint, with zero consumption (see calc_aNrm_grid)
     cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
     mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
 
@@ -818,12 +819,7 @@ def _solveConsIndShockCubicNumba(
     mNrmNow = cNrmNow + aNrmNow
 
     # The unconstrained consumption function starts at the natural borrowing
-    # constraint, where consumption is zero, whichever constraint binds. Where
-    # the artificial constraint binds, this is the one point below the grid:
-    # it keeps the interpolant defined down to mNrmMinNow, where the lower
-    # envelope takes the constraint line instead. The kink is a node of this
-    # function, which is smooth there, with a single slope (the unconstrained
-    # MPC), so no interpolation node has to carry the kink's two slopes.
+    # constraint, with zero consumption (see calc_aNrm_grid)
     cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
     mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
 
@@ -1428,29 +1424,14 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                         solution.cFuncLimitSlope,
                     )
 
-                # Combine the constrained and unconstrained functions into the true
-                # consumption function. The artificial constraint is applied here, as the
-                # lower envelope of two smooth functions, rather than inside one
-                # interpolant: at the kink the consumption function's slope jumps from one,
-                # below it, to the unconstrained MPC above it, and a cubic Hermite node
-                # carries only one slope. The piecewise linear rule does not need the
-                # envelope, since a linear interpolant can carry the kink at a node, but it
-                # is built the same way. Where the grid starts at the constraint, the two
-                # functions meet exactly at the kink's node.
+                # The true consumption function: the lower envelope of the unconstrained
+                # function and the constraint line (see calc_aNrm_grid)
                 cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
 
                 # Make the marginal value function and the marginal marginal value function
                 vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
 
-                # The kink where the artificial constraint binds: the node after the
-                # natural borrowing constraint, mNrm[0], as in the standard solver
-                mNrmKink, cNrmKink, MPCaboveKink = find_kink(
-                    solution.mNrm,
-                    solution.cNrm,
-                    solution.MPC if self.CubicBool else None,
-                    solution.mNrm[0],
-                    solution.mNrmMin,
-                )
+                mNrmKink, cNrmKink, MPCaboveKink = _kink_of(solution, self.CubicBool)
 
                 # Pack up the solution and return it
                 consumer_solution = ConsumerSolution(
