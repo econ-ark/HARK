@@ -93,6 +93,19 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.assertFalse(a1.PermShkDstn.seed == a2.PermShkDstn.seed)
 
+    def test_quiet_infinite_horizon_solve(self):
+        # quiet silences the conditions report but still computes the
+        # conditions, which post_solve needs (issue #1836)
+        quiet = IndShockConsumerType(cycles=0, quiet=True, verbose=2)
+        with self.assertNoLogs("HARK", level="INFO"):
+            quiet.solve()
+
+        loud = IndShockConsumerType(cycles=0, quiet=False, verbose=0)
+        loud.solve()
+        self.assertEqual(quiet.conditions, loud.conditions)
+        self.assertEqual(quiet.solution[0].mNrmStE, loud.solution[0].mNrmStE)
+        self.assertEqual(quiet.solution[0].mNrmTrg, loud.solution[0].mNrmTrg)
+
     def test_check_conditions(self):
         TestType = IndShockConsumerType(cycles=0, quiet=False, verbose=False)
         TestType.check_conditions()

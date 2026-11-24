@@ -2030,7 +2030,7 @@ class PerfForesightConsumerType(AgentType):
     def log_condition_result(self, name, result, message, verbose):
         """
         Records the result of one condition check in the attribute condition_report
-        of the bilt dictionary, and in the message log.
+        of the bilt dictionary, and in the message log unless ``self.quiet`` is set.
 
         Parameters
         ----------
@@ -2045,7 +2045,8 @@ class PerfForesightConsumerType(AgentType):
         """
         if name is not None:
             self.conditions[name] = result
-        self._log_at_verbosity(message, verbose)
+        if not self.quiet:
+            self._log_at_verbosity(message, verbose)
         self.bilt["conditions_report"] += message + "\n"
 
     def _log_at_verbosity(self, message, verbose):
@@ -2067,7 +2068,8 @@ class PerfForesightConsumerType(AgentType):
         the instance default, and ``should_continue`` is False when the model
         is outside the infinite-horizon, single-period-cycle regime supported
         by ``check_conditions``. In that case the trivial-skip message has
-        already been logged.
+        already been added to the conditions report, and logged unless
+        ``self.quiet`` is set.
         """
         self.conditions = {}
         self.bilt["conditions_report"] = ""
@@ -3233,8 +3235,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
     def pre_solve(self):
         self.check_restrictions()
         self.construct("solution_terminal")
-        if not self.quiet:
-            self.check_conditions(verbose=self.verbose)
+        # quiet silences the conditions report, but post_solve needs the conditions
+        self.check_conditions(verbose=self.verbose)
 
     def describe_parameters(self):
         """
