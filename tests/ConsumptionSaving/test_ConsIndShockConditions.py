@@ -1,4 +1,5 @@
-"""Tests for the supported-cycle gate in IndShockConsumerType.check_conditions.
+"""Tests for IndShockConsumerType.check_conditions: the supported-cycle gate
+and the condition factors.
 
 Kept in its own module rather than appended to test_IndShockConsumerType.py:
 that file is the tail end of several in-flight branches, and every addition to
@@ -6,6 +7,8 @@ its final line collides with theirs.
 """
 
 import unittest
+
+import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -40,3 +43,35 @@ class testConditionCheckUnsupportedCycles(unittest.TestCase):
 
         self.assertNotIn(self.TRIVIAL, agent.bilt["conditions_report"])
         self.assertTrue(agent.conditions)
+
+
+class testFiniteValueOfAutarkyFactor(unittest.TestCase):
+    """The risk-modified FVAC factor discounts by survival.
+
+    Death ends utility, so the value of autarky discounts each period by
+    DiscFac * LivPrb, as the perfect foresight factor PFVAFac already does.
+    """
+
+    def make_agent(self, LivPrb):
+        agent = IndShockConsumerType(cycles=0, LivPrb=[LivPrb])
+        agent.check_conditions()
+        return agent
+
+    def test_VAFac_matches_its_definition(self):
+        agent = self.make_agent(0.98)
+        dstn = agent.PermShkDstn[0]
+        EPermShk = np.dot(dstn.pmv, dstn.atoms[0] ** (1.0 - agent.CRRA))
+        VAFac = (
+            agent.DiscFac
+            * agent.LivPrb[0]
+            * agent.PermGroFac[0] ** (1.0 - agent.CRRA)
+            * EPermShk
+        )
+        self.assertAlmostEqual(agent.bilt["VAFac"], VAFac, places=12)
+
+    def test_VAFac_scales_with_survival(self):
+        immortal = self.make_agent(1.0)
+        mortal = self.make_agent(0.9)
+        self.assertAlmostEqual(
+            mortal.bilt["VAFac"], 0.9 * immortal.bilt["VAFac"], places=12
+        )
