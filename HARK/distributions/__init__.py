@@ -1,15 +1,15 @@
+import warnings
+
 __all__ = [
     "DiscreteDistribution",
     "DiscreteDistributionLabeled",
     "cdf_invert",
     "Distribution",
     "IndexDistribution",
-    "Lognormal",
     "LogNormal",
-    "MeanOneLogNormal",
-    "TruncatedLognormal",
-    "TruncatedLogNormal",
-    "MeanOneTruncatedLogNormal",
+    "LogNormalMeanOne",
+    "LogNormalTruncated",
+    "LogNormalTruncatedMeanOne",
     "truncated_normal_variance",
     "Normal",
     "MultivariateNormal",
@@ -40,13 +40,13 @@ from HARK.distributions.base import (
     MarkovProcess,
 )
 from HARK.distributions.continuous import (
-    Lognormal,
+    _RENAMED,
+    _renamed_message,
     LogNormal,
-    MeanOneLogNormal,
-    MeanOneTruncatedLogNormal,
+    LogNormalMeanOne,
+    LogNormalTruncated,
+    LogNormalTruncatedMeanOne,
     Normal,
-    TruncatedLognormal,
-    TruncatedLogNormal,
     truncated_normal_variance,
     Uniform,
     Weibull,
@@ -74,3 +74,20 @@ from HARK.distributions.utils import (
     expected,
     make_tauchen_ar1,
 )
+
+
+def __getattr__(name):
+    # PEP 562: a lognormal class's name before it was renamed is the class itself,
+    # with a DeprecationWarning where it is looked up (the table is in
+    # HARK.distributions.continuous)
+    if name in _RENAMED:
+        warnings.warn(
+            _renamed_message(name),
+            DeprecationWarning,
+            stacklevel=2,
+            # an import from a package looks the name up twice, once inside the
+            # import machinery: both warnings name the line of the import
+            skip_file_prefixes=("<frozen importlib",),
+        )
+        return globals()[_RENAMED[name]]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

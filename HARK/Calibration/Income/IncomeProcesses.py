@@ -12,8 +12,8 @@ from HARK.distributions import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
-    MeanOneLogNormal,
-    Lognormal,
+    LogNormalMeanOne,
+    LogNormal,
     Uniform,
     make_tauchen_ar1,
 )
@@ -188,7 +188,7 @@ class LognormPermIncShk(DiscreteDistribution):
 
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
         # Construct an auxiliary discretized normal
-        lognormal_dstn = MeanOneLogNormal(sigma)
+        lognormal_dstn = LogNormalMeanOne(sigma)
         logn_approx = lognormal_dstn.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
@@ -237,7 +237,7 @@ class MixtureTranIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-        dstn_orig = MeanOneLogNormal(sigma)
+        dstn_orig = LogNormalMeanOne(sigma)
         dstn_approx = dstn_orig.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
@@ -296,7 +296,7 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         tax_rate,
         seed=0,
     ):
-        dstn_approx = MeanOneLogNormal(sigma).discretize(
+        dstn_approx = LogNormalMeanOne(sigma).discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
 
@@ -516,7 +516,7 @@ def construct_lognormal_wage_dstn(
         W_mu = np.log(WageRteMean[t]) - 0.5 * W_sig**2
         B = IncUnemp if isinstance(IncUnemp, float) else IncUnemp[t]
         U = UnempPrb if isinstance(UnempPrb, float) else UnempPrb[t]
-        temp_dstn = Lognormal(mu=W_mu, sigma=W_sig, seed=RNG.integers(0, 2**31 - 1))
+        temp_dstn = LogNormal(mu=W_mu, sigma=W_sig, seed=RNG.integers(0, 2**31 - 1))
         temp_dstn_alt = add_discrete_outcome(temp_dstn.discretize(N), B, U)
         WageRteDstn.append(temp_dstn_alt)
     return WageRteDstn
@@ -1562,7 +1562,7 @@ def make_pLvlGrid_by_simulation(
 
     # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
     if cycles == 1:
-        pLvlNow = Lognormal(pLogInitMean, sigma=pLogInitStd, seed=31382).draw(Agent_N)
+        pLvlNow = LogNormal(pLogInitMean, sigma=pLogInitStd, seed=31382).draw(Agent_N)
         pLvlGrid = []  # empty list of time-varying persistent income grids
         # Calculate distribution of persistent income in each period of lifecycle
         for t in range(T_cycle):
@@ -1576,7 +1576,7 @@ def make_pLvlGrid_by_simulation(
         T_long = (
             1000  # Number of periods to simulate to get to "stationary" distribution
         )
-        pLvlNow = Lognormal(mu=pLogInitMean, sigma=pLogInitStd, seed=31382).draw(
+        pLvlNow = LogNormal(mu=pLogInitMean, sigma=pLogInitStd, seed=31382).draw(
             Agent_N
         )
         t_cycle = np.zeros(Agent_N, dtype=int)
@@ -1585,7 +1585,7 @@ def make_pLvlGrid_by_simulation(
             LivPrb = LivPrbAll[t_cycle]
             draws = Uniform(seed=t).draw(Agent_N)
             who_dies = draws > LivPrb
-            pLvlNow[who_dies] = Lognormal(
+            pLvlNow[who_dies] = LogNormal(
                 pLogInitMean, pLogInitStd, seed=t + 92615
             ).draw(np.sum(who_dies))
             t_cycle[who_dies] = 0

@@ -821,7 +821,7 @@ This category has historically caused the most missed upgrades.
 |-------|----------|---------------|
 | `DiscreteDistribution` | distributions/ | Widely used, params renamed |
 | `DiscreteDistributionLabeled` | distributions/ | Same |
-| `Uniform`, `Normal`, `Lognormal` | distributions/ | Common constructors |
+| `Uniform`, `Normal`, `LogNormal` | distributions/ | Common constructors |
 | `IndShockConsumerType` | ConsIndShockModel | Base agent class |
 | `PerfForesightConsumerType` | ConsIndShockModel | Base agent class |
 | `MarkovConsumerType` | ConsMarkovModel | Common extension |

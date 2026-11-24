@@ -9,7 +9,7 @@ from HARK.distributions import (
     combine_indep_dstns,
     DiscreteDistributionLabeled,
     IndexDistribution,
-    Lognormal,
+    LogNormal,
 )
 
 
@@ -65,7 +65,7 @@ def make_lognormal_RiskyDstn(T_cycle, RiskyAvg, RiskyStd, RiskyCount, RNG):
     # if its parameters are time-varying
     if time_varying_RiskyDstn:
         RiskyDstn = IndexDistribution(
-            Lognormal,
+            LogNormal,
             {"mean": RiskyAvg, "sigma": RiskyStd},
             seed=RNG.integers(0, 2**31 - 1),
         ).discretize(RiskyCount, method="equiprobable")
@@ -73,7 +73,7 @@ def make_lognormal_RiskyDstn(T_cycle, RiskyAvg, RiskyStd, RiskyCount, RNG):
     # Generate a discrete approximation to the risky return distribution if
     # its parameters are constant
     else:
-        RiskyDstn = Lognormal(mean=RiskyAvg, sigma=RiskyStd).discretize(
+        RiskyDstn = LogNormal(mean=RiskyAvg, sigma=RiskyStd).discretize(
             RiskyCount, method="equiprobable"
         )
 

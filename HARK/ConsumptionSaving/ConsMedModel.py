@@ -27,7 +27,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     VariableLowerBoundFunc2D,
 )
 from HARK.distributions import (
-    Lognormal,
+    LogNormal,
     MultivariateLogNormal,
     add_discrete_outcome,
     expected,
@@ -314,7 +314,7 @@ def make_lognormal_MedShkDstn(
         # get shock distribution parameters
         MedShkAvg_t = MedShkAvg[t]
         MedShkStd_t = MedShkStd[t]
-        MedShkDstn_t = Lognormal(
+        MedShkDstn_t = LogNormal(
             mu=np.log(MedShkAvg_t) - 0.5 * MedShkStd_t**2,
             sigma=MedShkStd_t,
             seed=RNG.integers(0, 2**31 - 1),

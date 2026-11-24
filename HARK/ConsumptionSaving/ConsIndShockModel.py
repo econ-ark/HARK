@@ -33,8 +33,8 @@ from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
     income_wealth_dists_from_scf,
 )
 from HARK.distributions import (
-    Lognormal,
-    MeanOneLogNormal,
+    LogNormal,
+    LogNormalMeanOne,
     Uniform,
     add_discrete_outcome_constant_mean,
     cdf_invert,
@@ -250,7 +250,7 @@ def make_lognormal_kNrm_init_dstn(kLogInitMean, kLogInitStd, kNrmInitCount, RNG)
     kNrmInitDstn : DiscreteDistribution
         Discretized distribution of initial capital holdings for newborns.
     """
-    dstn = Lognormal(
+    dstn = LogNormal(
         mu=kLogInitMean,
         sigma=kLogInitStd,
         seed=RNG.integers(0, 2**31 - 1),
@@ -280,7 +280,7 @@ def make_lognormal_pLvl_init_dstn(pLogInitMean, pLogInitStd, pLvlInitCount, RNG)
     pLvlInitDstn : DiscreteDistribution
         Discretized distribution of initial permanent income for newborns.
     """
-    dstn = Lognormal(
+    dstn = LogNormal(
         mu=pLogInitMean,
         sigma=pLogInitStd,
         seed=RNG.integers(0, 2**31 - 1),
@@ -2823,7 +2823,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if approx_inc_dstn:
             IncShkDstn = self.IncShkDstn[0]
         else:
-            TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).discretize(
+            TranShkDstn = LogNormalMeanOne(sigma=self.TranShkStd[0]).discretize(
                 N=200,
                 method="equiprobable",
                 tail_N=50,
@@ -2833,7 +2833,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             TranShkDstn = add_discrete_outcome_constant_mean(
                 TranShkDstn, p=self.UnempPrb, x=self.IncUnemp
             )
-            PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).discretize(
+            PermShkDstn = LogNormalMeanOne(sigma=self.PermShkStd[0]).discretize(
                 N=200,
                 method="equiprobable",
                 tail_N=50,

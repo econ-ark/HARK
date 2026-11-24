@@ -1,4 +1,4 @@
-from HARK.distributions import Bernoulli, Lognormal, MeanOneLogNormal
+from HARK.distributions import Bernoulli, LogNormal, LogNormalMeanOne
 from HARK.model import Control, DBlock, RBlock
 
 """
@@ -25,7 +25,7 @@ consumption_block = DBlock(
         "name": "consumption",
         "shocks": {
             "live": (Bernoulli, {"p": "LivPrb"}),  # Move to tick or mortality block?
-            "theta": (MeanOneLogNormal, {"sigma": "TranShkStd"}),
+            "theta": (LogNormalMeanOne, {"sigma": "TranShkStd"}),
         },
         "dynamics": {
             "b": lambda k, R: k * R,
@@ -44,7 +44,7 @@ consumption_block_normalized = DBlock(
         "name": "consumption normalized",
         "shocks": {
             "live": (Bernoulli, {"p": "LivPrb"}),  # Move to tick or mortality block?
-            "theta": (MeanOneLogNormal, {"sigma": "TranShkStd"}),
+            "theta": (LogNormalMeanOne, {"sigma": "TranShkStd"}),
         },
         "dynamics": {
             "b": lambda k, R, PermGroFac: k * R / PermGroFac,
@@ -60,7 +60,7 @@ portfolio_block = DBlock(
     **{
         "name": "portfolio",
         "shocks": {
-            "risky_return": (Lognormal, {"mean": "Rfree + EqP", "std": "RiskyStd"})
+            "risky_return": (LogNormal, {"mean": "Rfree + EqP", "std": "RiskyStd"})
         },
         "dynamics": {
             "stigma": Control(["a"]),

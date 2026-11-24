@@ -1,7 +1,17 @@
-from HARK.distributions import Bernoulli, Lognormal, MeanOneLogNormal
+import os
+import warnings
+
+from HARK.distributions import Bernoulli, LogNormal, LogNormalMeanOne
 from sympy.utilities.lambdify import lambdify
 from sympy.parsing.sympy_parser import parse_expr
 import yaml
+
+# The directories of PyYAML and of HARK: a warning raised while PyYAML reads a tag
+# skips their frames, so that it names the line that loaded the YAML
+_YAML_AND_HARK = (
+    os.path.dirname(os.path.abspath(yaml.__file__)) + os.sep,
+    os.path.dirname(os.path.abspath(__file__)) + os.sep,
+)
 
 
 class ControlToken:
@@ -36,6 +46,25 @@ def tuple_constructor_from_class(cls):
     return constructor
 
 
+def renamed_tag_constructor(old, cls):
+    """
+    A constructor for the tag !old, named for the class cls before it was
+    renamed: it reads as the tag for cls, with a DeprecationWarning.
+    """
+
+    def constructor(loader, node):
+        warnings.warn(
+            f"The tag !{old} is now !{cls.__name__}. The old tag still works and "
+            "is not scheduled for removal.",
+            DeprecationWarning,
+            skip_file_prefixes=_YAML_AND_HARK,
+        )
+        value = loader.construct_mapping(node)
+        return (cls, value)
+
+    return constructor
+
+
 def math_text_to_lambda(text):
     """
     Returns a function represented by the given mathematical text.
@@ -55,10 +84,18 @@ def harklang_loader():
         "!Bernoulli", tuple_constructor_from_class(Bernoulli)
     )
     yaml.SafeLoader.add_constructor(
-        "!MeanOneLogNormal", tuple_constructor_from_class(MeanOneLogNormal)
+        "!LogNormalMeanOne", tuple_constructor_from_class(LogNormalMeanOne)
     )
     yaml.SafeLoader.add_constructor(
-        "!Lognormal", tuple_constructor_from_class(Lognormal)
+        "!LogNormal", tuple_constructor_from_class(LogNormal)
+    )
+    # The tags these classes had before: they still work, with a DeprecationWarning
+    yaml.SafeLoader.add_constructor(
+        "!MeanOneLogNormal",
+        renamed_tag_constructor("MeanOneLogNormal", LogNormalMeanOne),
+    )
+    yaml.SafeLoader.add_constructor(
+        "!Lognormal", renamed_tag_constructor("Lognormal", LogNormal)
     )
     yaml.SafeLoader.add_constructor(
         "!Control", tuple_constructor_from_class(ControlToken)
