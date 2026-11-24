@@ -586,6 +586,32 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     def calc_limiting_values(self):
         raise NotImplementedError()  # pragma: nocover
 
+    def convergence_report_hook(self, solution_now, solution_last, info):
+        """
+        The convergence report does not compute the target for an agent with a
+        risky asset. A target exists here too, but the report's comparison takes
+        E[m' | a] at the risk-free factor, while this agent's saving earns a
+        risky return, and the target under a risky return is not yet worked out.
+        The report keeps its global figures and carries a target_note.
+
+        Parameters
+        ----------
+        solution_now : object
+            The converged solution.
+        solution_last : object
+            The iterate before it.
+        info : dict
+            The report so far (cycles, last_step, contraction_rate, ...).
+
+        Returns
+        -------
+        extra : dict
+        """
+        return {
+            "target_note": "not computed with a risky asset: a target exists, but "
+            "this report takes E[m' | a] at the risk-free factor"
+        }
+
 
 # This is to preserve compatibility with old name
 RiskyAssetConsumerType = IndShockRiskyAssetConsumerType
