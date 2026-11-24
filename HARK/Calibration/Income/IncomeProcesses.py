@@ -184,6 +184,35 @@ def _check_tails(tails):
         )
 
 
+def _check_bound(name, bound):
+    """Refuse a bound that is not a number, an infinite value or None."""
+    if bound is not None and np.isnan(float(bound)):
+        raise ValueError(
+            f"{name} is nan: a bound must be a number, an infinite value or None."
+        )
+
+
+def _bounds_by_period(name, bound, T_cycle):
+    """
+    A shock's bound in each of the T_cycle periods, as the income constructor
+    takes it: one number (or None) for every period, or a list with one for each
+    period, as PermShkStd and TranShkStd are given. A list of another length, or
+    a bound that is nan, is refused.
+    """
+    if bound is None or np.ndim(bound) == 0:
+        bounds = [bound] * T_cycle
+    else:
+        bounds = list(bound)
+        if len(bounds) != T_cycle:
+            raise ValueError(
+                f"{name} has {len(bounds)} entries: give one number for every "
+                f"period, or one for each of the T_cycle = {T_cycle} periods."
+            )
+    for bound in bounds:
+        _check_bound(name, bound)
+    return [None if bound is None else float(bound) for bound in bounds]
+
+
 def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="truncated"):
     """
     The law of a mean-one lognormal shock whose log has standard deviation
@@ -222,6 +251,8 @@ def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="trunc
         Its equiprobable discretization.
     """
     _check_tails(tails)
+    _check_bound("bot", bot)
+    _check_bound("top", top)
     # An infinite bound is no bound
     if bot is not None and np.isneginf(bot):
         bot = None
@@ -705,6 +736,8 @@ def construct_lognormal_income_process_unemployment(
     mean at one, and PermShkStd[t] or TranShkStd[t] stays the standard
     deviation of its log. None, the default, or an infinite bound is no bound
     on that side; with no bounds the income process is as described below.
+    Each bound is one number for every period, or a list with one for each
+    period, as PermShkStd and TranShkStd are given.
 
     .. math::
         \begin{align*}
@@ -762,17 +795,18 @@ def construct_lognormal_income_process_unemployment(
         Random number generator for this type.
     neutral_measure : bool
         Indicator for whether the permanent-income-neutral measure should be used.
-    PermShk_inf : float or None
+    PermShk_inf : float, [float] or None
         Lower bound of the log permanent shock, in standard deviations of the
-        underlying normal; None, the default, or -np.inf is no bound.
-    PermShk_sup : float or None
+        underlying normal; None, the default, or -np.inf is no bound. One number
+        for every period, or a list with one for each of the T_cycle periods.
+    PermShk_sup : float, [float] or None
         Upper bound of the log permanent shock, as PermShk_inf (np.inf is no
         bound).
-    TranShk_inf : float or None
+    TranShk_inf : float, [float] or None
         Lower bound of the log of the transitory shock's lognormal part, in
         standard deviations of the underlying normal; None, the default, or
-        -np.inf is no bound.
-    TranShk_sup : float or None
+        -np.inf is no bound; by period as PermShk_inf.
+    TranShk_sup : float, [float] or None
         Upper bound of the log of the transitory shock's lognormal part, as
         TranShk_inf.
     PermShk_tails : str
@@ -802,16 +836,20 @@ def construct_lognormal_income_process_unemployment(
         neutral_measure,
     )
     bounds = {
-        "PermShk_inf": PermShk_inf,
-        "PermShk_sup": PermShk_sup,
-        "TranShk_inf": TranShk_inf,
-        "TranShk_sup": TranShk_sup,
+        name: _bounds_by_period(name, bound, T_cycle)
+        for name, bound in (
+            ("PermShk_inf", PermShk_inf),
+            ("PermShk_sup", PermShk_sup),
+            ("TranShk_inf", TranShk_inf),
+            ("TranShk_sup", TranShk_sup),
+        )
     }
     _check_tails(PermShk_tails)
     _check_tails(TranShk_tails)
-    if any(bound is not None for bound in bounds.values()):
-        bounds.update({"PermShk_tails": PermShk_tails, "TranShk_tails": TranShk_tails})
-        conditional.update({key: [b] * T_cycle for key, b in bounds.items()})
+    if any(bound is not None for period in bounds.values() for bound in period):
+        conditional.update(bounds)
+        conditional["PermShk_tails"] = [PermShk_tails] * T_cycle
+        conditional["TranShk_tails"] = [TranShk_tails] * T_cycle
     IncShkDstn = IndexDistribution(
         engine=BufferStockIncShkDstn,
         conditional=conditional,

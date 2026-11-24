@@ -170,3 +170,38 @@ class testIncomeShockTails(unittest.TestCase):
                 self.assertTrue(np.all(perm <= bounds.supremum[0] * (1 + 1e-15)))
             else:
                 np.testing.assert_array_equal(perm, plain.IncShkDstn[t].atoms[0])
+
+    def test_bounds_by_period(self):
+        # One bound for each period gives the same process as one for every period
+        T = init_lifecycle["T_cycle"]
+        every = IndShockConsumerType(**{**init_lifecycle, **BOUNDS})
+        each = IndShockConsumerType(
+            **{**init_lifecycle, **{key: [b] * T for key, b in BOUNDS.items()}}
+        )
+        for t in range(T):
+            np.testing.assert_array_equal(
+                every.IncShkDstn[t].atoms, each.IncShkDstn[t].atoms
+            )
+        # and the bounds can differ by period
+        varying = IndShockConsumerType(
+            **{**init_lifecycle, **BOUNDS, "PermShk_inf": [-2.0] + [-3.0] * (T - 1)}
+        )
+        self.assertGreater(
+            varying.IncShkDstn[0].limit["infimum"][0],
+            every.IncShkDstn[0].limit["infimum"][0],
+        )
+        np.testing.assert_array_equal(
+            varying.IncShkDstn[1].atoms, every.IncShkDstn[1].atoms
+        )
+        # a one-period model takes a list of one
+        IndShockConsumerType(cycles=0, PermShk_inf=[-3.0])
+
+    def test_bounds_of_another_length_refused(self):
+        with self.assertRaisesRegex(ValueError, "T_cycle = 1"):
+            IndShockConsumerType(cycles=0, PermShk_inf=[-3.0, -3.0])
+
+    def test_nan_bound_refused(self):
+        with self.assertRaisesRegex(ValueError, "TranShk_sup is nan"):
+            IndShockConsumerType(cycles=0, TranShk_sup=np.nan)
+        with self.assertRaisesRegex(ValueError, "bot is nan"):
+            LognormPermIncShk(0.1, 7, bot=np.nan)
