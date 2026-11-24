@@ -20,6 +20,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     calc_aNrm_grid,
+    check_employed_floor_in_solver,
     find_kink,
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
@@ -377,6 +378,15 @@ def solve_one_period_ConsMarkov(
             (solution_next.mNrmMin[j] - TranShkMinNext)
             * (PermGroFac_list[j] * PermShkMinNext)
             / Rfree_list[j]
+        )
+        # Where the natural limit can bind, unemployment must be the lowest
+        # income in every next state
+        check_employed_floor_in_solver(
+            solution_next.mNrmMin[j],
+            IncShkDstn_list[j],
+            Rfree_list[j],
+            PermGroFac_list[j],
+            BoroCnstArt,
         )
 
     # Initialize the natural borrowing constraint and minimum value of mNrm for

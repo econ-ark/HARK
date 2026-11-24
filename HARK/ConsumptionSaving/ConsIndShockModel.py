@@ -1069,6 +1069,43 @@ def calc_boro_const_nat_from_infima(m_nrm_min_next, inc_shk_dstn, rfree, perm_gr
     )
 
 
+def unemployment_record(inc_shk_dstn):
+    """
+    The record of the transitory shock's unemployment event in an income
+    distribution, as IndShock's income constructor makes it
+    (add_discrete_outcome_constant_mean): the event's probability ``p``, its
+    income ``x``, and the employed law, ``dist``. It is found in the
+    distribution's limit however many independent components it combines, and is
+    None where the distribution records no unemployment event.
+
+    Args:
+        inc_shk_dstn (DiscreteDistribution): Distribution of shocks to income.
+    """
+    pending = [inc_shk_dstn]
+    while pending:
+        limit = getattr(pending.pop(), "limit", None) or {}
+        method = limit.get("method")
+        if method == "add_discrete_outcome_constant_mean":
+            return limit
+        if method == "combine_indep_dstns" and limit.get("dist") is not None:
+            pending.extend(limit["dist"])
+    return None
+
+
+def employed_floor(record):
+    """
+    The infimum of the employed transitory income, by the employed law's true
+    bounds, given the unemployment event's record (unemployment_record): the
+    employed law's infimum, rescaled as the event rescales it to keep the mean.
+
+    Args:
+        record (dict): The unemployment event's record.
+    """
+    p, x = float(record["p"]), float(record["x"])
+    infimum = float(np.ravel(record["dist"].limit["infimum"])[0])
+    return infimum * (1.0 - p * x) / (1.0 - p)
+
+
 def check_employed_floor(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
     """
     Halt where the natural borrowing limit can bind with an unemployment event
@@ -1079,10 +1116,10 @@ def check_employed_floor(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
     unemployment income. Then the employed branch never reaches the natural
     limit, and the unemployment event is the lowest income.
 
-    The event and the employed law are read from the income distribution's
-    limit, as IndShock's income constructor records them
-    (add_discrete_outcome_constant_mean); a distribution that records no
-    unemployment event is not checked.
+    The requirement makes the problem the one "Theoretical Foundations of Buffer
+    Stock Saving" states, continuous shocks with a positive infimum and a point
+    mass below it, whose theorems then apply to it. A distribution that records
+    no unemployment event is not checked (unemployment_record).
 
     Args:
         inc_shk_dstn (DiscreteDistribution): Distribution of shocks to income.
@@ -1093,20 +1130,12 @@ def check_employed_floor(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
     Raises:
         ValueError: if the rule is violated.
     """
-    limit = getattr(inc_shk_dstn, "limit", None) or {}
-    dists = limit.get("dist")
-    if limit.get("method") != "combine_indep_dstns" or dists is None or len(dists) != 2:
-        return
-    tran = getattr(dists[1], "limit", None) or {}
-    if tran.get("method") != "add_discrete_outcome_constant_mean":
-        return
-    p, x = float(tran["p"]), float(tran["x"])
-    if p <= 0.0:
+    record = unemployment_record(inc_shk_dstn)
+    if record is None or float(record["p"]) <= 0.0:
         return
     if boro_const_art is not None and boro_const_art >= boro_const_nat_inf:
         return
-    employed = tran["dist"]
-    floor = float(np.ravel(employed.limit["infimum"])[0]) * (1.0 - p * x) / (1.0 - p)
+    floor, x = employed_floor(record), float(record["x"])
     if not floor > x:
         raise ValueError(
             "Where the natural borrowing limit can bind (no artificial constraint "
@@ -1116,6 +1145,36 @@ def check_employed_floor(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
             "(TranShk_inf), lower IncUnemp, or impose an artificial constraint at "
             "or above the natural limit (BoroCnstArt)."
         )
+
+
+def check_employed_floor_in_solver(
+    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, boro_const_art
+):
+    """
+    The employed-floor check (check_employed_floor) as a solver makes it: the
+    natural borrowing limit from the shock laws' infima, given next period's
+    minimum market resources, then the check. Nothing is computed for a
+    distribution that records no unemployment event.
+
+    Args:
+        m_nrm_min_next (float): Minimum normalized market resources next period.
+        inc_shk_dstn (DiscreteDistribution): Distribution of shocks to income.
+        rfree (float): The interest factor the natural limit is computed with.
+        perm_gro_fac (float): Permanent income growth factor.
+        boro_const_art (float or None): Artificial borrowing constraint.
+
+    Raises:
+        ValueError: if the rule is violated.
+    """
+    if unemployment_record(inc_shk_dstn) is None:
+        return
+    check_employed_floor(
+        inc_shk_dstn,
+        boro_const_art,
+        calc_boro_const_nat(
+            m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=True
+        ),
+    )
 
 
 def check_worst_transitory_point_mass(inc_shk_dstn, boro_const_art, boro_const_nat_inf):
@@ -2293,12 +2352,8 @@ def _solve_one_period_ConsIndShock(
         solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac
     )
     # Where the natural limit can bind, unemployment must be the lowest income
-    check_employed_floor(
-        IncShkDstn,
-        BoroCnstArt,
-        calc_boro_const_nat(
-            solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, use_infimum=True
-        ),
+    check_employed_floor_in_solver(
+        solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, BoroCnstArt
     )
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
@@ -2914,12 +2969,8 @@ def solve_one_period_ConsKinkedR(
         use_infimum=False,
     )
     # Where the natural limit can bind, unemployment must be the lowest income
-    check_employed_floor(
-        IncShkDstn,
-        BoroCnstArt,
-        calc_boro_const_nat(
-            solution_next.mNrmMin, IncShkDstn, Rboro, PermGroFac, use_infimum=True
-        ),
+    check_employed_floor_in_solver(
+        solution_next.mNrmMin, IncShkDstn, Rboro, PermGroFac, BoroCnstArt
     )
     # The natural limit from the shock laws' infima, at the borrowing rate, where
     # they are bounded below away from zero (calc_boro_const_nat_from_infima)

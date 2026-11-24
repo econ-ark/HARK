@@ -1982,6 +1982,47 @@ class testEmployedFloor(unittest.TestCase):
         )
         agent.solve()
 
+    def test_every_solver_with_a_natural_limit_checks(self):
+        from HARK.ConsumptionSaving.ConsPrefShockModel import (
+            KinkyPrefConsumerType,
+            PrefShockConsumerType,
+        )
+
+        self.assertHalts(PrefShockConsumerType, BoroCnstArt=None, IncUnemp=0.8)
+        self.assertHalts(KinkyPrefConsumerType, BoroCnstArt=None, IncUnemp=0.8)
+        # The Markov solver checks every next state: here the second state's
+        # benefit is above its employed floor
+        self.assertHalts(
+            MarkovConsumerType, BoroCnstArt=None, IncUnemp=np.array([0.3, 0.8])
+        )
+        agent = MarkovConsumerType(cycles=1, BoroCnstArt=None)
+        agent.solve()
+
+    def test_the_portfolio_consumer_is_exempt(self):
+        from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioConsumerType
+
+        # Its artificial constraint, zero, is at or above its natural limit
+        agent = PortfolioConsumerType(cycles=1, IncUnemp=0.8)
+        agent.solve()
+
+    def test_the_record_found_however_many_components(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import (
+            employed_floor,
+            unemployment_record,
+        )
+        from HARK.distributions import DiscreteDistribution, combine_indep_dstns
+
+        agent = IndShockConsumerType(cycles=1)
+        income = agent.IncShkDstn[0]
+        record = unemployment_record(income)
+        self.assertAlmostEqual(float(record["x"]), agent.IncUnemp)
+        third = DiscreteDistribution(np.array([0.5, 0.5]), np.array([0.9, 1.1]))
+        wider = combine_indep_dstns(income, third)
+        self.assertEqual(
+            employed_floor(unemployment_record(wider)), employed_floor(record)
+        )
+        self.assertIsNone(unemployment_record(third))
+
 
 class testNaturalLimitFromTheInfima(unittest.TestCase):
     """

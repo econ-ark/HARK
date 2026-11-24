@@ -11,6 +11,7 @@ import numpy as np
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    check_employed_floor_in_solver,
     make_lognormal_pLvl_init_dstn,
     make_lognormal_kNrm_init_dstn,
 )
@@ -551,6 +552,11 @@ def solve_one_period_ConsPortfolio(
     # Set a flag for whether the natural borrowing constraint is zero, which
     # depends on whether the smallest transitory income shock is zero
     BoroCnstNat_iszero = np.min(IncShkDstn.atoms[1]) == 0.0
+    # Where the natural limit can bind, unemployment must be the lowest income.
+    # The portfolio consumer's artificial constraint is zero, at or above the
+    # natural limit when next period's minimum market resources are zero, so as
+    # the model stands the check exempts it; it is made as in every solver
+    check_employed_floor_in_solver(0.0, IncShkDstn, Rfree, PermGroFac, BoroCnstArt)
 
     # Prepare to calculate end-of-period marginal values by creating an array
     # of market resources that the agent could have next period, considering

@@ -15,6 +15,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     KinkedRconsumerType,
+    check_employed_floor_in_solver,
     make_assets_grid,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
@@ -244,6 +245,10 @@ def solve_one_period_ConsPrefShock(
     # Calculate the minimum allowable value of money resources in this period
     PermGroFacEffMin = (PermGroFac * PermShkMinNext) / Rfree
     BoroCnstNat = (solution_next.mNrmMin - TranShkMinNext) * PermGroFacEffMin
+    # Where the natural limit can bind, unemployment must be the lowest income
+    check_employed_floor_in_solver(
+        solution_next.mNrmMin, IncShkDstn, Rfree, PermGroFac, BoroCnstArt
+    )
 
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
@@ -547,6 +552,10 @@ def solve_one_period_ConsKinkyPref(
     # Calculate the minimum allowable value of money resources in this period
     PermGroFacEffMin = (PermGroFac * PermShkMinNext) / Rboro
     BoroCnstNat = (solution_next.mNrmMin - TranShkMinNext) * PermGroFacEffMin
+    # Where the natural limit can bind, unemployment must be the lowest income
+    check_employed_floor_in_solver(
+        solution_next.mNrmMin, IncShkDstn, Rboro, PermGroFac, BoroCnstArt
+    )
 
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
