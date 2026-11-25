@@ -11,7 +11,7 @@ from copy import deepcopy
 from unittest import mock
 
 import numpy as np
-from scipy.stats import beta, gamma
+from scipy.stats import beta
 
 from HARK.Calibration.Income import IncomeProcesses
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -20,9 +20,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     KinkedRconsumerType,
-    _bounds,
     _calc_BegOfPrd_IndShock_continuous,
-    _law_end,
     _mpc_transition,
     _natural_limit_assets,
     _reaches_natural_limit,
@@ -47,6 +45,8 @@ from HARK.distributions import (
     Uniform,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
+    law_bounds,
+    law_end,
 )
 from HARK.interpolation import CubicInterp, LinearInterp
 from HARK.utilities import get_arg_names
@@ -592,7 +592,7 @@ class testIncShkExpectation(unittest.TestCase):
         ):
             with self.subTest(permanent=type(law).__name__):
                 at_limit = (law,) + tuple(laws[1:])
-                worst = _law_end(law, upper=False)[0]
+                worst = law_end(law, upper=False)[0]
                 a = (0.0 - laws[3]) * G * worst / R  # lands on a limit of zero
                 self.assertTrue(_reaches_natural_limit(a, 0.0, at_limit, R, G, rho))
                 self.assertEqual(
@@ -875,45 +875,15 @@ class testIncShkExpectation(unittest.TestCase):
             _reaches_natural_limit(0.0, 0.0, (plain, plain, 0.0, 0.0), R, G, 2.0)
         )
 
-    def test_law_ends(self):
-        # How a law holds probability at each end, read through its quantile
-        # function and density alone: with a positive density (1) where it is
-        # truncated or uniform, with one rising like a power from zero (2, 3) at
-        # the jumpless law's bound, the ends of a beta law and a gamma law's zero,
-        # not at all (None) where it reaches the end through a tail; a mass (0)
-        # at a point, and at the infimum where PointMassAtInfimum puts one
-        truncated = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
-        jumpless = LogNormalTruncatedJumplessMeanOne.from_sd_log(0.1)
-        cases = {
-            "truncated": (truncated, 1, 1),
-            "truncated, wide": (LogNormalTruncated(0.0, 3.0, bot=-1.0, top=5.0), 1, 1),
-            "truncated above": (
-                LogNormalTruncated(0.0, 0.1, bot=None, top=3.0),
-                None,
-                1,
-            ),
-            "truncated below": (
-                LogNormalTruncated(0.0, 0.1, bot=-3.0, top=None),
-                1,
-                None,
-            ),
-            "jumpless": (jumpless, 2, None),
-            "lognormal": (LogNormalMeanOne(0.1), None, None),
-            "lognormal, wide": (LogNormalMeanOne(2.0), None, None),
-            "uniform": (Uniform(0.6, 1.4), 1, 1),
-            "beta": (QuantileLaw(beta(2.0, 3.0, loc=0.4, scale=1.5)), 2, 3),
-            "gamma": (QuantileLaw(gamma(3.0)), 3, None),
-            "point": (DiscreteDistribution([1.0], [0.3]), 0, 0),
-            "mass at a jumpless law's infimum": (
-                PointMassAtInfimum(jumpless, 0.02),
-                0,
-                None,
-            ),
-        }
-        for name, (law, lower, upper) in cases.items():
-            with self.subTest(law=name):
-                self.assertEqual(_law_end(law, upper=False)[1], lower)
-                self.assertEqual(_law_end(law, upper=True)[1], upper)
+    def test_law_end_of_a_point_mass_at_the_infimum(self):
+        # A point mass at a law's infimum (PointMassAtInfimum) is a mass (0) at
+        # that end; the other laws' ends are tested with law_end itself, in
+        # tests/test_expected_continuous.py
+        law = PointMassAtInfimum(
+            LogNormalTruncatedJumplessMeanOne.from_sd_log(0.1), 0.02
+        )
+        self.assertEqual(law_end(law, upper=False)[1], 0)
+        self.assertIsNone(law_end(law, upper=True)[1])
 
     def test_point_mass_at_the_natural_limit(self):
         # A permanent shock with a point mass at its infimum (PermShkMinPrb)
@@ -978,8 +948,8 @@ class testIncShkExpectation(unittest.TestCase):
 
         def reaches(laws, CRRA, above=0.0):
             # at the natural limit for the laws' worst incomes, plus above
-            theta_lo = min(_bounds(laws[1])[0], laws[3] if laws[2] > 0.0 else np.inf)
-            limit = -theta_lo * G * _bounds(laws[0])[0] / R
+            theta_lo = min(law_bounds(laws[1])[0], laws[3] if laws[2] > 0.0 else np.inf)
+            limit = -theta_lo * G * law_bounds(laws[0])[0] / R
             return _reaches_natural_limit(limit + above, 0.0, laws, R, G, CRRA)
 
         # unemployment, a point, at the worst: the permanent law alone, d = 1
@@ -1287,7 +1257,7 @@ class testDefaultLaws(unittest.TestCase):
             image = (
                 (solution.mNrmKinks[0] - benefit)
                 * agent.PermGroFac[0]
-                * _bounds(perm)[0]
+                * law_bounds(perm)[0]
                 / agent.Rfree[0]
             )
             for h in (1e-3, 1e-4):

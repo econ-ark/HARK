@@ -20,10 +20,6 @@ from HARK.Calibration.Income import IncomeProcesses
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    _bounds,
-    _graded_quadrature,
-    _scaled_law,
-    _ScaledLaw,
     calc_BegOfPrd_continuous,
     get_income_shock_laws,
     get_mNrm_kinks,
@@ -37,8 +33,9 @@ from HARK.distributions import (
     Uniform,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
+    law_bounds,
 )
-from HARK.distributions.utils import _coordinate
+from HARK.distributions.utils import _ScaledLaw
 from HARK.interpolation import HARKinterpolator1D, LinearInterp, LowerEnvelope
 
 # Most of these tests check the expectation against exact references written for
@@ -100,7 +97,7 @@ def adaptive_reference(a, perm, tran, R, G, rho):
     laws' densities, with breakpoints where m' reaches M_KINK.
     """
     point = isinstance(tran, DiscreteDistribution)
-    lo_p, hi_p = _bounds(perm)
+    lo_p, hi_p = law_bounds(perm)
     # where a law's density is not smooth: its breakpoints()
     perm_breaks = list(perm.breakpoints()) if hasattr(perm, "breakpoints") else []
 
@@ -119,7 +116,7 @@ def adaptive_reference(a, perm, tran, R, G, rho):
             x = tran.atoms[0][0]
             ends = [x]
         else:
-            lo_t, hi_t = _bounds(tran)
+            lo_t, hi_t = law_bounds(tran)
             tran_breaks = (
                 list(tran.breakpoints()) if hasattr(tran, "breakpoints") else []
             )
@@ -179,13 +176,13 @@ def knot_reference(solution, a, perm, tran, R, G, rho):
     if point:
         ends = [tran.atoms[0][0]]
     else:
-        ends = list(_bounds(tran))
+        ends = list(law_bounds(tran))
     out = np.zeros((2, a.size))
     for i, ai in enumerate(a):
         base = R * ai / G
         # where m' reaches a knot at an end, for assets of either sign
         cuts = [base / (k - e) for k in kinks for e in ends if k != e]
-        psi, wp = pieces(*_bounds(perm), cuts, X40, W40)
+        psi, wp = pieces(*law_bounds(perm), cuts, X40, W40)
         wp = wp * perm.pdf(psi)
         if point:
             theta, wt = np.full((psi.size, 1), ends[0]), np.ones((psi.size, 1))
@@ -633,44 +630,6 @@ class testBegOfPrdContinuous(unittest.TestCase):
             for nodes, places in ((4, 7), (8, 10)):
                 self.assertAlmostEqual(E1s[nodes][i] / exact, 1.0, places=places)
 
-    def test_scaled_law_for_any_law(self):
-        # a law of no family that rescales in closed form: its quantile function,
-        # CDF, density and bounds, all scaled
-        law = Uniform(0.6, 1.4)
-        scaled = _scaled_law(law, 1.05)
-        self.assertIsInstance(scaled, _ScaledLaw)
-        self.assertAlmostEqual(scaled.mean(), 1.05, places=14)
-        np.testing.assert_allclose(_bounds(scaled), (0.63, 1.47), rtol=1e-14)
-        q = np.linspace(0.01, 0.99, 7)
-        np.testing.assert_allclose(scaled.cdf(scaled.ppf(q)), q, rtol=1e-12)
-        x = np.linspace(0.64, 1.46, 9)
-        np.testing.assert_allclose(scaled.pdf(x), 1.0 / 0.84, rtol=1e-12)
-        # a truncated lognormal is scaled the same way, as the same family with its
-        # mu moved would be, and keeps the coordinate it supplies, and so the
-        # pieces its integral is cut into
-        tl = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
-        scaled = _scaled_law(tl, 1.05)
-        self.assertIsInstance(scaled, _ScaledLaw)
-        family = LogNormalTruncated(tl.mu + np.log(1.05), tl.sigma, bot=-3.0, top=3.0)
-        np.testing.assert_allclose(scaled.ppf(q), family.ppf(q), rtol=1e-12)
-        x = family.ppf(q)
-        for f in ("cdf", "pdf"):
-            np.testing.assert_allclose(
-                getattr(scaled, f)(x), getattr(family, f)(x), rtol=1e-11
-            )
-        edges, value, _, _ = _coordinate(scaled)
-        self.assertEqual([float(e) for e in edges], [-3, -2, -1, 0, 1, 2, 3])
-        z = np.array(edges)  # the underlying normal's coordinate, scaled values
-        np.testing.assert_allclose(value(z), np.exp(family.mu + family.sigma * z))
-        self.assertFalse(
-            hasattr(_ScaledLaw(QuantileLaw(tl), 1.05), "normal_coordinate")
-        )
-        # a mixture is scaled component by component
-        mixture = _scaled_law(Mixture([0.4, 0.6], [law, tl]), 1.05)
-        self.assertEqual(len(mixture.components), 2)
-        self.assertIsInstance(mixture.components[1], _ScaledLaw)
-        self.assertAlmostEqual(float(mixture.infimum[0]), 0.63, places=14)
-
     def test_income_laws_with_a_uniform_employed_law(self):
         # unemployment's rescaling of the employed transitory law, for a law that is
         # not lognormal
@@ -686,7 +645,7 @@ class testBegOfPrdContinuous(unittest.TestCase):
         self.assertEqual((p, x), (0.05, 0.3))
         kappa = (1.0 - 0.05 * 0.3) / (1.0 - 0.05)
         self.assertAlmostEqual(employed.mean(), kappa, places=14)
-        np.testing.assert_allclose(_bounds(employed), (0.6 * kappa, 1.4 * kappa))
+        np.testing.assert_allclose(law_bounds(employed), (0.6 * kappa, 1.4 * kappa))
 
     def test_against_adaptive_quadrature_with_other_laws(self):
         # uniform laws, and a transitory law known only by its quantile function
@@ -770,30 +729,6 @@ class testBegOfPrdContinuous(unittest.TestCase):
                         self.assertAlmostEqual(
                             E1s[nodes][i] / exact, 1.0, places=places
                         )
-
-    def test_graded_rule_in_either_coordinate(self):
-        # A truncated lognormal is graded in the standard-normal coordinate it
-        # supplies; known only by its quantile function, CDF and density, the
-        # same law is graded in its values, and both give the integrals of an
-        # inverse distance to a pole beyond the lower end, with cuts or without
-        law = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
-        lo, hi = law.infimum[0], law.supremum[0]
-        pole = lo - np.array([1e-6, 1e-3, 1e-2])
-        exact = [
-            log_distance_quad(lambda x, p=p: law.pdf(x) / (x - p), lo, hi, p)
-            for p in pole
-        ]
-        cuts = np.broadcast_to(lo + np.array([1e-7, 1e-4, 0.01, 0.1]), (3, 4))
-        for name, form in (("its coordinate", law), ("its values", QuantileLaw(law))):
-            for nodes, rtol in ((4, 2e-8), (8, 2e-12)):
-                for cut in (None, cuts):
-                    with self.subTest(graded=name, nodes=nodes, cuts=cut is not None):
-                        values, weights, graded = _graded_quadrature(
-                            form, nodes, pole, cut
-                        )
-                        self.assertTrue(np.all(graded))
-                        E = np.sum(weights / (values - pole[:, None]), axis=-1)
-                        np.testing.assert_allclose(E, exact, rtol=rtol)
 
     def test_degenerate_permanent_shock(self):
         one = DiscreteDistribution([1.0], [1.0])
