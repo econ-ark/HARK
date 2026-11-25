@@ -18,6 +18,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    calc_aNrm_grid,
+    find_kink,
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
@@ -469,21 +471,12 @@ def solve_one_period_ConsMarkov(
             )
         return BegOfPrd_vP, BegOfPrd_vPP, BegOfPrd_v
 
-    # Construct each current state's end-of-period assets grid, as
-    # solve_one_period_ConsIndShock does. Where the artificial borrowing
-    # constraint binds in state i (BoroCnstNat_list[i] < mNrmMin_list[i]), the
-    # grid starts at that constraint, with the constraint itself as its first
-    # point: gridpoints below it would build the unconstrained consumption
-    # function where the lower envelope always takes the constraint line, and at
-    # the constraint the end-of-period marginal value of assets is finite, so
-    # that point's endogenous gridpoint is the kink. Where the natural borrowing
-    # constraint binds, the grid stays above it, as marginal value is infinite
-    # at the natural limit itself.
+    # Each current state's end-of-period assets grid, as IndShock's solvers build
+    # it: from a binding artificial constraint, the constraint itself the first
+    # point, or else above the natural one (calc_aNrm_grid gives the reasons)
     ArtCnstBinds = BoroCnstNat_list < mNrmMin_list
     aNrmGrid_list = [
-        mNrmMin_list[i] + np.insert(aXtraGrid, 0, 0.0)
-        if ArtCnstBinds[i]
-        else BoroCnstNat_list[i] + aXtraGrid
+        calc_aNrm_grid(aXtraGrid, BoroCnstNat_list[i], mNrmMin_list[i])
         for i in range(StateCountNow)
     ]
 
@@ -702,22 +695,21 @@ def solve_one_period_ConsMarkov(
     solution.MPCmin = MPCminNow
     solution.MPCmax = MPCmaxNow
 
-    # Where the artificial constraint binds in a state, the kink of its consumption
-    # function is the endogenous gridpoint of end-of-period assets at the
-    # constraint, the node after the natural borrowing constraint: record it, the
-    # consumption there and the MPC just above it (the node's MPC under the cubic
-    # rule, the slope of the segment that starts there under the linear one). NaN
-    # in a state where the natural constraint binds.
+    # Each state's kink, as IndShock's solvers read it (find_kink): where the
+    # artificial constraint binds, the endogenous gridpoint of end-of-period assets
+    # at the constraint, the consumption there and the MPC just above it; NaN in a
+    # state where the natural constraint binds
     mNrmKink = np.full(StateCountNow, np.nan)
     cNrmKink = np.full(StateCountNow, np.nan)
     MPCaboveKink = np.full(StateCountNow, np.nan)
-    for i in np.flatnonzero(ArtCnstBinds):
-        m_i, c_i = mNrmNow[i], cNrmNow[i]
-        mNrmKink[i], cNrmKink[i] = m_i[1], c_i[1]
-        if CubicBool:
-            MPCaboveKink[i] = MPCnow[i][1]
-        else:
-            MPCaboveKink[i] = (c_i[2] - c_i[1]) / (m_i[2] - m_i[1])
+    for i in range(StateCountNow):
+        mNrmKink[i], cNrmKink[i], MPCaboveKink[i] = find_kink(
+            mNrmNow[i],
+            cNrmNow[i],
+            MPCnow[i] if CubicBool else None,
+            BoroCnstNat_list[i],
+            mNrmMin_list[i],
+        )
     solution.mNrmKink = mNrmKink
     solution.cNrmKink = cNrmKink
     solution.MPCaboveKink = MPCaboveKink
