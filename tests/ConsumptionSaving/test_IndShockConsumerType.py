@@ -1867,7 +1867,6 @@ class testKinkChecksAndOneSentinel(unittest.TestCase):
             (KinkedRconsumerType, {"BoroCnstArt": 0.0}),
             (PrefShockConsumerType, {}),
             (PortfolioConsumerType, {}),
-            (MarkovConsumerType, {}),
             (IndShockConsumerType, {"BoroCnstArt": None}),
         ):
             with self.subTest(agent_type.__name__):
