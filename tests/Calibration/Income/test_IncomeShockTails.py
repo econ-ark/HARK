@@ -16,6 +16,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     LognormPermIncShk,
     MixtureTranIncShk,
     construct_lognormal_income_process_unemployment,
+    construct_markov_lognormal_income_process_unemployment,
     get_PermShkLaw_from_IncShkDstn,
     get_TranShkLaw_from_IncShkDstn,
 )
@@ -298,3 +299,41 @@ class testIncomeShockTails(unittest.TestCase):
             LognormPermIncShk(0.1, 7, bot=-3.0, top=-1.0)
         with self.assertRaisesRegex(ValueError, "bounded below only"):
             LognormPermIncShk(0.1, 7, bot=-3.0, top=3.0, tails="jumpless")
+
+
+class testMarkovBounds(unittest.TestCase):
+    def test_markov_states_are_bounded_as_indshock_is(self):
+        # A one-state Markov income process gets IndShock's laws and atoms, bounds
+        # and tails included, with no bounds, with both shocks truncated, and with
+        # a jumpless permanent shock
+        common = dict(T_cycle=1, PermShkCount=7, TranShkCount=7, T_retire=0)
+        common.update(UnempPrbRet=None, IncUnempRet=None)
+        truncated = dict(PermShk_inf=-3.0, PermShk_sup=3.0)
+        truncated.update(TranShk_inf=-3.0, TranShk_sup=3.0)
+        jumpless = dict(PermShk_tails="jumpless", PermShk_inf=-3.0)
+        jumpless.update(TranShk_inf=-2.5, TranShk_sup=3.0)
+        for kwds in ({}, truncated, jumpless):
+            ind = construct_lognormal_income_process_unemployment(
+                PermShkStd=[0.1],
+                TranShkStd=[0.1],
+                UnempPrb=0.05,
+                IncUnemp=0.3,
+                RNG=np.random.default_rng(0),
+                **common,
+                **kwds,
+            )[0]
+            mrkv = construct_markov_lognormal_income_process_unemployment(
+                PermShkStd=np.array([[0.1]]),
+                TranShkStd=np.array([[0.1]]),
+                UnempPrb=np.array([0.05]),
+                IncUnemp=np.array([0.3]),
+                RNG=np.random.default_rng(0),
+                **common,
+                **kwds,
+            )[0][0]
+            for a, b in zip(ind.atoms, mrkv.atoms):
+                np.testing.assert_array_equal(a, b)
+            np.testing.assert_array_equal(ind.pmv, mrkv.pmv)
+            for law_i, law_m in zip(ind.limit["dist"], mrkv.limit["dist"]):
+                self.assertIs(type(law_i), type(law_m))
+            np.testing.assert_array_equal(ind.limit["infimum"], mrkv.limit["infimum"])

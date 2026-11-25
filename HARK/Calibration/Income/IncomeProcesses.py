@@ -216,6 +216,40 @@ def _bounds_by_period(name, bound, T_cycle):
     return [None if bound is None else float(bound) for bound in bounds]
 
 
+def _income_shock_bounds(
+    T_cycle,
+    PermShk_inf,
+    PermShk_sup,
+    TranShk_inf,
+    TranShk_sup,
+    PermShk_tails,
+    TranShk_tails,
+):
+    """
+    The bounds of the permanent and transitory shocks' logs for an income
+    constructor, in each of the T_cycle periods: each bound by period
+    (_bounds_by_period), with the tails, as lists of the one-period
+    distributions' keywords; empty where neither shock is bounded in any period.
+    None, the default, or an infinite bound is no bound on that side.
+    """
+    _check_tails(PermShk_tails)
+    _check_tails(TranShk_tails)
+    bounds = {
+        name: _bounds_by_period(name, bound, T_cycle)
+        for name, bound in (
+            ("PermShk_inf", PermShk_inf),
+            ("PermShk_sup", PermShk_sup),
+            ("TranShk_inf", TranShk_inf),
+            ("TranShk_sup", TranShk_sup),
+        )
+    }
+    if all(bound is None for period in bounds.values() for bound in period):
+        return {}
+    bounds["PermShk_tails"] = [PermShk_tails] * T_cycle
+    bounds["TranShk_tails"] = [TranShk_tails] * T_cycle
+    return bounds
+
+
 def _discretize_mean_one_shock(
     sigma, n_approx, bot=None, top=None, tails="truncated", infimum_prb=None
 ):
@@ -472,6 +506,9 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         Wage rate scaling factor.
     seed : int, optional
         Random seed. The default is 0.
+    bot, top, tails : optional
+        The bounds of the lognormal part's log and the treatment of its tails,
+        as in MixtureTranIncShk: by default None, no bound.
     Returns
     -------
     TranShkDstn : DiscreteDistribution
@@ -488,10 +525,11 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         labor,
         tax_rate,
         seed=0,
+        bot=None,
+        top=None,
+        tails="truncated",
     ):
-        dstn_approx = LogNormalMeanOne(sigma).discretize(
-            n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
-        )
+        dstn_approx = _discretize_mean_one_shock(sigma, n_approx, bot, top, tails)[1]
 
         if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
@@ -652,6 +690,9 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
         Whether to use Harmenberg's permanent-income-neutral measure. The default is False.
     seed : int, optional
         Random seed. The default is 0.
+    PermShk_inf, PermShk_sup, TranShk_inf, TranShk_sup, PermShk_tails, TranShk_tails : optional
+        The bounds of each shock's log and the treatment of its tails, as in
+        BufferStockIncShkDstn: by default None, no bound.
     Returns
     -------
     IncShkDstn : DiscreteDistribution
@@ -671,9 +712,20 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
         wage,
         neutral_measure=False,
         seed=0,
+        PermShk_inf=None,
+        PermShk_sup=None,
+        TranShk_inf=None,
+        TranShk_sup=None,
+        PermShk_tails="truncated",
+        TranShk_tails="truncated",
     ):
         perm_dstn = LognormPermIncShk(
-            sigma=sigma_Perm, n_approx=n_approx_Perm, neutral_measure=neutral_measure
+            sigma=sigma_Perm,
+            n_approx=n_approx_Perm,
+            neutral_measure=neutral_measure,
+            bot=PermShk_inf,
+            top=PermShk_sup,
+            tails=PermShk_tails,
         )
         tran_dstn = MixtureTranIncShk_HANK(
             sigma=sigma_Tran,
@@ -683,6 +735,9 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
             wage=wage,
             labor=labor,
             tax_rate=tax_rate,
+            bot=TranShk_inf,
+            top=TranShk_sup,
+            tails=TranShk_tails,
         )
         joint_dstn = combine_indep_dstns(perm_dstn, tran_dstn)
 
@@ -901,21 +956,17 @@ def construct_lognormal_income_process_unemployment(
         TranShkCount,
         neutral_measure,
     )
-    bounds = {
-        name: _bounds_by_period(name, bound, T_cycle)
-        for name, bound in (
-            ("PermShk_inf", PermShk_inf),
-            ("PermShk_sup", PermShk_sup),
-            ("TranShk_inf", TranShk_inf),
-            ("TranShk_sup", TranShk_sup),
+    conditional.update(
+        _income_shock_bounds(
+            T_cycle,
+            PermShk_inf,
+            PermShk_sup,
+            TranShk_inf,
+            TranShk_sup,
+            PermShk_tails,
+            TranShk_tails,
         )
-    }
-    _check_tails(PermShk_tails)
-    _check_tails(TranShk_tails)
-    if any(bound is not None for period in bounds.values() for bound in period):
-        conditional.update(bounds)
-        conditional["PermShk_tails"] = [PermShk_tails] * T_cycle
-        conditional["TranShk_tails"] = [TranShk_tails] * T_cycle
+    )
     if PermShkMinPrb:
         conditional["PermShkMinPrb"] = [PermShkMinPrb] * T_cycle
     IncShkDstn = IndexDistribution(
@@ -1040,6 +1091,12 @@ def construct_markov_lognormal_income_process_unemployment(
     IncUnempRet,
     RNG,
     neutral_measure=False,
+    PermShk_inf=None,
+    PermShk_sup=None,
+    TranShk_inf=None,
+    TranShk_sup=None,
+    PermShk_tails="truncated",
+    TranShk_tails="truncated",
 ):
     """
     Generates a nested list of discrete approximations to the income process for each
@@ -1093,6 +1150,13 @@ def construct_markov_lognormal_income_process_unemployment(
         Random number generator for this type.
     neutral_measure : bool
         Indicator for whether the permanent-income-neutral measure should be used.
+    PermShk_inf, PermShk_sup, TranShk_inf, TranShk_sup : float or None
+        The bounds of each shock's log, in standard deviations, in every state, as
+        in construct_lognormal_income_process_unemployment: None, the default, or
+        an infinite bound is no bound.
+    PermShk_tails, TranShk_tails : str
+        How each shock's tails are treated at its bounds: "truncated" (the
+        default) or "jumpless".
 
     Returns
     -------
@@ -1103,6 +1167,15 @@ def construct_markov_lognormal_income_process_unemployment(
     normal_length, retire_length = _split_lifecycle_lengths(T_cycle, T_retire)
 
     K = _validate_markov_state_dims(PermShkStd, TranShkStd, UnempPrb, IncUnemp)
+    bounds = _income_shock_bounds(
+        T_cycle,
+        PermShk_inf,
+        PermShk_sup,
+        TranShk_inf,
+        TranShk_sup,
+        PermShk_tails,
+        TranShk_tails,
+    )
     _validate_markov_retirement(T_retire, K, UnempPrbRet, IncUnempRet)
     D = _validate_markov_unemployment_ndim(
         UnempPrb, IncUnemp, T_retire, UnempPrbRet, IncUnempRet
@@ -1130,17 +1203,20 @@ def construct_markov_lognormal_income_process_unemployment(
         PermShkStd_k = PermShkStd[:, k].tolist()
         TranShkStd_k = TranShkStd[:, k].tolist()
 
+        conditional = {
+            "sigma_Perm": PermShkStd_k,
+            "sigma_Tran": TranShkStd_k,
+            "n_approx_Perm": PermShkCount_list,
+            "n_approx_Tran": TranShkCount_list,
+            "neutral_measure": neutral_measure_list,
+            "UnempPrb": UnempPrb_list,
+            "IncUnemp": IncUnemp_list,
+        }
+        # the bounds by period, as IndShock's constructor sets them
+        conditional.update(bounds)
         IncShkDstn_k = IndexDistribution(
             engine=BufferStockIncShkDstn,
-            conditional={
-                "sigma_Perm": PermShkStd_k,
-                "sigma_Tran": TranShkStd_k,
-                "n_approx_Perm": PermShkCount_list,
-                "n_approx_Tran": TranShkCount_list,
-                "neutral_measure": neutral_measure_list,
-                "UnempPrb": UnempPrb_list,
-                "IncUnemp": IncUnemp_list,
-            },
+            conditional=conditional,
             RNG=RNG,
             seed=RNG.integers(0, 2**31 - 1),
         )
@@ -1172,6 +1248,12 @@ def construct_HANK_lognormal_income_process_unemployment(
     wage,
     RNG,
     neutral_measure=False,
+    PermShk_inf=None,
+    PermShk_sup=None,
+    TranShk_inf=None,
+    TranShk_sup=None,
+    PermShk_tails="truncated",
+    TranShk_tails="truncated",
 ):
     """
     Generates a list of discrete approximations to the income process for each
@@ -1186,6 +1268,12 @@ def construct_HANK_lognormal_income_process_unemployment(
     This version of the function incorporates additional flexibility with respect
     to transitory income (continuous labor supply, wage rate, tax rate) and thus
     is useful in HANK models (hence the name!).
+
+    The lognormals can be bounded in the log as in
+    construct_lognormal_income_process_unemployment: PermShk_inf, PermShk_sup,
+    TranShk_inf and TranShk_sup in standard deviations of the underlying normal
+    (None, the default, or an infinite bound is no bound), and PermShk_tails and
+    TranShk_tails the treatment of the tails.
 
     Note 1: All time in this function runs forward, from t=0 to t=T
 
@@ -1237,6 +1325,15 @@ def construct_HANK_lognormal_income_process_unemployment(
         A list with T_cycle elements, each of which
         a discrete approximation to the transitory income shocks.
     """
+    bounds = _income_shock_bounds(
+        T_cycle,
+        PermShk_inf,
+        PermShk_sup,
+        TranShk_inf,
+        TranShk_sup,
+        PermShk_tails,
+        TranShk_tails,
+    )
     IncShkDstn = IndexDistribution(
         engine=IncShkDstn_HANK,
         conditional={
@@ -1256,6 +1353,7 @@ def construct_HANK_lognormal_income_process_unemployment(
             "wage": wage,
             "tax_rate": tax_rate,
             "labor": labor,
+            **bounds,
         },
         RNG=RNG,
     )
