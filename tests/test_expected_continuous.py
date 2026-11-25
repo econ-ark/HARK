@@ -94,6 +94,14 @@ class testExpectedContinuous(unittest.TestCase):
                     )
                     self.assertAlmostEqual(float(mass), 1.0, places=places)
 
+    def test_means_with_labels(self):
+        # without a function it gives the means, with labels as without
+        laws = [LogNormalMeanOne(0.1), Uniform(0.2, 1.7)]
+        np.testing.assert_array_equal(
+            expected_continuous(dstns=laws, labels=["a", "b"]),
+            expected_continuous(dstns=laws),
+        )
+
     def test_kinked_integrand_split_at_the_kink(self):
         law = LogNormalMeanOne(0.2)
         k = 1.05

@@ -916,6 +916,9 @@ def expected_continuous(
     if func is None:
 
         def func(x, *args):
+            # the means, in the distributions' order, with labels or without
+            if isinstance(x, dict):
+                return np.stack(np.broadcast_arrays(*x.values()))
             return x
 
     if not isinstance(args, tuple):
