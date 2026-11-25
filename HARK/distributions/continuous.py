@@ -1,4 +1,5 @@
 import functools
+import inspect
 import warnings
 from math import factorial
 from typing import Any, Optional, Union
@@ -500,239 +501,53 @@ def truncated_normal_variance(bot=-3.0, top=3.0):
     return float(1.0 + (z_pdf_lo - z_pdf_hi) / mass - ((pdf_lo - pdf_hi) / mass) ** 2)
 
 
-class _truncated_lognorm_gen(rv_continuous):
+class _TruncatedNormal:
     """
-    The lognormal exp(s Z), with Z a standard normal truncated to [lo, hi] in its
-    standard deviations. scipy's scale is exp(mu).
-    """
-
-    def _argcheck(self, s, lo, hi):
-        return (s > 0) & (lo < hi)
-
-    def _get_support(self, s, lo, hi):
-        return np.exp(s * lo), np.exp(s * hi)
-
-    def _pdf(self, x, s, lo, hi):
-        with np.errstate(divide="ignore"):
-            z = np.log(x) / s
-        inside = (z >= lo) & (z <= hi)
-        dens = norm.pdf(z) / (s * x * _normal_mass(lo, hi))
-        return np.where(inside, dens, 0.0)
-
-    def _cdf(self, x, s, lo, hi):
-        with np.errstate(divide="ignore"):
-            z = np.clip(np.log(x) / s, lo, hi)
-        return _normal_mass(lo, z) / _normal_mass(lo, hi)
-
-    def _ppf(self, q, s, lo, hi):
-        return np.exp(s * _truncated_normal_ppf(q, lo, hi))
-
-    def _munp(self, n, s, lo, hi):
-        return (
-            np.exp(0.5 * (n * s) ** 2)
-            * _normal_mass(lo - n * s, hi - n * s)
-            / _normal_mass(lo, hi)
-        )
-
-
-_truncated_lognorm = _truncated_lognorm_gen(
-    a=0.0, name="truncated_lognorm", shapes="s, lo, hi"
-)
-
-
-class LogNormalTruncated(ContinuousFrozenDistribution):
-    """
-    A lognormal distribution truncated in the log: X = exp(mu + sigma Z), with Z a
-    standard normal conditioned on bot <= Z <= top. The bounds are in standard
-    deviations of that normal, and None is no bound on that side, so with both
-    None this is LogNormal(mu, sigma).
-
-    Parameters
-    ----------
-    mu : float, optional
-        Mean of the underlying normal before truncation, by default 0.0.
-    sigma : float, optional
-        Standard deviation of the underlying normal before truncation, by
-        default 1.0. With sigma = 0 the distribution is the point exp(mu).
-    bot : float or None, optional
-        Lower truncation bound, by default -3.0.
-    top : float or None, optional
-        Upper truncation bound, by default 3.0.
-    seed : int, optional
-        Seed for random number generator, by default None.
+    The standard normal coordinate Z of a truncated lognormal: a standard normal
+    conditioned on bot <= Z <= top, either of which may be infinite.
     """
 
-    def __new__(cls, mu=0.0, sigma=1.0, bot=-3.0, top=3.0, seed=None):
-        if sigma == 0:
-            # A point at exp(mu), whose bounds are the point
-            return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
-        return super().__new__(cls)
-
-    def __init__(self, mu=0.0, sigma=1.0, bot=-3.0, top=3.0, seed=None):
-        if np.ndim(mu) or np.ndim(sigma):
-            raise ValueError(
-                "mu and sigma must be scalars; use IndexDistribution for time variation."
-            )
-        if sigma < 0:
-            raise ValueError("sigma must be nonnegative, but it is " + str(sigma))
-        self.mu = float(mu)
-        self.sigma = float(sigma)
-        self.bot = _bound(bot, -np.inf)
-        self.top = _bound(top, np.inf)
+    def __init__(self, bot, top):
+        self.bot, self.top = float(bot), float(top)
         if not self.bot < self.top:
             raise ValueError("The truncation bounds must satisfy bot < top.")
-        super().__init__(
-            _truncated_lognorm,
-            s=self.sigma,
-            lo=self.bot,
-            hi=self.top,
-            scale=np.exp(self.mu),
-            loc=0,
-            seed=seed,
-        )
-        self.infimum = np.array([np.exp(self.mu + self.sigma * self.bot)])
-        self.supremum = np.array([np.exp(self.mu + self.sigma * self.top)])
+        self.mass = float(_normal_mass(self.bot, self.top))
 
-    @property
-    def mass(self):
-        """The probability mass of the underlying normal that the truncation keeps."""
-        return float(_normal_mass(self.bot, self.top))
+    def pdf(self, z):
+        z = np.asarray(z, dtype=float)
+        inside = (z >= self.bot) & (z <= self.top)
+        return np.where(inside, norm.pdf(z) / self.mass, 0.0)
 
-    def z(self, x):
-        """The standard normal coordinate (ln x - mu) / sigma of x."""
-        with np.errstate(divide="ignore"):
-            return (np.log(x) - self.mu) / self.sigma
+    def cdf(self, z):
+        z = np.clip(np.asarray(z, dtype=float), self.bot, self.top)
+        return _normal_mass(self.bot, z) / self.mass
 
-    def moment(self, order):
-        """
-        The raw moment E[X**order], for any real order, in closed form.
-        """
-        k = np.asarray(order, dtype=float)
-        ks = k * self.sigma
-        return (
-            np.exp(k * self.mu + 0.5 * ks**2)
-            * _normal_mass(self.bot - ks, self.top - ks)
-            / self.mass
-        )
+    def sf(self, z):
+        z = np.clip(np.asarray(z, dtype=float), self.bot, self.top)
+        return _normal_mass(z, self.top) / self.mass
 
-    def partial_moment(self, order, lo, hi):
-        """
-        The partial moment E[X**order 1{lo < X < hi}], for any real order and
-        arrays of interval ends.
-        """
-        k = np.asarray(order, dtype=float)
-        ks = k * self.sigma
-        z_lo = np.maximum(
-            self.z(np.maximum(np.asarray(lo, dtype=float), 0.0)), self.bot
-        )
-        z_hi = np.minimum(self.z(np.asarray(hi, dtype=float)), self.top)
-        mass = np.maximum(_normal_mass(z_lo - ks, z_hi - ks), 0.0)
-        return np.where(
-            z_hi > z_lo, np.exp(k * self.mu + 0.5 * ks**2) * mass / self.mass, 0.0
-        )
+    def ppf(self, q):
+        return _truncated_normal_ppf(q, self.bot, self.top)
 
-    def _approx_equiprobable(self, N, endpoints=False):
-        """
-        A discrete approximation with N atoms of probability 1/N, each the
-        conditional mean of its bin of the truncated distribution, so the mean is
-        exact.
+    def expectation_exp(self, c, z_lo, z_hi):
+        """E[exp(c Z) 1{z_lo < Z < z_hi}], for arrays of interval ends."""
+        lo = np.maximum(np.asarray(z_lo, dtype=float), self.bot)
+        hi = np.minimum(np.asarray(z_hi, dtype=float), self.top)
+        mass = np.maximum(_normal_mass(lo - c, hi - c), 0.0)
+        return np.where(hi > lo, np.exp(0.5 * c * c) * mass / self.mass, 0.0)
 
-        Parameters
-        ----------
-        N : int
-            Number of atoms.
-        endpoints : bool, optional
-            Whether to add zero-probability atoms at the infimum and supremum,
-            by default False.
+    def mean(self):
+        """E[Z]."""
+        return float((norm.pdf(self.bot) - norm.pdf(self.top)) / self.mass)
 
-        Returns
-        -------
-        DiscreteDistribution
-        """
-        cuts = _truncated_normal_ppf(np.arange(N + 1) / N, self.bot, self.top)
-        cuts[0], cuts[-1] = self.bot, self.top
-        pmv = np.ones(N) / N
-        bin_mass = _normal_mass(cuts[:-1] - self.sigma, cuts[1:] - self.sigma)
-        atoms = np.exp(self.mu + 0.5 * self.sigma**2) * bin_mass / (self.mass / N)
-        if endpoints:
-            atoms = np.r_[self.infimum, atoms, self.supremum]
-            pmv = np.r_[0.0, pmv, 0.0]
-        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
-        return DiscreteDistribution(pmv, atoms, seed=self.random_seed(), limit=limit)
+    def variance(self):
+        """Var(Z)."""
+        return truncated_normal_variance(self.bot, self.top)
 
 
-class LogNormalTruncatedMeanOne(LogNormalTruncated):
-    """
-    A truncated lognormal with mean one after the truncation: mu is set so that
-    E[X] = 1 for the truncated distribution. The bounds are in standard
-    deviations of the underlying normal, by default three either side.
-
-    Parameters
-    ----------
-    sigma : float, optional
-        Standard deviation of the underlying normal before truncation, by
-        default 1.0. With sigma = 0 the distribution is the point 1.
-    bot : float or None, optional
-        Lower truncation bound, by default -3.0.
-    top : float or None, optional
-        Upper truncation bound, by default 3.0.
-    seed : int, optional
-        Seed for random number generator, by default 0.
-    """
-
-    def __new__(cls, sigma=1.0, bot=-3.0, top=3.0, seed=0):
-        if sigma == 0:
-            return DiscreteDistribution([1.0], [1.0], seed=seed)
-        return super().__new__(cls)
-
-    def __init__(self, sigma=1.0, bot=-3.0, top=3.0, seed=0):
-        lo, hi = _bound(bot, -np.inf), _bound(top, np.inf)
-        mu = -0.5 * sigma**2 - np.log(
-            _normal_mass(lo - sigma, hi - sigma) / _normal_mass(lo, hi)
-        )
-        super().__init__(mu=mu, sigma=sigma, bot=bot, top=top, seed=seed)
-
-    @classmethod
-    def from_sd_log(cls, sd_log, bot=-3.0, top=3.0, seed=0):
-        """
-        The mean-one truncated lognormal whose log has standard deviation
-        sd_log after the truncation. The underlying normal's sigma is
-        sd_log / sqrt(truncated_normal_variance(bot, top)), so an estimated
-        dispersion keeps its value under the truncation.
-
-        Parameters
-        ----------
-        sd_log : float
-            Standard deviation of ln X after truncation.
-        bot : float or None, optional
-            Lower truncation bound, by default -3.0.
-        top : float or None, optional
-            Upper truncation bound, by default 3.0.
-        seed : int, optional
-            Seed for random number generator, by default 0.
-
-        Returns
-        -------
-        LogNormalTruncatedMeanOne or DiscreteDistribution
-        """
-        sigma = sd_log / np.sqrt(truncated_normal_variance(bot, top))
-        return cls(sigma=sigma, bot=bot, top=top, seed=seed)
-
-
-def _by_shape(fn, x, *shapes):
-    """
-    Apply fn(x, *shapes) once per distinct set of shape parameters, as scipy
-    broadcasts them.
-    """
-    x, *shapes = np.broadcast_arrays(
-        *(np.asarray(v, dtype=float) for v in (x, *shapes))
-    )
-    out = np.empty(x.shape)
-    keys = np.stack([shape.ravel() for shape in shapes], axis=1)
-    for key in np.unique(keys, axis=0):
-        sel = np.all(keys == key, axis=1).reshape(x.shape)
-        out[sel] = fn(x[sel], *key)
-    return out
+@functools.lru_cache(maxsize=None)
+def _truncated_normal(bot, top):
+    return _TruncatedNormal(bot, top)
 
 
 # Close to the bound of a jumpless truncated lognormal the CDF is summed as a
@@ -759,6 +574,7 @@ class _JumplessNormal:
 
     def __init__(self, bot):
         self.bot = float(bot)
+        self.top = np.inf
         b = self.b = -self.bot
         self.mass = float(_normal_mass(self.bot, b))
         self.phi = float(norm.pdf(b))
@@ -798,11 +614,19 @@ class _JumplessNormal:
         out = (ndtr(-z) - ndtr(-z - 2.0 * self.b)) / self.mass
         return np.where(z <= self.bot, 1.0, out)
 
+    # The quantile function stops at a relative tolerance in the distance from the
+    # bound, and raises an error where it has not found a quantile in this many steps
+    _PPF_TOLERANCE = 1e-15
+    _PPF_STEPS = 100
+
     def ppf(self, q):
         """
         The quantile function, by Newton's method on the logarithm of the
-        probability on the nearer side: the law's density is log-concave, so
-        that logarithm is concave and the steps close on the quantile.
+        probability on the nearer side, inside a bracket that each step narrows:
+        a step that would leave the bracket is replaced by its midpoint, or, while
+        the bracket has no upper end, by doubling. The law's density is
+        log-concave, so that logarithm is concave and the steps close on the
+        quantile. A quantile not found in _PPF_STEPS steps raises a ValueError.
         """
         q = np.asarray(q, dtype=float)
         out = np.full(q.shape, np.nan)
@@ -824,20 +648,33 @@ class _JumplessNormal:
                 ),
                 self.b - ndtri((1.0 - p) * self.mass),
             )
-            d = np.maximum(d, np.finfo(float).tiny)
+            d = np.where(np.isfinite(d), np.maximum(d, np.finfo(float).tiny), 1.0)
             target = np.where(low, np.log(p), np.log1p(-p))
             sign = np.where(low, 1.0, -1.0)
-            for _ in range(200):
+            below, above = np.zeros(d.shape), np.full(d.shape, np.inf)
+            for _ in range(self._PPF_STEPS):
                 z = self.bot + d
                 prob = np.where(low, self.cdf(z), self.sf(z))
-                step = sign * (np.log(prob) - target) * prob / self.pdf(z)
-                # a probability or a density that has underflowed leaves the start
-                step = np.where(np.isfinite(step), step, 0.0)
-                new = np.where(d - step > 0.0, d - step, 0.1 * d)
-                done = np.abs(new - d) <= 1e-15 * np.maximum(d, 1.0)
+                # positive where d is above the quantile
+                gap = sign * (np.log(prob) - target)
+                above = np.where(gap > 0.0, np.minimum(above, d), above)
+                below = np.where(gap <= 0.0, np.maximum(below, d), below)
+                new = d - gap * prob / self.pdf(z)
+                outside = ~np.isfinite(new) | (new <= below) | (new >= above)
+                fallback = np.where(
+                    np.isfinite(above), 0.5 * (below + above), 2.0 * d + 1.0
+                )
+                new = np.where(outside & (gap != 0.0), fallback, new)
+                done = np.abs(new - d) <= self._PPF_TOLERANCE * np.maximum(d, 1.0)
                 d = new
                 if np.all(done):
                     break
+            else:
+                raise ValueError(
+                    "The quantile function of the jumpless truncated lognormal "
+                    f"(bound {self.bot}) found no quantile in {self._PPF_STEPS} "
+                    f"steps at q = {p[~done]}."
+                )
         out[inner] = self.bot + d
         return out
 
@@ -871,107 +708,67 @@ def _jumpless_normal(bot):
     return _JumplessNormal(bot)
 
 
-class _jumpless_lognorm_gen(rv_continuous):
+class _lognorm_of_z_gen(rv_continuous):
     """
-    The jumpless truncated lognormal exp(s Z), with Z a jumpless normal bounded
-    below at lo < 0, in its standard deviations. scipy's scale is exp(mu).
-    """
-
-    def _argcheck(self, s, lo):
-        return (s > 0) & (lo < 0)
-
-    def _get_support(self, s, lo):
-        return np.exp(s * lo), np.inf
-
-    def _pdf(self, x, s, lo):
-        def pdf(x, s, lo):
-            with np.errstate(divide="ignore"):
-                z = np.log(x) / s
-            return _jumpless_normal(lo).pdf(z) / (s * x)
-
-        return _by_shape(pdf, x, s, lo)
-
-    def _cdf(self, x, s, lo):
-        def cdf(x, s, lo):
-            with np.errstate(divide="ignore"):
-                return _jumpless_normal(lo).cdf(np.log(x) / s)
-
-        return _by_shape(cdf, x, s, lo)
-
-    def _sf(self, x, s, lo):
-        def sf(x, s, lo):
-            with np.errstate(divide="ignore"):
-                return _jumpless_normal(lo).sf(np.log(x) / s)
-
-        return _by_shape(sf, x, s, lo)
-
-    def _ppf(self, q, s, lo):
-        return _by_shape(
-            lambda q, s, lo: np.exp(s * _jumpless_normal(lo).ppf(q)), q, s, lo
-        )
-
-    def _munp(self, n, s, lo):
-        return _by_shape(
-            lambda n, s, lo: _jumpless_normal(lo).expectation_exp(
-                n * s, -np.inf, np.inf
-            ),
-            n,
-            s,
-            lo,
-        )
-
-
-_jumpless_lognorm = _jumpless_lognorm_gen(
-    a=0.0, name="jumpless_lognorm", shapes="s, lo"
-)
-
-
-class LogNormalTruncatedJumpless(ContinuousFrozenDistribution):
-    """
-    A lognormal truncated below whose density has no jump at the truncation:
-    X = exp(mu + sigma Z), where Z, on z >= bot, has the standard normal
-    density less its reflection in the bound,
-
-        (phi(z) - phi(2 bot - z)) / (Phi(-bot) - Phi(bot)).
-
-    A lognormal that is simply truncated (LogNormalTruncated) has a density
-    that jumps from zero to a positive value at its bound. Here the reflection
-    equals the density at the bound, so the density of X is zero at the bound,
-    which is its infimum, and rises linearly from it; and the reflection dies
-    off above the bound (half a standard deviation above a bound of -3 it is 5%
-    of the density), so that everywhere else the law is the lognormal's own,
-    with the lognormal's upper tail and no upper bound. What the reflection
-    takes out is the lognormal's tail below the bound, folded over the bound:
-    the law leaves out twice that tail's probability, 0.27% at a bound of -3.
-
-    The bound is in standard deviations of the underlying normal from its mean,
-    and lies below it: bot = -3.0 puts it at exp(mu - 3 sigma). A positive bot
-    is read as that many standard deviations below the mean. Neither mu nor
-    sigma is a moment of this law: its mean is moment(1), a little above
-    exp(mu + sigma**2 / 2), and the standard deviation of ln X is a little below
-    sigma (LogNormalTruncatedJumplessMeanOne sets both).
-
-    Parameters
-    ----------
-    mu : float, optional
-        Mean of the underlying normal, by default 0.0.
-    sigma : float, optional
-        Standard deviation of the underlying normal, by default 1.0. With
-        sigma = 0 the distribution is the point exp(mu).
-    bot : float, optional
-        The truncation, in standard deviations of the underlying normal below
-        its mean, by default -3.0 (3.0 means the same).
-    seed : int, optional
-        Seed for random number generator, by default None.
+    The lognormal exp(s Z) of a law of Z held as an attribute, as scipy's
+    rv_histogram holds its data, so that it has no shape parameters; scipy's
+    scale is exp(mu). Its support is the image of the law's [bot, top].
     """
 
-    def __new__(cls, mu=0.0, sigma=1.0, bot=-3.0, seed=None):
-        if sigma == 0:
-            # A point at exp(mu), whose bounds are the point
-            return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
+    def __init__(self, law, s, **kwds):
+        kwds.setdefault("a", np.exp(s * law.bot))
+        kwds.setdefault("b", np.exp(s * law.top))
+        kwds.setdefault("name", "lognorm_of_z")
+        self._law, self._s = law, float(s)
+        super().__init__(**kwds)
+
+    def _updated_ctor_param(self):
+        # A frozen distribution builds its own copy from these
+        params = super()._updated_ctor_param()
+        params.update(law=self._law, s=self._s)
+        return params
+
+    def _z(self, x):
+        # At the support's lower end z is the bound itself, which log(x) / s
+        # recovers only to rounding
+        with np.errstate(divide="ignore"):
+            return np.where(x <= self.a, self._law.bot, np.log(x) / self._s)
+
+    def _pdf(self, x):
+        return self._law.pdf(self._z(x)) / (self._s * x)
+
+    def _cdf(self, x):
+        return self._law.cdf(self._z(x))
+
+    def _sf(self, x):
+        return self._law.sf(self._z(x))
+
+    def _ppf(self, q):
+        return np.exp(self._s * self._law.ppf(q))
+
+    def _munp(self, n):
+        return self._law.expectation_exp(n * self._s, -np.inf, np.inf)
+
+
+class _LogNormalOfZ(ContinuousFrozenDistribution):
+    """
+    X = exp(mu + sigma Z), where Z, the standard normal coordinate, follows a law
+    of its own: an object with its bounds bot and top, the probability mass of the
+    underlying normal it keeps, and its pdf, cdf, sf, ppf, expectation_exp, mean
+    and variance. The truncated lognormals are this with their laws of Z. With
+    sigma = 0 the distribution is the point exp(mu).
+    """
+
+    def __new__(cls, *args, **kwds):
+        params = inspect.signature(cls.__init__).bind(None, *args, **kwds)
+        params.apply_defaults()
+        if params.arguments["sigma"] == 0:
+            # A point, whose bounds are the point; a mean-one law's is one
+            point = np.exp(params.arguments.get("mu", 0.0))
+            return DiscreteDistribution([1.0], [point], seed=params.arguments["seed"])
         return super().__new__(cls)
 
-    def __init__(self, mu=0.0, sigma=1.0, bot=-3.0, seed=None):
+    def _setup(self, mu, sigma, law, seed):
         if np.ndim(mu) or np.ndim(sigma):
             raise ValueError(
                 "mu and sigma must be scalars; use IndexDistribution for time variation."
@@ -980,64 +777,23 @@ class LogNormalTruncatedJumpless(ContinuousFrozenDistribution):
             raise ValueError("sigma must be nonnegative, but it is " + str(sigma))
         self.mu = float(mu)
         self.sigma = float(sigma)
-        self.bot = _jumpless_bound(bot)
-        self.top = np.inf
-        self._law = _jumpless_normal(self.bot)
+        self._law = law
+        self.bot, self.top = law.bot, law.top
         super().__init__(
-            _jumpless_lognorm,
-            s=self.sigma,
-            lo=self.bot,
-            scale=np.exp(self.mu),
-            loc=0,
-            seed=seed,
+            _lognorm_of_z_gen(law, self.sigma), scale=np.exp(self.mu), loc=0, seed=seed
         )
         self.infimum = np.array([np.exp(self.mu + self.sigma * self.bot)])
-        self.supremum = np.array([np.inf])
+        self.supremum = np.array([np.exp(self.mu + self.sigma * self.top)])
+
+    @staticmethod
+    def _mean_one_mu(law, sigma):
+        """The mu that gives exp(mu + sigma Z) a mean of one under the law of Z."""
+        return -np.log(float(law.expectation_exp(sigma, -np.inf, np.inf)))
 
     @property
     def mass(self):
-        """
-        The probability mass of the underlying normal that the law keeps: all
-        but twice the tail below the bound.
-        """
+        """The probability mass of the underlying normal that the law keeps."""
         return self._law.mass
-
-    # The density, CDF, survival function and quantile function come straight
-    # from the law of Z, as scipy's would through _jumpless_lognorm, but without
-    # its handling of shape parameters that may vary by element, which this
-    # law's, being scalars, never do.
-
-    def _in_z(self, x):
-        """
-        The coordinate z of x, and where x is above the infimum, which z
-        recovers only to rounding.
-        """
-        x = np.asarray(x, dtype=float)
-        inside = x > self.infimum[0]
-        return self.z(np.where(inside, x, 1.0)), inside, x
-
-    def pdf(self, x):
-        """The density of X at x."""
-        z, inside, x = self._in_z(x)
-        out = self._law.pdf(z) / (self.sigma * np.where(inside, x, 1.0))
-        return np.where(inside, out, 0.0)[()]
-
-    def cdf(self, x):
-        """P(X <= x)."""
-        z, inside, _ = self._in_z(x)
-        return np.where(inside, self._law.cdf(z), 0.0)[()]
-
-    def sf(self, x):
-        """P(X > x)."""
-        z, inside, _ = self._in_z(x)
-        return np.where(inside, self._law.sf(z), 1.0)[()]
-
-    def ppf(self, q):
-        """The quantile function: the x with P(X <= x) = q, nan outside [0, 1]."""
-        q = np.asarray(q, dtype=float)
-        with np.errstate(over="ignore"):
-            out = np.exp(self.mu + self.sigma * self._law.ppf(np.clip(q, 0.0, 1.0)))
-        return np.where((q >= 0.0) & (q <= 1.0), out, np.nan)[()]
 
     def z(self, x):
         """The standard normal coordinate (ln x - mu) / sigma of x."""
@@ -1046,9 +802,21 @@ class LogNormalTruncatedJumpless(ContinuousFrozenDistribution):
 
     def moment(self, order):
         """The raw moment E[X**order], for any real order, in closed form."""
-        k = float(order)
+        k = np.asarray(order, dtype=float)
         return np.exp(k * self.mu) * self._law.expectation_exp(
             k * self.sigma, -np.inf, np.inf
+        )
+
+    def partial_moment(self, order, lo, hi):
+        """
+        The partial moment E[X**order 1{lo < X < hi}], for any real order and
+        arrays of interval ends.
+        """
+        k = np.asarray(order, dtype=float)
+        z_lo = self.z(np.maximum(np.asarray(lo, dtype=float), 0.0))
+        z_hi = self.z(np.asarray(hi, dtype=float))
+        return np.exp(k * self.mu) * self._law.expectation_exp(
+            k * self.sigma, z_lo, z_hi
         )
 
     def _approx_equiprobable(self, N, endpoints=False):
@@ -1069,7 +837,7 @@ class LogNormalTruncatedJumpless(ContinuousFrozenDistribution):
         DiscreteDistribution
         """
         cuts = self._law.ppf(np.arange(N + 1) / N)
-        cuts[0], cuts[-1] = self.bot, np.inf
+        cuts[0], cuts[-1] = self.bot, self.top
         pmv = np.ones(N) / N
         atoms = (
             np.exp(self.mu)
@@ -1083,19 +851,148 @@ class LogNormalTruncatedJumpless(ContinuousFrozenDistribution):
         return DiscreteDistribution(pmv, atoms, seed=self.random_seed(), limit=limit)
 
 
-def _jumpless_bound(bot):
+class LogNormalTruncated(_LogNormalOfZ):
+    """
+    A lognormal distribution truncated in the log: X = exp(mu + sigma Z), with Z a
+    standard normal conditioned on bot <= Z <= top. The bounds are in standard
+    deviations of that normal, and None is no bound on that side, so with both
+    None this is LogNormal(mu, sigma).
+
+    Parameters
+    ----------
+    mu : float, optional
+        Mean of the underlying normal before truncation, by default 0.0.
+    sigma : float, optional
+        Standard deviation of the underlying normal before truncation, by
+        default 1.0. With sigma = 0 the distribution is the point exp(mu).
+    bot : float or None, optional
+        Lower truncation bound, by default -3.0.
+    top : float or None, optional
+        Upper truncation bound, by default 3.0.
+    seed : int, optional
+        Seed for random number generator, by default None.
+    """
+
+    def __init__(self, mu=0.0, sigma=1.0, bot=-3.0, top=3.0, seed=None):
+        law = _truncated_normal(_bound(bot, -np.inf), _bound(top, np.inf))
+        self._setup(mu, sigma, law, seed)
+
+
+class LogNormalTruncatedMeanOne(LogNormalTruncated):
+    """
+    A truncated lognormal with mean one after the truncation: mu is set so that
+    E[X] = 1 for the truncated distribution. The bounds are in standard
+    deviations of the underlying normal, by default three either side.
+
+    Parameters
+    ----------
+    sigma : float, optional
+        Standard deviation of the underlying normal before truncation, by
+        default 1.0. With sigma = 0 the distribution is the point 1.
+    bot : float or None, optional
+        Lower truncation bound, by default -3.0.
+    top : float or None, optional
+        Upper truncation bound, by default 3.0.
+    seed : int, optional
+        Seed for random number generator, by default 0.
+    """
+
+    def __init__(self, sigma=1.0, bot=-3.0, top=3.0, seed=0):
+        law = _truncated_normal(_bound(bot, -np.inf), _bound(top, np.inf))
+        mu = self._mean_one_mu(law, sigma)
+        super().__init__(mu=mu, sigma=sigma, bot=bot, top=top, seed=seed)
+
+    @classmethod
+    def from_sd_log(cls, sd_log, bot=-3.0, top=3.0, seed=0):
+        """
+        The mean-one truncated lognormal whose log has standard deviation
+        sd_log after the truncation. The underlying normal's sigma is
+        sd_log / sqrt(truncated_normal_variance(bot, top)), so an estimated
+        dispersion keeps its value under the truncation.
+
+        Parameters
+        ----------
+        sd_log : float
+            Standard deviation of ln X after truncation.
+        bot : float or None, optional
+            Lower truncation bound, by default -3.0.
+        top : float or None, optional
+            Upper truncation bound, by default 3.0.
+        seed : int, optional
+            Seed for random number generator, by default 0.
+
+        Returns
+        -------
+        LogNormalTruncatedMeanOne or DiscreteDistribution
+        """
+        sigma = sd_log / np.sqrt(truncated_normal_variance(bot, top))
+        return cls(sigma=sigma, bot=bot, top=top, seed=seed)
+
+
+def _jumpless_bound(bot, top=None):
     """
     The bound of a jumpless truncated lognormal, in standard deviations of the
-    underlying normal from its mean: below the mean, so a positive number is
-    read as the distance below.
+    underlying normal from its mean, which must lie below the mean; the law has
+    no upper bound, so top must be None or infinite.
     """
-    if bot is None or not np.isfinite(bot) or bot == 0:
+    if top is not None and not np.isposinf(top):
+        raise ValueError(
+            "A jumpless truncated lognormal is bounded below only: leave its upper "
+            "bound None or infinite, or use LogNormalTruncated."
+        )
+    if bot is None or not np.isfinite(bot) or bot >= 0:
         raise ValueError(
             "A jumpless truncated lognormal needs a finite bound below the mean of "
-            "the underlying normal, in its standard deviations, such as -3.0; "
-            "without a bound the law is LogNormal."
+            "the underlying normal, a negative number of its standard deviations "
+            f"such as -3.0, not {bot}; without a bound the law is LogNormal."
         )
-    return -abs(float(bot))
+    return float(bot)
+
+
+class LogNormalTruncatedJumpless(_LogNormalOfZ):
+    """
+    A lognormal truncated below whose density has no jump at the truncation:
+    X = exp(mu + sigma Z), where Z, on z >= bot, has the standard normal
+    density less its reflection in the bound,
+
+        (phi(z) - phi(2 bot - z)) / (Phi(-bot) - Phi(bot)).
+
+    A lognormal that is simply truncated (LogNormalTruncated) has a density
+    that jumps from zero to a positive value at its bound. Here the reflection
+    equals the density at the bound, so the density of X is zero at the bound,
+    which is its infimum, and rises linearly from it; and the reflection dies
+    off above the bound (half a standard deviation above a bound of -3 it is 5%
+    of the density), so that everywhere else the law is the lognormal's own,
+    with the lognormal's upper tail and no upper bound. What the reflection
+    takes out is the lognormal's tail below the bound, folded over the bound:
+    the law leaves out twice that tail's probability, 0.27% at a bound of -3.
+
+    The bound is in standard deviations of the underlying normal from its mean,
+    and lies below it: bot = -3.0 puts it at exp(mu - 3 sigma). A bound at or
+    above the mean is refused. Neither mu nor
+    sigma is a moment of this law: its mean is moment(1), a little above
+    exp(mu + sigma**2 / 2), and the standard deviation of ln X is a little below
+    sigma (LogNormalTruncatedJumplessMeanOne sets both).
+
+    Parameters
+    ----------
+    mu : float, optional
+        Mean of the underlying normal, by default 0.0.
+    sigma : float, optional
+        Standard deviation of the underlying normal, by default 1.0. With
+        sigma = 0 the distribution is the point exp(mu).
+    bot : float, optional
+        The truncation, in standard deviations of the underlying normal from
+        its mean, below it, by default -3.0.
+    top : None, optional
+        The law has no upper bound: None, the default, or np.inf; a finite one
+        is refused.
+    seed : int, optional
+        Seed for random number generator, by default None.
+    """
+
+    def __init__(self, mu=0.0, sigma=1.0, bot=-3.0, top=None, seed=None):
+        self._setup(mu, sigma, _jumpless_normal(_jumpless_bound(bot, top)), seed)
 
 
 class LogNormalTruncatedJumplessMeanOne(LogNormalTruncatedJumpless):
@@ -1110,24 +1007,21 @@ class LogNormalTruncatedJumplessMeanOne(LogNormalTruncatedJumpless):
         Standard deviation of the underlying normal, by default 1.0. With
         sigma = 0 the distribution is the point 1.
     bot : float, optional
-        The truncation, in standard deviations of the underlying normal below
-        its mean, by default -3.0 (3.0 means the same).
+        The truncation, in standard deviations of the underlying normal from
+        its mean, below it, by default -3.0.
+    top : None, optional
+        No upper bound: None, the default, or np.inf; a finite one is refused.
     seed : int, optional
         Seed for random number generator, by default 0.
     """
 
-    def __new__(cls, sigma=1.0, bot=-3.0, seed=0):
-        if sigma == 0:
-            return DiscreteDistribution([1.0], [1.0], seed=seed)
-        return super().__new__(cls)
-
-    def __init__(self, sigma=1.0, bot=-3.0, seed=0):
-        law = _jumpless_normal(_jumpless_bound(bot))
-        mu = -np.log(float(law.expectation_exp(sigma, -np.inf, np.inf)))
-        super().__init__(mu=mu, sigma=sigma, bot=bot, seed=seed)
+    def __init__(self, sigma=1.0, bot=-3.0, top=None, seed=0):
+        law = _jumpless_normal(_jumpless_bound(bot, top))
+        mu = self._mean_one_mu(law, sigma)
+        super().__init__(mu=mu, sigma=sigma, bot=bot, top=top, seed=seed)
 
     @classmethod
-    def from_sd_log(cls, sd_log, bot=-3.0, seed=0):
+    def from_sd_log(cls, sd_log, bot=-3.0, top=None, seed=0):
         """
         The mean-one jumpless truncated lognormal whose log has standard
         deviation sd_log. The truncation and the reflection narrow the log
@@ -1140,7 +1034,9 @@ class LogNormalTruncatedJumplessMeanOne(LogNormalTruncatedJumpless):
             Standard deviation of ln X.
         bot : float, optional
             The truncation, in standard deviations of the underlying normal
-            below its mean, by default -3.0 (3.0 means the same).
+            from its mean, below it, by default -3.0.
+        top : None, optional
+            No upper bound: None, the default, or np.inf.
         seed : int, optional
             Seed for random number generator, by default 0.
 
@@ -1148,8 +1044,9 @@ class LogNormalTruncatedJumplessMeanOne(LogNormalTruncatedJumpless):
         -------
         LogNormalTruncatedJumplessMeanOne or DiscreteDistribution
         """
-        sigma = sd_log / np.sqrt(_jumpless_normal(_jumpless_bound(bot)).variance())
-        return cls(sigma=sigma, bot=bot, seed=seed)
+        law = _jumpless_normal(_jumpless_bound(bot, top))
+        sigma = sd_log / np.sqrt(law.variance())
+        return cls(sigma=sigma, bot=bot, top=top, seed=seed)
 
 
 # The names these classes had before they were renamed. Each is the class under

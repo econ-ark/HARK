@@ -11,7 +11,8 @@ from HARK.distributions import (
     LogNormalTruncatedJumpless,
     LogNormalTruncatedJumplessMeanOne,
 )
-from HARK.distributions.continuous import _jumpless_lognorm, _jumpless_normal
+from HARK.distributions import LogNormalTruncatedMeanOne
+from HARK.distributions.continuous import _JumplessNormal, _jumpless_normal
 
 
 def integrate(fn, pieces):
@@ -204,14 +205,18 @@ class LogNormalTruncatedJumplessTests(unittest.TestCase):
         self.assertAlmostEqual(d.sigma, 0.10112525, places=8)
 
     def test_the_bound_its_sign_and_refusals(self):
-        # the bound lies below the mean, so its distance can be given unsigned
+        # the bound lies below the mean; one at or above it is refused, as is a
+        # finite upper bound
         a = LogNormalTruncatedJumpless(mu=0.1, sigma=0.3, bot=-2.0)
-        b = LogNormalTruncatedJumpless(mu=0.1, sigma=0.3, bot=2.0)
         self.assertEqual(a.bot, -2.0)
-        self.assertEqual(b.bot, -2.0)
-        self.assertEqual(a.infimum[0], b.infimum[0])
         self.assertEqual(a.infimum[0], np.exp(0.1 - 2.0 * 0.3))
-        for bad in (0.0, None, np.inf, -np.inf, np.nan):
+        self.assertEqual(LogNormalTruncatedJumpless(sigma=0.3, top=np.inf).top, np.inf)
+        for top in (3.0, -1.0):
+            with self.assertRaisesRegex(ValueError, "bounded below only"):
+                LogNormalTruncatedJumpless(sigma=0.3, top=top)
+            with self.assertRaisesRegex(ValueError, "bounded below only"):
+                LogNormalTruncatedJumplessMeanOne.from_sd_log(0.1, top=top)
+        for bad in (2.0, 0.0, None, np.inf, -np.inf, np.nan):
             with self.assertRaises(ValueError):
                 LogNormalTruncatedJumpless(sigma=0.3, bot=bad)
             with self.assertRaises(ValueError):
@@ -226,30 +231,96 @@ class LogNormalTruncatedJumplessTests(unittest.TestCase):
         one = LogNormalTruncatedJumplessMeanOne(sigma=0.0)
         self.assertEqual(one.atoms[0][0], 1.0)
 
-    def test_its_own_functions_match_scipys(self):
-        # The density, CDF, survival and quantile functions the law computes
-        # from the law of its log are those of scipy's generic path through
-        # _jumpless_lognorm, inside and outside the support, to rounding
+    def test_its_functions_follow_the_law_of_its_log(self):
+        # The density, CDF, survival and quantile functions are those of the law
+        # of the log through exp(mu + sigma Z), inside and outside the support
         for sigma, bot in self.cases:
             d = LogNormalTruncatedJumpless(mu=0.3, sigma=sigma, bot=bot)
+            law = _jumpless_normal(bot)
             lo = d.infimum[0]
-            x = np.r_[0.5 * lo, lo, lo * np.exp(sigma * np.linspace(1e-3, 8.0, 25))]
-            args = dict(s=sigma, lo=bot, scale=np.exp(0.3))
-            # (at the bound itself scipy's path sees its rounding)
+            x = np.r_[0.5 * lo, lo * np.exp(sigma * np.linspace(1e-3, 8.0, 25))]
+            z = (np.log(x) - 0.3) / sigma
             np.testing.assert_allclose(
-                d.pdf(x), _jumpless_lognorm.pdf(x, **args), rtol=1e-12, atol=1e-14
+                d.pdf(x), law.pdf(z) / (sigma * x), rtol=1e-12, atol=1e-14
             )
-            np.testing.assert_allclose(
-                d.cdf(x), _jumpless_lognorm.cdf(x, **args), rtol=1e-12, atol=1e-14
-            )
-            np.testing.assert_allclose(
-                d.sf(x), _jumpless_lognorm.sf(x, **args), rtol=1e-12, atol=1e-14
-            )
+            np.testing.assert_allclose(d.cdf(x), law.cdf(z), rtol=1e-12, atol=1e-14)
+            np.testing.assert_allclose(d.sf(x), law.sf(z), rtol=1e-12, atol=1e-14)
             q = np.array([0.0, 1e-6, 0.3, 0.9, 1.0])
             np.testing.assert_allclose(
-                d.ppf(q), _jumpless_lognorm.ppf(q, **args), rtol=1e-12
+                d.ppf(q), np.exp(0.3 + sigma * law.ppf(q)), rtol=1e-12
             )
             self.assertAlmostEqual(d.var() / (d.moment(2) - d.moment(1) ** 2), 1.0, 10)
+
+    def test_quantiles_found_or_refused(self):
+        # The steps close on the quantile from either side, at the extremes too
+        law = _JumplessNormal(-3.0)
+        q = np.array([1e-8, 1e-4, 0.25, 0.5, 0.75, 1.0 - 1e-12])
+        np.testing.assert_allclose(law.cdf(law.ppf(q)), q, rtol=1e-9)
+        # A quantile not found in the steps allowed is an error, not a number
+        law._PPF_STEPS = 1
+        with self.assertRaisesRegex(ValueError, "found no quantile"):
+            law.ppf(np.array([0.3]))
+
+
+class TruncatedLogNormalUnchangedTests(unittest.TestCase):
+    """
+    LogNormalTruncated, now built on the law of its log as the jumpless law is,
+    gives the values it gave before, to rounding, and the same draws.
+    """
+
+    def test_values_as_before(self):
+        # The values HARK 0.17.x's main gave (econ-ark/HARK 189751e0)
+        d = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
+        self.assertEqual(d.sigma, 0.10136041976422071)
+        np.testing.assert_allclose(d.mu, -0.004999286685676649, rtol=0, atol=1e-15)
+        np.testing.assert_allclose(
+            d.discretize(7, method="equiprobable").atoms[0],
+            [
+                0.8502075621148192,
+                0.9178823419256863,
+                0.9587085393425105,
+                0.9950678635098422,
+                1.0328227307122522,
+                1.0788517179683137,
+                1.1664592444265764,
+            ],
+            rtol=1e-15,
+        )
+        d = LogNormalTruncated(mu=0.2, sigma=0.4, bot=-2.0, top=None, seed=7)
+        x = np.array([0.5, 1.0, 1.7, 3.0])
+        np.testing.assert_allclose(
+            d.pdf(x),
+            [0.0, 0.9006532982863253, 0.4266152847672957, 0.027277384618087732],
+            rtol=1e-15,
+        )
+        np.testing.assert_allclose(
+            d.cdf(x),
+            [0.0, 0.29244046596551004, 0.791005102910299, 0.987377826889776],
+            rtol=1e-15,
+        )
+        np.testing.assert_array_equal(
+            d.ppf(np.array([0.01, 0.5, 0.99])),
+            [0.5839273143499818, 1.235414783325525, 3.1080264050517545],
+        )
+        np.testing.assert_allclose(
+            [d.moment(k) for k in (1, 2, -1.5)],
+            [1.3428330369427175, 2.096888352740991, 0.834275584878861],
+            rtol=1e-15,
+        )
+        np.testing.assert_allclose(
+            d.partial_moment(1.0, np.array([0.0, 1.0]), np.array([1.0, np.inf])),
+            [0.2381059773414918, 1.1047270596012257],
+            rtol=1e-15,
+        )
+        np.testing.assert_array_equal(
+            d.draw(4),
+            [
+                1.4001613147507865,
+                2.0372516212415053,
+                1.665198089167854,
+                0.9241449190553113,
+            ],
+        )
 
 
 if __name__ == "__main__":
