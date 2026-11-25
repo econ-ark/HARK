@@ -261,6 +261,19 @@ class LogNormalTruncatedJumplessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "found no quantile"):
             law.ppf(np.array([0.3]))
 
+    def test_quantiles_end_where_newton_has_converged(self):
+        # A Newton step too small to move the point has found the quantile. It is
+        # not a step that leaves the bracket, to be replaced by the bracket's
+        # midpoint and searched for again by bisection: the cut points of
+        # equiprobable atoms are found within twenty steps
+        for bot in (-8.0, -6.0, -3.0, -2.0, -0.5, -0.05):
+            law = _JumplessNormal(bot)
+            law._PPF_STEPS = 20
+            for count in (7, 25, 200):
+                with self.subTest(bot=bot, count=count):
+                    q = np.arange(1, count) / count
+                    np.testing.assert_allclose(law.cdf(law.ppf(q)), q, rtol=1e-9)
+
 
 class TruncatedLogNormalUnchangedTests(unittest.TestCase):
     """

@@ -614,8 +614,9 @@ class _JumplessNormal:
         out = (ndtr(-z) - ndtr(-z - 2.0 * self.b)) / self.mass
         return np.where(z <= self.bot, 1.0, out)
 
-    # The quantile function stops at a relative tolerance in the distance from the
-    # bound, and raises an error where it has not found a quantile in this many steps
+    # The quantile function stops at a tolerance in the distance from the bound,
+    # relative where that distance is above one and absolute below it, and raises
+    # an error where it has not found a quantile in this many steps
     _PPF_TOLERANCE = 1e-15
     _PPF_STEPS = 100
 
@@ -664,7 +665,9 @@ class _JumplessNormal:
                 fallback = np.where(
                     np.isfinite(above), 0.5 * (below + above), 2.0 * d + 1.0
                 )
-                new = np.where(outside & (gap != 0.0), fallback, new)
+                # A step too small to move d has found the quantile: it is kept
+                moved = (gap != 0.0) & (new != d)
+                new = np.where(outside & moved, fallback, new)
                 done = np.abs(new - d) <= self._PPF_TOLERANCE * np.maximum(d, 1.0)
                 d = new
                 if np.all(done):
