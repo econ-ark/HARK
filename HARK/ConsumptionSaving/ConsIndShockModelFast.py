@@ -29,6 +29,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     calc_aNrm_grid,
     calc_boro_const_nat,
     calc_boro_const_nat_from_infima,
+    check_employed_floor_in_solver,
     find_kink,
     PerfForesightConsumerType,
     init_perfect_foresight,
@@ -696,6 +697,14 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         self.PermShkValsNext = self.IncShkDstn.atoms[0]
         self.TranShkValsNext = self.IncShkDstn.atoms[1]
 
+        # Where the natural limit can bind, unemployment must be the lowest income
+        check_employed_floor_in_solver(
+            self.solution_next.mNrmMin,
+            self.IncShkDstn,
+            self.Rfree,
+            self.PermGroFac,
+            self.BoroCnstArt,
+        )
         # The natural limit belongs to the model: where the laws are bounded below
         # away from zero, it comes from their infima
         # (calc_boro_const_nat_from_infima) and is imposed as BoroCnstArt is where

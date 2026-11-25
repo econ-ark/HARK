@@ -715,6 +715,32 @@ class testKinkAttributesFast(unittest.TestCase):
         )
 
 
+class testEmployedFloorFast(unittest.TestCase):
+    """
+    The fast solver makes the employed-floor check as the standard solver does:
+    where the natural borrowing limit can bind, the lowest employed transitory
+    income must be strictly above unemployment income, or the solve halts.
+    """
+
+    def test_a_benefit_above_the_employed_floor_halts(self):
+        # in the basic solver and in the one that also builds the value function
+        for kwds in ({}, {"vFuncBool": True}):
+            agent = IndShockConsumerTypeFast(
+                cycles=1, BoroCnstArt=None, IncUnemp=0.8, **kwds
+            )
+            with self.assertRaises(ValueError) as caught:
+                agent.solve()
+            self.assertIn("strictly above unemployment income", str(caught.exception))
+
+    def test_the_defaults_and_an_exempt_model_pass(self):
+        # The default laws' employed floor is far above the benefit; an artificial
+        # constraint at or above the natural limit exempts
+        for kwds in ({"BoroCnstArt": None}, {"BoroCnstArt": 0.0, "IncUnemp": 0.8}):
+            agent = IndShockConsumerTypeFast(cycles=1, **kwds)
+            agent.solve()
+            self.assertTrue(np.isfinite(agent.solution[0].mNrmMin))
+
+
 class testNaturalLimitFromTheInfimaFast(unittest.TestCase):
     """
     The fast solver imposes the natural borrowing constraint from the shock
@@ -779,9 +805,11 @@ class testNaturalLimitFromTheInfimaFast(unittest.TestCase):
     def test_laws_unbounded_below_keep_the_atoms_limit(self):
         # Where an infimum is zero both solvers keep the atoms' limit, the same
         # one, with the same maximal MPC below one
-        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None, **self.UNBOUNDED)
+        # the permanent shock unbounded: both unbounded halt at the employed-floor check
+        unbounded_perm = dict(PermShk_inf=-np.inf, PermShk_sup=np.inf)
+        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None, **unbounded_perm)
         fast.solve()
-        slow = IndShockConsumerType(cycles=0, BoroCnstArt=None, **self.UNBOUNDED)
+        slow = IndShockConsumerType(cycles=0, BoroCnstArt=None, **unbounded_perm)
         slow.solve()
         self.assertLess(slow.solution[0].mNrmMin, 0.0)
         self.assertAlmostEqual(

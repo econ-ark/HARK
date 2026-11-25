@@ -1982,7 +1982,7 @@ class testEmployedFloor(unittest.TestCase):
         )
         agent.solve()
 
-    def test_every_solver_with_a_natural_limit_checks(self):
+    def test_the_preference_shock_and_markov_solvers_check(self):
         from HARK.ConsumptionSaving.ConsPrefShockModel import (
             KinkyPrefConsumerType,
             PrefShockConsumerType,
