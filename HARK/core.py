@@ -1333,6 +1333,8 @@ class AgentType(Model):
         postsolve=True,
         from_solution=None,
         from_t=None,
+        to_t=None,
+        pad_back=None,
     ):
         """
         Solve the model for this instance of an agent type by backward induction.
@@ -1355,6 +1357,23 @@ class AgentType(Model):
             from. It should usually only be used in combination with from_solution.
             Stands for the time index that from_solution represents, and thus is
             only compatible with cycles=1 and will be reset to None otherwise.
+        to_t : int or None
+            If not None, the solver goes back only "to t": it solves the periods
+            from the last one down to period to_t, inclusive, and stops there.
+            Periods before to_t are not solved, so solution[0] is the solution
+            for period to_t unless pad_back is used. Must satisfy
+            0 <= to_t < T, where T is from_t if it is given and the number of
+            periods in the cycle otherwise. Only compatible with cycles=1; a
+            ValueError is raised otherwise. Combined with from_t, the solver
+            solves periods from_t-1 down to to_t, so a model can be solved back
+            to some period, changed ("hot swapped"), and then solved the rest of
+            the way with from_solution=solution[to_t] and from_t=to_t.
+        pad_back : object or None
+            Only used when to_t is given. If not None, this object is used as
+            solution[t] for every period t before to_t, so that the time indexing
+            of the solution is the same as for a complete solve. The same object
+            (not a copy) fills every one of those periods. If None (default),
+            the solution is not padded.
 
         Returns
         -------
@@ -1374,6 +1393,8 @@ class AgentType(Model):
                 verbose,
                 from_solution,
                 from_t,
+                to_t,
+                pad_back,
             )  # Solve the model by backward induction
             if postsolve:
                 self.post_solve()  # Do post-solution stuff
@@ -2407,7 +2428,9 @@ class AgentType(Model):
         return calc_shock_response_manually(self, shock, outcomes, grids, **kwargs)
 
 
-def solve_agent(agent, verbose, from_solution=None, from_t=None):
+def solve_agent(
+    agent, verbose, from_solution=None, from_t=None, to_t=None, pad_back=None
+):
     """
     Solve the dynamic model for one agent type using backwards induction. This
     function iterates on "cycles" of an agent's model either a given number of
@@ -2429,6 +2452,14 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         from. It should usually only be used in combination with from_solution.
         Stands for the time index that from_solution represents, and thus is
         only compatible with cycles=1 and will be reset to None otherwise.
+    to_t : int or None
+        If not None, the earliest period to solve: periods before to_t are
+        not solved, so the first element of the solution is for period to_t
+        unless pad_back is used. Only compatible with cycles=1; a ValueError
+        is raised otherwise. See AgentType.solve.
+    pad_back : object or None
+        If not None and to_t is given, this object is used as the solution
+        for every period before to_t, so that solution[t] is for period t.
 
     Returns
     -------
@@ -2436,6 +2467,12 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         A list of solutions to the one period problems that the agent will
         encounter in his "lifetime".
     """
+    # Solving back only "to t" is defined for a single pass through the cycle
+    if to_t is not None and agent.cycles != 1:
+        raise ValueError(
+            f"to_t can only be used with cycles=1; this agent has cycles={agent.cycles}."
+        )
+
     # Check to see whether this is an (in)finite horizon problem
     method = getattr(agent, "stationary_method", "iterate")
     if method != "iterate":
@@ -2479,7 +2516,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         t_last = time()
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
-        solution_cycle = solve_one_cycle(agent, solution_last, from_t)
+        solution_cycle = solve_one_cycle(agent, solution_last, from_t, to_t)
         if not infinite_horizon:
             solution = solution_cycle + solution
 
@@ -2625,6 +2662,10 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
             if verbose:
                 print("Convergence report: " + _format_convergence_report(report))
 
+    # Fill in the periods before to_t, which were not solved, if requested
+    if to_t is not None and pad_back is not None:
+        solution = [pad_back] * to_t + solution
+
     return solution
 
 
@@ -2674,21 +2715,23 @@ def _resolve_solve_one_period(agent, k):
     return solve_one_period, these_args
 
 
-def _cycle_period_indices(T, cycles):
+def _cycle_period_indices(T, cycles, to_t=None):
     """
     Return the order in which periods within one cycle should be solved.
 
-    One-shot lifecycle (``cycles == 1``): solve from ``T - 1`` down to ``0``.
+    One-shot lifecycle (``cycles == 1``): solve from ``T - 1`` down to ``0``,
+    or down to ``to_t`` if it is given.
     Otherwise, which covers both ``cycles == 0`` (infinite horizon) and
     ``cycles > 1`` (a finite sequence experienced more than once): solve
     period ``0`` first, then ``T - 1`` down to ``1``.
     """
     if cycles == 1:
-        return range(T - 1, -1, -1)
+        stop = 0 if to_t is None else to_t
+        return range(T - 1, stop - 1, -1)
     return [0] + list(range(T - 1, 0, -1))
 
 
-def solve_one_cycle(agent, solution_last, from_t):
+def solve_one_cycle(agent, solution_last, from_t, to_t=None):
     """
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the periods within an agent's cycle, updating the time-varying
@@ -2706,6 +2749,11 @@ def solve_one_cycle(agent, solution_last, from_t):
     from_t : int or None
         If not None, indicates which period of the model the solver should start
         from. When used, represents the time index that solution_last is from.
+    to_t : int or None
+        If not None, the earliest period to solve, so that periods to_t to
+        T-1 are solved, where T is from_t if given and the number of periods
+        in the cycle otherwise. Must satisfy 0 <= to_t < T. Only used when
+        agent.cycles == 1.
 
     Returns
     -------
@@ -2733,10 +2781,18 @@ def solve_one_cycle(agent, solution_last, from_t):
         }
         solve_dict.update({parameter: None for parameter in agent.time_vary})
 
+    # Solving back only "to t": to_t must be one of the periods to be solved
+    if to_t is not None and not 0 <= to_t < T:
+        T_name = "from_t" if from_t is not None else "the number of periods"
+        raise ValueError(
+            f"to_t must satisfy 0 <= to_t < {T}, where {T} is {T_name}; "
+            f"got to_t={to_t}."
+        )
+
     solution_cycle = []
     solution_next = solution_last
 
-    for k in _cycle_period_indices(T, agent.cycles):
+    for k in _cycle_period_indices(T, agent.cycles, to_t):
         solve_one_period, these_args = _resolve_solve_one_period(agent, k)
 
         if use_parameters_obj:
