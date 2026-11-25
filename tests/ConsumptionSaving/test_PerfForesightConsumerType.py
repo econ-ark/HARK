@@ -490,6 +490,87 @@ class testPerfForesightConditionReport(unittest.TestCase):
         self.assertTrue(agent.degenerate)
 
 
+class testConstrainedWithoutReturnImpatience(unittest.TestCase):
+    """Where the constraint can bind and the RIC fails, the consumer runs market
+    resources down to the constraint and consumes permanent income from then on, so a
+    solution exists if and only if the PFFVAC holds: the value of that path is finite
+    only if the value of autarky is."""
+
+    # Rfree, PermGroFac, DiscFac, with CRRA = 2: the RIC fails and the GICRaw holds in
+    # both; the PFFVAC fails in the first (its factor 1.0106) and holds in the second
+    no_finite_value = (0.90, 0.94, 0.95)
+    finite_value = (0.90, 0.95, 0.92)
+
+    def make_agent(self, Rfree, PermGroFac, DiscFac, **kwds):
+        return PerfForesightConsumerType(
+            cycles=0,
+            CRRA=2.0,
+            Rfree=[Rfree],
+            PermGroFac=[PermGroFac],
+            DiscFac=DiscFac,
+            LivPrb=[1.0],
+            BoroCnstArt=0.0,
+            MaxKinks=50,
+            **kwds,
+        )
+
+    def report(self, Rfree, PermGroFac, DiscFac):
+        return calc_perf_foresight_conditions(
+            Rfree, DiscFac, 2.0, PermGroFac, LivPrb=1.0, BoroCnstArt=0.0
+        )
+
+    def test_report(self):
+        for case, exists in ((self.no_finite_value, False), (self.finite_value, True)):
+            with self.subTest(case=case):
+                result = self.report(*case)
+                self.assertFalse(result.conditions["RIC"].holds)
+                self.assertTrue(result.conditions["GICRaw"].holds)
+                self.assertEqual(result.conditions["PFFVAC"].holds, exists)
+                # consumption converges to the kinked limit either way
+                self.assertEqual(result.regime, "kinked")
+                self.assertEqual(result.solution_exists, exists)
+                self.assertEqual(np.isnan(result.mNrmStable), not exists)
+
+    def test_check_agrees_with_the_report(self):
+        for case, exists in ((self.no_finite_value, False), (self.finite_value, True)):
+            with self.subTest(case=case):
+                agent = self.make_agent(*case)
+                agent.check_conditions(verbose=0)
+                self.assertEqual(agent.degenerate, not exists)
+                self.assertEqual(
+                    self.report(*case).solution_exists, not agent.degenerate
+                )
+                verdict = agent.bilt["solution_verdict"]
+                if exists:
+                    self.assertIn("non-degenerate solution exists", verdict)
+                else:
+                    self.assertIn("the PFFVAC is violated", verdict)
+                    self.assertIn("the solution is degenerate", verdict)
+
+    def test_no_solution_names_the_pffvac(self):
+        agent = self.make_agent(*self.no_finite_value, on_no_solution="raise")
+        with self.assertRaises(ValueError) as caught:
+            agent.solve()
+        message = str(caught.exception)
+        self.assertIn("RIC (RPFac=", message)
+        self.assertIn("PFFVAC (PFVAFac=", message)
+        agent = self.make_agent(*self.finite_value, verbose=0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            agent.pre_solve()
+        self.assertFalse(agent.degenerate)
+
+    def test_the_pffvac_not_named_where_it_does_not_decide(self):
+        # Without return impatience and without growth impatience, consumption goes
+        # to zero whatever the PFFVAC
+        agent = self.make_agent(1.00, 1.01, 1.10, on_no_solution="raise")
+        with self.assertRaises(ValueError) as caught:
+            agent.solve()
+        violated = str(caught.exception).split("Violated: ")[1].split(". ")[0]
+        self.assertIn("RIC (RPFac=", violated)
+        self.assertNotIn("PFFVAC", violated)
+
+
 class testPerfForesightConditionsFunction(unittest.TestCase):
     """The optional function that returns all of the conditions."""
 

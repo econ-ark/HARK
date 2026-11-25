@@ -616,7 +616,11 @@ class PerfForesightConditions:
         (to zero), or ``"income"`` (the knife edge where the Growth Patience Factor is
         exactly one and the RIC fails: consumption goes to one, where the constraint allows).
     solution_exists : bool
-        Whether the limit is a non-degenerate solution.
+        Whether the limit is a non-degenerate solution: a consumption function with a
+        finite value. Where the constraint binds and the RIC fails, consumption can
+        converge to the kinked limit while the value does not (see
+        :func:`calc_perf_foresight_conditions`); then the regime is ``"kinked"`` and
+        no solution exists.
     constraint_binds : bool
         Whether the borrowing constraint can bind in the limit.
     MPCmin : float
@@ -677,8 +681,13 @@ def calc_perf_foresight_conditions(
     Without a binding constraint, a linear solution exists if and only if the RIC and
     the FHWC both hold. Otherwise the Growth Patience Factor decides the limit:
     consumption goes to infinity when it is below one and to zero when it is above one.
-    A constraint can bind if it is finite and above minus human wealth, and then a
-    solution exists if the RIC or the GICRaw holds.
+    A constraint can bind if it is finite and above minus human wealth. Then a
+    solution exists if the RIC holds. If the RIC fails, a solution exists if and only
+    if the PFFVAC holds, which implies the GICRaw: under the GICRaw the consumer runs
+    market resources down to the constraint and consumes permanent income from then
+    on, so the value is finite only if the value of autarky is. Where the RIC fails,
+    the GICRaw holds and the PFFVAC fails, consumption converges to the kinked limit
+    but the value does not.
 
     References
     ----------
@@ -754,7 +763,8 @@ def calc_perf_foresight_conditions(
         regime = "infinite"
     else:
         regime = "income"
-    solution_exists = regime in ("linear", "kinked")
+    PFFVAC = conditions["PFFVAC"].holds
+    solution_exists = regime == "linear" or (regime == "kinked" and (RIC or PFFVAC))
 
     if not (solution_exists and GIC):
         mNrmStable = np.nan
@@ -1898,13 +1908,20 @@ class PerfForesightConsumerType(AgentType):
         """
         if not self.degenerate:
             return
+        named = [("RIC", "RPFac"), ("FHWC", "FHWFac"), ("GICRaw", "GPFacRaw")]
+        # Where the constraint binds, the RIC fails and the GICRaw holds, the PFFVAC
+        # decides whether a solution exists
+        if (
+            "PFFVAC" in self.conditions
+            and not self.conditions["PFFVAC"]
+            and self.conditions.get("GICRaw")
+            and not self.conditions.get("RIC")
+            and self._constraint_can_bind()
+        ):
+            named.append(("PFFVAC", "PFVAFac"))
         violated = ", ".join(
             f"{name} ({factor}={self.bilt[factor]:.5f})"
-            for name, factor in (
-                ("RIC", "RPFac"),
-                ("FHWC", "FHWFac"),
-                ("GICRaw", "GPFacRaw"),
-            )
+            for name, factor in named
             if not self.conditions[name]
         )
         message = (
@@ -2445,7 +2462,10 @@ class PerfForesightConsumerType(AgentType):
         given the results of the conditions. Without a binding constraint a linear
         solution exists if and only if the RIC and the FHWC both hold; otherwise the
         Growth Patience Factor decides whether consumption goes to infinity or to zero.
-        With a binding constraint, a solution exists if the RIC or the GICRaw holds.
+        With a binding constraint, a solution exists if the RIC holds, or, where the RIC
+        fails, if the PFFVAC holds (which implies the GICRaw): the consumer then runs
+        market resources down to the constraint and consumes permanent income from then
+        on, so the value is finite only if the value of autarky is.
 
         Returns
         -------
@@ -2472,10 +2492,15 @@ class PerfForesightConsumerType(AgentType):
                     "Because the RIC is satisfied and the consumer is constrained, the solution is not c(m)=0 for all m. Because the GICRaw is violated, the solution is non-degenerate. It is piecewise linear with a single kink at some 0 < m < 1; it equals the unconstrained solution above that kink point and has c(m) = m below it.",
                     False,
                 )
+            if GIC and self.conditions["PFFVAC"]:
+                return (
+                    "Because the RIC is violated but the GIC is satisfied, the FHWC is necessarily also violated. In this case, the consumer's pathological patience is offset by his infinite human wealth, against which he cannot borrow arbitrarily: he runs market resources down to the constraint and consumes his permanent income from then on. Because the PFFVAC is also satisfied, the value of that path is finite, and a non-degenerate solution exists.",
+                    False,
+                )
             if GIC:
                 return (
-                    "Because the RIC is violated but the GIC is satisfied, the FHWC is necessarily also violated. In this case, the consumer's pathological patience is offset by his infinite human wealth, against which he cannot borrow arbitrarily; a non-degenerate solution exists.",
-                    False,
+                    "Because the RIC is violated but the GIC is satisfied, the FHWC is necessarily also violated, and the consumer, who cannot borrow against his infinite human wealth, runs market resources down to the constraint and consumes his permanent income from then on. The consumption function converges, but because the PFFVAC is violated, the value of that path is not finite, so the solution is degenerate.",
+                    True,
                 )
             if GPFacRaw > 1.0:
                 return (
