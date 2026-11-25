@@ -1,11 +1,12 @@
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 from HARK.ConsumptionSaving.ConsIndShockModelFast import PerfForesightConsumerTypeFast
-from tests.ConsumptionSaving.test_PerfForesightConsumerType import (
-    testPerfForesightConsumerType,
-)
+
+# Import the module, not the class: a TestCase bound at module level here is
+# collected again, so its tests would run once in each module.
+import tests.ConsumptionSaving.test_PerfForesightConsumerType as pf_tests
 
 
-class testPerfForesightFastConsumerType(testPerfForesightConsumerType):
+class testPerfForesightFastConsumerType(pf_tests.testPerfForesightConsumerType):
     def setUp(self):
         self.agent = PerfForesightConsumerTypeFast()
         self.agent_slow = PerfForesightConsumerType()

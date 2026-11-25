@@ -26,7 +26,9 @@ class testSmallOpenEconomy(unittest.TestCase):
         )
 
         temp_dict = copy(init_cobb_douglas)
-        other_dict = {"act_T": 400, "max_loops": 3, "verbose": False}
+        # A smoke test with no assertions: one loop exercises every step of
+        # the market solve (agent solve, history, dynamics update).
+        other_dict = {"act_T": 400, "max_loops": 1, "verbose": False}
         temp_dict.update(**other_dict)
 
         # Make an economy with those agents living in it

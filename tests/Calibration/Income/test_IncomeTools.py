@@ -561,7 +561,7 @@ class testBasicIncomeProcesses(unittest.TestCase):
 
 class test_SCF_defaults(unittest.TestCase):
     def test_get_scf(self):
-        output = get_scf_distr_stats()
+        get_scf_distr_stats()
 
     def test_parse_scf(self):
-        output = parse_scf_distr_stats()
+        parse_scf_distr_stats()

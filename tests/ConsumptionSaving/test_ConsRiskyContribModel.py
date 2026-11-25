@@ -21,13 +21,13 @@ from tests import HARK_PRECISION
 
 class testSolutionClasses(unittest.TestCase):
     def test_null_Reb(self):
-        soln = RiskyContribRebSolution()
+        RiskyContribRebSolution()
 
     def test_null_Sha(self):
-        soln = RiskyContribShaSolution()
+        RiskyContribShaSolution()
 
     def test_null_Cns(self):
-        soln = RiskyContribCnsSolution()
+        RiskyContribCnsSolution()
 
 
 class test_(unittest.TestCase):

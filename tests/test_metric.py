@@ -63,7 +63,7 @@ class testsForDescribeDistance(unittest.TestCase):
 
     def test_solution(self):
         self.agent.solution[0].describe_distance()
-        out = self.agent.solution[0].describe_distance(display=False)
+        self.agent.solution[0].describe_distance(display=False)
         self.agent.solution[0].describe_distance(max_depth=0)
         self.agent.solution[0].describe_distance(max_depth=1)
         self.agent.solution[0].describe_distance(max_depth=2)

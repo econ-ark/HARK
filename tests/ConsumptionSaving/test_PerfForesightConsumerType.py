@@ -121,12 +121,6 @@ class testPerfForesightConsumerType(unittest.TestCase):
             + np.mean(self.agent_infinite.history["TranShk"], axis=1)[40],
         )
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(
-        #    np.mean(self.agent_infinite.history["mNrm"], axis=1)[100],
-        #    -27.16461,
-        # )
-
         ## Try now with the manipulation at time step 80
 
         self.agent_infinite.initialize_sim()
@@ -136,18 +130,6 @@ class testPerfForesightConsumerType(unittest.TestCase):
         # epiphenomenal. Probably should change mNrmNow instead
         self.agent_infinite.state_now["aNrm"] += -5.0
         self.agent_infinite.simulate(40)
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(
-        #    np.mean(self.agent_infinite.history["mNrm"], axis=1)[40],
-        #    -23.00806,
-        # )
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(
-        #    np.mean(self.agent_infinite.history["mNrm"], axis=1)[100],
-        #    -29.14026,
-        # )
 
     def test_stable_points(self):
         # Solve the constrained agent. Stable points exists only with a

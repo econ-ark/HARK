@@ -129,10 +129,10 @@ class testEnvironmentStuff(unittest.TestCase):
         self.pf = determine_platform()
 
     def testInPyNB(self):
-        out = in_ipynb()
+        in_ipynb()
 
     def testFindGUI(self):
-        out = find_gui()
+        find_gui()
 
 
 class testEtc(unittest.TestCase):
@@ -161,7 +161,7 @@ class testEtc(unittest.TestCase):
         plt.clf()
 
     def test_files_in_dir(self):
-        some_list = files_in_dir(".")
+        files_in_dir(".")
 
     def test_NullFunc(self):
         f = NullFunc()

@@ -56,9 +56,6 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(self.economy.AFunc.slope, 1.05855, places=HARK_PRECISION)
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.economy.history["MaggNow"][10], 7.45632, place = HARK_PRECISION)
-
 
 class testAggShockMarkovConsumerType(unittest.TestCase):
     def setUp(self):
@@ -160,12 +157,6 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
 
         self.economy.make_Mrkv_history()  # Make a simulated history of aggregate shocks
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(
-        #    np.mean(self.economy.MrkvNow_hist),
-        #    0.48182
-        # )
-
         # object attributes that are conditions
         # for precompute_arrays
         self.assertEqual(self.agent.aGrid.size, 32)
@@ -198,7 +189,7 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
 
         self.economy.make_history()
 
-        emp_totals = np.sum(self.agent.history["EmpNow"], axis=0)
+        np.sum(self.agent.history["EmpNow"], axis=0)
 
         new_dynamics = self.economy.update_dynamics()
 

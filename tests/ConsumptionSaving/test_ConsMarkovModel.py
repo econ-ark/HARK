@@ -18,7 +18,18 @@ from HARK.distributions import (
 
 
 class test_ConsMarkovSolver(unittest.TestCase):
+    # The solve is deterministic and draws no random numbers, so the tests that
+    # simulate start from one solved copy instead of each solving again.
+    @classmethod
+    def setUpClass(cls):
+        cls.solved_model = cls._make_model()
+        cls.solved_model.solve()
+
     def setUp(self):
+        self.model = self._make_model()
+
+    @staticmethod
+    def _make_model():
         # Define the Markov transition matrix for serially correlated unemployment
         unemp_length = 5  # Averange length of unemployment spell
         urate_good = 0.05  # Unemployment rate when economy is in good state
@@ -68,9 +79,9 @@ class test_ConsMarkovSolver(unittest.TestCase):
         init_serial_unemployment["PermGroFac"] = [np.array([1.01, 1.01, 1.01, 1.01])]
         init_serial_unemployment["constructors"]["MrkvArray"] = None
 
-        self.model = MarkovConsumerType(**init_serial_unemployment)
-        self.model.cycles = 0
-        self.model.vFuncBool = False  # for easy toggling here
+        model = MarkovConsumerType(**init_serial_unemployment)
+        model.cycles = 0
+        model.vFuncBool = False  # for easy toggling here
 
         # Replace the default (lognormal) income distribution with a custom one
         employed_income_dist = DiscreteDistributionLabeled(
@@ -83,7 +94,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
             atoms=np.array([[1.0], [0.0]]),
             var_names=["PermShk", "TranShk"],
         )  # Definitely don't
-        self.model.IncShkDstn = [
+        model.IncShkDstn = [
             [
                 employed_income_dist,
                 unemployed_income_dist,
@@ -91,6 +102,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
                 unemployed_income_dist,
             ]
         ]
+        return model
 
     def test_check_markov_inputs(self):
         # check Rfree
@@ -119,7 +131,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.model.solve()
 
     def test_simulation(self):
-        self.model.solve()
+        self.model = deepcopy(self.solved_model)
         self.model.T_sim = 120
         self.model.T_age = 100
         self.model.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
@@ -129,7 +141,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.model.simulate()
 
     def test_global_markov(self):
-        self.model.solve()
+        self.model = deepcopy(self.solved_model)
         self.model.assign_parameters(
             T_sim=120, global_markov=True, MrkvPrbsInit=[0.25, 0.25, 0.25, 0.25]
         )

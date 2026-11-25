@@ -30,37 +30,29 @@ from HARK.rewards import (
 )
 
 
+def _first_diff_approx(func, x, delta, *args):
+    """Centered first-difference approximation to the derivative of func at x."""
+    return (func(x + delta, *args) - func(x - delta, *args)) / (2.0 * delta)
+
+
+def _assert_derivative_matches(test, deriv, func, c_vals, param_vals):
+    """
+    Check the closed-form derivative "deriv" of "func" against a first-difference
+    approximation at every (consumption, parameter) pair on the grid.
+    """
+    for c in c_vals:
+        for param in param_vals:
+            diff = abs(deriv(c, param) - _first_diff_approx(func, c, 0.000001, param))
+            test.assertLess(diff, 0.01)
+
+
 class testsForCRRA(unittest.TestCase):
     def setUp(self):
         self.c_vals = np.linspace(0.5, 10.0, 20)
         self.CRRA_vals = np.linspace(1.0, 10.0, 10)
 
-    def first_diff_approx(self, func, x, delta, *args):
-        """
-        Take the first (centered) difference approximation to the derivative of a function.
-
-        """
-        return (func(x + delta, *args) - func(x - delta, *args)) / (2.0 * delta)
-
     def derivative_func_comparison(self, deriv, func):
-        """
-        This method computes the first difference approximation to the derivative of a function
-        "func" and the (supposedly) closed-form derivative of that function ("deriv") over a
-        grid.  It then checks that these two things are "close enough."
-        """
-
-        # Loop through different values of consumption
-        for c in self.c_vals:
-            # Loop through different values of risk aversion
-            for CRRA in self.CRRA_vals:
-                # Calculate the difference between the derivative of the function and the
-                # first difference approximation to that derivative.
-                diff = abs(
-                    deriv(c, CRRA) - self.first_diff_approx(func, c, 0.000001, CRRA)
-                )
-
-                # Make sure the derivative and its approximation are close
-                self.assertLess(diff, 0.01)
+        _assert_derivative_matches(self, deriv, func, self.c_vals, self.CRRA_vals)
 
     def test_CRRAutilityP(self):
         # Test the first derivative of the utility function
@@ -84,10 +76,10 @@ class testsForCRRA(unittest.TestCase):
         a = U(x)
         b = U(x, order=0)
         self.assertAlmostEqual(a, b)
-        c = U(x, order=1)
-        d = U(x, order=2)
-        e = U(x, order=3)
-        f = U(x, order=4)
+        U(x, order=1)
+        U(x, order=2)
+        U(x, order=3)
+        U(x, order=4)
         self.assertRaises(ValueError, U, x, 5)
         self.assertRaises(ValueError, U.inverse, x, (2, 1))
 
@@ -97,32 +89,8 @@ class testsForCARA(unittest.TestCase):
         self.c_vals = np.linspace(0.5, 10.0, 20)
         self.CARA_vals = np.linspace(0.005, 0.5, 21)
 
-    def first_diff_approx(self, func, x, delta, *args):
-        """
-        Take the first (centered) difference approximation to the derivative of a function.
-
-        """
-        return (func(x + delta, *args) - func(x - delta, *args)) / (2.0 * delta)
-
     def derivative_func_comparison(self, deriv, func):
-        """
-        This method computes the first difference approximation to the derivative of a function
-        "func" and the (supposedly) closed-form derivative of that function ("deriv") over a
-        grid.  It then checks that these two things are "close enough."
-        """
-
-        # Loop through different values of consumption
-        for c in self.c_vals:
-            # Loop through different values of risk aversion
-            for CARA in self.CARA_vals:
-                # Calculate the difference between the derivative of the function and the
-                # first difference approximation to that derivative.
-                diff = abs(
-                    deriv(c, CARA) - self.first_diff_approx(func, c, 0.000001, CARA)
-                )
-
-                # Make sure the derivative and its approximation are close
-                self.assertLess(diff, 0.01)
+        _assert_derivative_matches(self, deriv, func, self.c_vals, self.CARA_vals)
 
     def test_CARAutilityP(self):
         # Test the first derivative of the utility function
@@ -159,15 +127,15 @@ class testsForCARA(unittest.TestCase):
         a = U(x)
         b = U(x, order=0)
         self.assertAlmostEqual(a, b)
-        c = U(x, order=1)
-        d = U(x, order=2)
-        e = U(x, order=3)
+        U(x, order=1)
+        U(x, order=2)
+        U(x, order=3)
         self.assertRaises(ValueError, U, x, 4)
-        f = U.inverse(y, order=(0, 0))
-        g = U.inverse(y, order=(1, 0))
-        h = U.inverse(y, order=(0, 1))
-        i = U.inverse(y, order=(1, 1))
-        j = U.derinv(y)
+        U.inverse(y, order=(0, 0))
+        U.inverse(y, order=(1, 0))
+        U.inverse(y, order=(0, 1))
+        U.inverse(y, order=(1, 1))
+        U.derinv(y)
         self.assertRaises(ValueError, U.inverse, y, (2, 1))
 
 
@@ -182,8 +150,8 @@ class testsForStoneGeary(unittest.TestCase):
         a = U(x)
         b = U(x, order=0)
         self.assertAlmostEqual(a, b)
-        c = U(x, order=1)
-        d = U(x, order=2)
+        U(x, order=1)
+        U(x, order=2)
         self.assertRaises(ValueError, U, x, 3)
 
     def test_inverse(self):
@@ -193,9 +161,9 @@ class testsForStoneGeary(unittest.TestCase):
         a = Uinv(x)
         b = Uinv(x, order=(0, 0))
         self.assertAlmostEqual(a, b)
-        c = Uinv(x, order=(0, 1))
-        d = Uinv(x, order=(1, 0))
-        e = Uinv(x, order=(1, 1))
+        Uinv(x, order=(0, 1))
+        Uinv(x, order=(1, 0))
+        Uinv(x, order=(1, 1))
         self.assertRaises(ValueError, Uinv, x, (2, 1))
 
 
@@ -209,10 +177,10 @@ class testsForCobbDouglas(unittest.TestCase):
         x = self.x
         y = self.y
         U = self.U
-        a = U(x, y)
-        b = U.derivative(x, y, axis=0)
-        c = U.derivative(x, y, axis=1)
-        d = U.inverse(x, y)
+        U(x, y)
+        U.derivative(x, y, axis=0)
+        U.derivative(x, y, axis=1)
+        U.inverse(x, y)
         self.assertRaises(ValueError, U.derivative, x, y, 2)
 
 
@@ -226,10 +194,10 @@ class testsForCobbDouglasCRRA(unittest.TestCase):
         x = self.x
         y = self.y
         U = self.U
-        a = U(x, y)
-        b = U.derivative(x, y, axis=0)
-        c = U.derivative(x, y, axis=1)
-        d = U.inverse(x, y)
+        U(x, y)
+        U.derivative(x, y, axis=0)
+        U.derivative(x, y, axis=1)
+        U.inverse(x, y)
         self.assertRaises(ValueError, U.derivative, x, y, 2)
 
 
@@ -241,10 +209,10 @@ class testsForCES(unittest.TestCase):
     def test_funcs(self):
         U = self.U
         x = self.x
-        a = U(x)
-        b = U.derivative(x, 0)
-        c = U.derivative(x, 1)
-        d = U.derivative(x, 2)
+        U(x)
+        U.derivative(x, 0)
+        U.derivative(x, 1)
+        U.derivative(x, 2)
 
 
 class testsForUtilityFunction(unittest.TestCase):
@@ -255,15 +223,15 @@ class testsForUtilityFunction(unittest.TestCase):
         U = UtilityFunction(u, uP, uinv)
 
         x = 5.0
-        a = U(x)
-        b = U.der(x)
-        c = U.inv(-x)
+        U(x)
+        U.der(x)
+        U.inv(-x)
 
     def test_invalid(self):
         u = lambda c: CRRAutility(c, 3.0)
         U = UtilityFunction(u)
 
         x = 5.0
-        a = U(x)
+        U(x)
         self.assertRaises(NotImplementedError, U.der, x)
         self.assertRaises(NotImplementedError, U.inv, -x)
