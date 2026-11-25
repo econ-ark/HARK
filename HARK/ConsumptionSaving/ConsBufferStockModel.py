@@ -773,6 +773,16 @@ _MEANINGS_ARTIFICIAL_PERFECT_FORESIGHT["GICRaw"] = (
         "(eq:LiqConstrBinds)."
     ),
 )
+_MEANINGS_ARTIFICIAL_PERFECT_FORESIGHT["PFFVAC"] = (
+    (
+        "The value of autarky without risk is finite: where the RIC fails, the "
+        "limiting solution is then non-degenerate."
+    ),
+    (
+        "The value of autarky without risk is not finite: where the RIC fails, the "
+        "limiting solution is then degenerate."
+    ),
+)
 
 
 class _Model(NamedTuple):
@@ -1027,8 +1037,15 @@ def _verdict_artificial(factors, holds, model):
     beyond it. Its results are for the constraint that assets not be negative.
 
     Under perfect foresight: a non-degenerate limiting solution exists if the
-    RIC holds, and, if it fails, if and only if the GICRaw holds
-    (prop:PFCExist).
+    RIC holds (prop:PFCExist), and, if it fails, if and only if the PFFVAC
+    holds, which then implies the GICRaw. Under the GICRaw the consumer runs
+    market resources down to the constraint and consumes permanent income from
+    then on, and the value of that path is finite only if the value of autarky
+    is; so with the RIC and the PFFVAC failing the limiting solution is
+    degenerate even where the GICRaw holds and the consumption function
+    converges, as
+    :func:`HARK.ConsumptionSaving.ConsIndShockModel.calc_perf_foresight_conditions`
+    reports for PerfForesightConsumerType.
 
     Under uncertainty, its appendix on a positive minimum of income treats two
     such problems: the restrained consumer with no zero-income event, which
@@ -1058,11 +1075,24 @@ def _verdict_artificial(factors, holds, model):
                 f"Because the RIC holds, a non-degenerate limiting solution of {problem} "
                 "exists (prop:PFCExist)."
             )
-        elif holds["GICRaw"]:
+        elif holds["PFFVAC"] and holds["GICRaw"]:
+            # With the RIC failing and CRRA above one, as the model requires, the
+            # PFFVAC implies the GICRaw; both are tested, as
+            # calc_perf_foresight_conditions tests them
             existence = "established"
             basis = (
-                f"Because the GICRaw holds, a non-degenerate limiting solution of {problem} "
-                "exists, though the RIC fails (prop:PFCExist)."
+                f"Because the PFFVAC holds, a non-degenerate limiting solution of {problem} "
+                "exists, though the RIC fails: the GICRaw then holds, the consumer runs "
+                "market resources down to the constraint and consumes permanent income from "
+                "then on, and the value of that path is finite."
+            )
+        elif holds["GICRaw"]:
+            existence = "fails"
+            basis = (
+                f"Because the RIC and the PFFVAC both fail, the limiting solution of {problem} "
+                "is degenerate, though the GICRaw holds: the consumer runs market resources "
+                "down to the constraint and consumes permanent income from then on, so the "
+                "consumption function converges, but the value of that path is not finite."
             )
         else:
             existence = "fails"

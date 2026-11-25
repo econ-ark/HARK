@@ -11,7 +11,10 @@ from HARK.ConsumptionSaving.ConsBufferStockModel import (
     paper_url,
 )
 from HARK import _log
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    calc_perf_foresight_conditions,
+)
 from HARK.distributions import (
     DiscreteDistribution,
     LogNormal,
@@ -977,21 +980,62 @@ class testBufferStockArtificialConstraint(unittest.TestCase):
         )
         self.assertEqual(agent.bilt["mNrmTrg_roots"], [])
 
-        # The RIC fails and the GICRaw holds, the paper's example
-        agent = make_agent(Rfree=[0.98], DiscFac=1.0, PermGroFac=[0.99], **pf)
+        # The RIC fails and the PFFVAC holds, which implies the GICRaw: the
+        # consumer runs market resources down to the constraint and consumes
+        # permanent income from then on, and the value of that path is finite
+        agent = make_agent(Rfree=[0.90], DiscFac=0.92, PermGroFac=[0.95], **pf)
         agent.check_conditions()
         results = agent.bilt["BufferStockConditions"]
         self.assertFalse(results.conditions["RIC"].holds)
+        self.assertTrue(results.conditions["PFFVAC"].holds)
+        self.assertTrue(results.conditions["GICRaw"].holds)
         self.assertEqual(results.existence, "established")
         self.assertIn("though the RIC fails", results.existence_basis)
+        self.assertIn("non-degenerate", results.conditions["PFFVAC"].meaning)
 
-        # Both fail: the limiting solution is degenerate
-        params = dict(Rfree=[0.98], DiscFac=1.0, PermGroFac=[0.97], **pf)
-        agent = make_agent(**params)
-        agent.check_conditions()
-        self.assertEqual(agent.bilt["BufferStockConditions"].existence, "fails")
-        self.assertTrue(agent.degenerate)
-        with self.assertWarns(UserWarning):
-            agent._respond_to_conditions()
-        with self.assertRaises(ValueError):
-            make_agent(on_no_solution="raise", **params).solve()
+        # The RIC and the PFFVAC fail while the GICRaw holds: the consumption
+        # function converges, but the value of that path is not finite, so the
+        # limiting solution is degenerate. Both fail with the GICRaw: degenerate
+        for PermGroFac, fragment in (
+            (0.99, "though the GICRaw holds"),
+            (0.97, "both fail"),
+        ):
+            params = dict(Rfree=[0.98], DiscFac=1.0, PermGroFac=[PermGroFac], **pf)
+            agent = make_agent(**params)
+            agent.check_conditions()
+            results = agent.bilt["BufferStockConditions"]
+            self.assertFalse(results.conditions["RIC"].holds)
+            self.assertFalse(results.conditions["PFFVAC"].holds)
+            self.assertEqual(results.conditions["GICRaw"].holds, PermGroFac == 0.99)
+            self.assertEqual(results.existence, "fails")
+            self.assertIn(fragment, results.existence_basis)
+            self.assertTrue(agent.degenerate)
+            with self.assertWarns(UserWarning):
+                agent._respond_to_conditions()
+            with self.assertRaises(ValueError):
+                make_agent(on_no_solution="raise", **params).solve()
+
+        # In each case the verdict is that of HARK's report for the perfect
+        # foresight problem with the same constraint
+        for Rfree, DiscFac, PermGroFac in (
+            (1.04, 0.96, 1.03),
+            (1.04, 0.98, 0.99),
+            (0.90, 0.92, 0.95),
+            (0.98, 1.0, 0.99),
+            (0.98, 1.0, 0.97),
+        ):
+            agent = make_agent(
+                Rfree=[Rfree], DiscFac=DiscFac, PermGroFac=[PermGroFac], **pf
+            )
+            report = calc_perf_foresight_conditions(
+                Rfree=Rfree,
+                DiscFac=DiscFac,
+                CRRA=agent.CRRA,
+                PermGroFac=PermGroFac,
+                LivPrb=1.0,
+                BoroCnstArt=0.0,
+            )
+            self.assertEqual(
+                agent.get_buffer_stock_conditions().existence == "established",
+                report.solution_exists,
+            )
