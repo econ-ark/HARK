@@ -85,3 +85,22 @@ class testMarkovStationary(unittest.TestCase):
         info = anderson.stationary_info
         self.assertGreater(info["warm_start_sweeps"], 0)
         self.assertTrue(info["value"]["converged"])
+
+
+class testMarkovStationaryBelowZero(unittest.TestCase):
+    """The limit of minimum market resources below zero in every state: the
+    natural constraint, and an artificial constraint below zero."""
+
+    def test_reaches_the_fixed_point_in_every_state(self):
+        for overrides in ({"BoroCnstArt": None}, {"BoroCnstArt": -0.5}):
+            with self.subTest(**overrides):
+                stock = solve_stock(**overrides)
+                anderson = solve_anderson(**overrides)
+                self.assertTrue(np.all(stock.solution[0].mNrmMin < 0.0))
+                np.testing.assert_allclose(
+                    anderson.solution[0].mNrmMin,
+                    stock.solution[0].mNrmMin,
+                    rtol=0,
+                    atol=1e-12,
+                )
+                self.assertLess(gap_c(anderson, stock), 1e-8)
