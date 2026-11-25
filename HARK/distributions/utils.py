@@ -787,8 +787,10 @@ def _split_gauss_legendre(edges, n):
     Gauss-Legendre nodes and weights, n a piece, on the pieces between sorted
     edges, with rows in the leading axes and the edges in the last. Pieces of
     zero length are dropped: each row keeps its pieces in order, padded with
-    empty ones to the number the row with the most has. Returns the nodes and
-    the weights, each of shape rows + (m,).
+    empty ones to the number the row with the most has. A padding piece's nodes
+    have no weight, and lie inside the row's first piece, not on an edge, where
+    an integrand may be infinite or undefined, as at an end of the support.
+    Returns the nodes and the weights, each of shape rows + (m,).
     """
     edges = np.asarray(edges, dtype=float)
     empty = np.diff(edges, axis=-1) <= 0.0
@@ -796,11 +798,13 @@ def _split_gauss_legendre(edges, n):
     count = max(int(np.max(np.sum(~empty, axis=-1), initial=0)), 1)
     a = np.take_along_axis(edges[..., :-1], order[..., :count], axis=-1)
     b = np.take_along_axis(edges[..., 1:], order[..., :count], axis=-1)
+    pad = b <= a
+    at_a, at_b = np.where(pad, a[..., :1], a), np.where(pad, b[..., :1], b)
     x, w = _gauss_legendre(n)
-    half = 0.5 * (b - a)[..., None]
-    nodes = half * x + 0.5 * (b + a)[..., None]
+    nodes = 0.5 * (at_b - at_a)[..., None] * x + 0.5 * (at_b + at_a)[..., None]
+    weights = np.where(pad, 0.0, 0.5 * (b - a))[..., None] * w
     shape = nodes.shape[:-2] + (-1,)
-    return nodes.reshape(shape), (half * w).reshape(shape)
+    return nodes.reshape(shape), weights.reshape(shape)
 
 
 def _quadrature(dstn, cuts, n):

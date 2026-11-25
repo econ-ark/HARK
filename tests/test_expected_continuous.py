@@ -221,6 +221,37 @@ class testExpectedContinuous(unittest.TestCase):
                 cut = expected_continuous(f, law, splits=[lambda: np.array(cuts)])
                 self.assertAlmostEqual(float(cut), float(plain), places=14)
 
+    def test_cuts_outside_the_support_in_some_rows(self):
+        # Rows whose cut points fall outside the support, or are NaN, beside a
+        # row cut inside it: each row's expectation is the one it has alone,
+        # also where the integrand is infinite at an end of the support, since
+        # no node lies on an end
+        law = LogNormalTruncatedMeanOne.from_sd_log(0.2, -3.0, 3.0)
+        lo, hi = law.infimum[0], law.supremum[0]
+        k = np.array([0.9, 0.1, 5.0, np.nan])
+
+        def cuts(k):
+            return k[..., None]
+
+        for name, f in (
+            ("infinite at the infimum", lambda x, k: (x[0] - lo) ** -0.5),
+            ("infinite at the supremum", lambda x, k: (hi - x[0]) ** -0.5),
+        ):
+            with self.subTest(integrand=name):
+                together = expected_continuous(
+                    f, law, args=(k,), splits=[cuts], nodes=8
+                )
+                self.assertTrue(np.all(np.isfinite(together)))
+                alone = [
+                    expected_continuous(
+                        f, law, args=(k[i : i + 1],), splits=[cuts], nodes=8
+                    )[0]
+                    for i in range(k.size)
+                ]
+                np.testing.assert_allclose(together, alone, rtol=1e-14)
+                uncut = float(expected_continuous(f, law, args=(0.0,), nodes=8))
+                np.testing.assert_allclose(together[1:], uncut, rtol=1e-14)
+
     def test_coordinate_and_its_steps(self):
         # A law's integral is cut at each unit step of its standard-normal
         # coordinate: the one it supplies through normal_coordinate(), as normal
