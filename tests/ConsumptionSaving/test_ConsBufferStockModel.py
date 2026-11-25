@@ -59,6 +59,16 @@ class testBufferStockConditions(unittest.TestCase):
             "https://llorracc.github.io/BufferStockTheory/#thm-existencepositiveminimum",
         )
         self.assertIn("paper_url", self.agent.bilt["conditions_report"])
+        # but for the two statements the web edition anchors otherwise
+        self.assertEqual(
+            paper_url("thm:convgtobellman"),
+            "https://llorracc.github.io/BufferStockTheory/"
+            "#sufficient-conditions-for-non-degenerate-solution",
+        )
+        self.assertEqual(
+            paper_url("ass:shocksPositiveMinimum"),
+            "https://llorracc.github.io/BufferStockTheory/#subsec-positiveminimumsetup",
+        )
 
     def test_verdicts_at_the_calibration(self):
         results = self.agent.bilt["BufferStockConditions"]

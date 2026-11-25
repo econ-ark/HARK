@@ -117,6 +117,12 @@ __all__ = [
 
 PAPER_URL = "https://llorracc.github.io/BufferStockTheory/"
 
+# The two statements the web edition anchors otherwise than by their labels
+_PAPER_ANCHORS = {
+    "thm:convgtobellman": "sufficient-conditions-for-non-degenerate-solution",
+    "ass:shocksPositiveMinimum": "subsec-positiveminimumsetup",
+}
+
 
 def paper_url(label):
     """
@@ -124,8 +130,11 @@ def paper_url(label):
     paper_url("thm:existencePositiveMinimum") is
     https://llorracc.github.io/BufferStockTheory/#thm-existencepositiveminimum.
     The web edition makes each label an anchor, in lower case with a hyphen for
-    the colon; a label it does not show as an anchor leads to the top of the
-    page.
+    the colon, but for two statements: the existence theorem
+    (thm:convgtobellman) is at the anchor of its heading, and the appendix's
+    assumption on the shocks (ass:shocksPositiveMinimum) at the start of the
+    subsection it opens (subsec:PositiveMinimumSetup). A label it does not show
+    as an anchor leads to the top of the page.
 
     Parameters
     ----------
@@ -136,7 +145,8 @@ def paper_url(label):
     -------
     url : str
     """
-    return PAPER_URL + "#" + label.lower().replace(":", "-")
+    anchor = _PAPER_ANCHORS.get(label, label.lower().replace(":", "-"))
+    return PAPER_URL + "#" + anchor
 
 
 ###############################################################################
