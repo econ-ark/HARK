@@ -17,6 +17,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install the build tools
-        run: python -m pip install build setuptools "setuptools_scm>=8" packaging
+        run: python -m pip install build "setuptools>=77" "setuptools_scm>=9.2" packaging
       - name: The wheels' versions at tags and after them
         run: python tools/check_wheel_versions.py

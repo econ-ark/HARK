@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8"]
+requires = ["setuptools>=77", "setuptools_scm>=9.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -47,9 +47,11 @@ version_scheme = "guess-next-dev"
 tag_regex = '^(?P<version>\d+\.\d+(?:\.\d+)?(?:(?:a|b|rc)\d+)?(?:\.dev0)?)$'
 
 [tool.setuptools_scm.scm.git]
-# git describe takes the nearest tag these patterns admit. They admit the tags
-# tag_regex accepts and no others, so the tag found is never one it rejects
-# (tests/test_version.py checks that the two agree).
+# git describe takes the nearest tag these patterns admit. They admit every tag
+# tag_regex accepts and none of the repository's other tags
+# (tests/test_version.py checks samples of both). Globs cannot say all that the
+# regular expression says: a mis-spelled release tag that they admit and it
+# rejects, such as 0.18.0.rc1, stops the build with an error that names the tag.
 describe_command = [
     "git", "describe", "--dirty", "--tags", "--long",
     "--match", "[0-9]*.[0-9]*",
