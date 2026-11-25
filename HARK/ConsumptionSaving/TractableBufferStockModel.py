@@ -22,9 +22,9 @@ in the HARK framework, as shown below.
 """
 
 from copy import copy
+from warnings import warn
 
 import numpy as np
-from scipy.optimize import newton
 
 from HARK import AgentType, NullFunc
 from HARK.distributions import Bernoulli, LogNormal
@@ -425,81 +425,76 @@ class TractableConsumerType(AgentType):
         else:
             MPCtarg = (quadRootDisc - quadLinear) / (2.0 * naturalEmp)
 
-        def mmpcTargFixedPointFunc(kk):
-            return (
-                kk * uPP(cTarg)
-                + MPCtarg**2.0 * uPPP(cTarg)
-                - Beth
-                * (
-                    -(1.0 - UnempPrb) * MPCtarg * kk * Rnrm * uPP(cTarg)
-                    + (1.0 - UnempPrb)
-                    * (1.0 - MPCtarg) ** 2.0
-                    * kk
-                    * Rnrm**2.0
-                    * uPP(cTarg)
-                    - PFMPC * UnempPrb * kk * Rnrm * uPP(cTargU)
-                    + (1.0 - UnempPrb)
-                    * (1.0 - MPCtarg) ** 2.0
-                    * MPCtarg**2.0
-                    * Rnrm**2.0
-                    * uPPP(cTarg)
-                    + PFMPC**2.0
-                    * UnempPrb
-                    * (1.0 - MPCtarg) ** 2.0
-                    * Rnrm**2.0
-                    * uPPP(cTargU)
-                )
+        # The MMPC and MMMPC at the target, the slope and curvature of the MPC there,
+        # solve the equations from differentiating the Euler equation at the target
+        # once and twice more. Each equation is linear in its unknown, a + b * x = 0,
+        # so each is solved exactly, x = -a / b. Below, a collects the terms without
+        # the unknown and b its coefficient.
+        mmpc_a = MPCtarg**2.0 * uPPP(cTarg) - Beth * (
+            (1.0 - UnempPrb)
+            * (1.0 - MPCtarg) ** 2.0
+            * MPCtarg**2.0
+            * Rnrm**2.0
+            * uPPP(cTarg)
+            + PFMPC**2.0 * UnempPrb * (1.0 - MPCtarg) ** 2.0 * Rnrm**2.0 * uPPP(cTargU)
+        )
+        mmpc_b = uPP(cTarg) - Beth * (
+            -(1.0 - UnempPrb) * MPCtarg * Rnrm * uPP(cTarg)
+            + (1.0 - UnempPrb) * (1.0 - MPCtarg) ** 2.0 * Rnrm**2.0 * uPP(cTarg)
+            - PFMPC * UnempPrb * Rnrm * uPP(cTargU)
+        )
+        MMPCtarg = -mmpc_a / mmpc_b
+
+        mmmpc_a = (
+            3.0 * MPCtarg * MMPCtarg * uPPP(cTarg)
+            + MPCtarg**3.0 * uPPPP(cTarg)
+            - Beth
+            * (
+                -3.0
+                * (1.0 - UnempPrb)
+                * (1.0 - MPCtarg)
+                * MMPCtarg**2.0
+                * Rnrm**2.0
+                * uPP(cTarg)
+                - 3.0
+                * (1.0 - UnempPrb)
+                * (1.0 - MPCtarg)
+                * MPCtarg**2.0
+                * MMPCtarg
+                * Rnrm**2.0
+                * uPPP(cTarg)
+                + 3.0
+                * (1.0 - UnempPrb)
+                * (1.0 - MPCtarg) ** 3.0
+                * MPCtarg
+                * MMPCtarg
+                * Rnrm**3.0
+                * uPPP(cTarg)
+                - 3.0
+                * PFMPC**2.0
+                * UnempPrb
+                * (1.0 - MPCtarg)
+                * MMPCtarg
+                * Rnrm**2.0
+                * uPPP(cTargU)
+                + (1.0 - UnempPrb)
+                * (1.0 - MPCtarg) ** 3.0
+                * MPCtarg**3.0
+                * Rnrm**3.0
+                * uPPPP(cTarg)
+                + PFMPC**3.0
+                * UnempPrb
+                * (1.0 - MPCtarg) ** 3.0
+                * Rnrm**3.0
+                * uPPPP(cTargU)
             )
-
-        MMPCtarg = newton(mmpcTargFixedPointFunc, 0)
-
-        def mmmpcTargFixedPointFunc(kkk):
-            return (
-                kkk * uPP(cTarg)
-                + 3 * MPCtarg * MMPCtarg * uPPP(cTarg)
-                + MPCtarg**3 * uPPPP(cTarg)
-                - Beth
-                * (
-                    -(1 - UnempPrb) * MPCtarg * kkk * Rnrm * uPP(cTarg)
-                    - 3
-                    * (1 - UnempPrb)
-                    * (1 - MPCtarg)
-                    * MMPCtarg**2
-                    * Rnrm**2
-                    * uPP(cTarg)
-                    + (1 - UnempPrb) * (1 - MPCtarg) ** 3 * kkk * Rnrm**3 * uPP(cTarg)
-                    - PFMPC * UnempPrb * kkk * Rnrm * uPP(cTargU)
-                    - 3
-                    * (1 - UnempPrb)
-                    * (1 - MPCtarg)
-                    * MPCtarg**2
-                    * MMPCtarg
-                    * Rnrm**2
-                    * uPPP(cTarg)
-                    + 3
-                    * (1 - UnempPrb)
-                    * (1 - MPCtarg) ** 3
-                    * MPCtarg
-                    * MMPCtarg
-                    * Rnrm**3
-                    * uPPP(cTarg)
-                    - 3
-                    * PFMPC**2
-                    * UnempPrb
-                    * (1 - MPCtarg)
-                    * MMPCtarg
-                    * Rnrm**2
-                    * uPPP(cTargU)
-                    + (1 - UnempPrb)
-                    * (1 - MPCtarg) ** 3
-                    * MPCtarg**3
-                    * Rnrm**3
-                    * uPPPP(cTarg)
-                    + PFMPC**3 * UnempPrb * (1 - MPCtarg) ** 3 * Rnrm**3 * uPPPP(cTargU)
-                )
-            )
-
-        MMMPCtarg = newton(mmmpcTargFixedPointFunc, 0)
+        )
+        mmmpc_b = uPP(cTarg) - Beth * (
+            -(1.0 - UnempPrb) * MPCtarg * Rnrm * uPP(cTarg)
+            + (1.0 - UnempPrb) * (1.0 - MPCtarg) ** 3.0 * Rnrm**3.0 * uPP(cTarg)
+            - PFMPC * UnempPrb * Rnrm * uPP(cTargU)
+        )
+        MMMPCtarg = -mmmpc_a / mmmpc_b
 
         # Find the MPC at m=0, the limit of the MPC as market resources go to zero. It
         # solves k = natural / (1 + natural), where
@@ -589,6 +584,23 @@ class TractableConsumerType(AgentType):
         -------
         none
         """
+        # The stable arm grows until it passes mLowerBnd below the target and mUpperBnd
+        # above it, by at most one point at each end per cycle. solve_agent stops after
+        # a fixed number of cycles, so where the growth patience factor is close to one
+        # the arm can stop short of a bound, and the consumption function between its
+        # last point and that bound is interpolated or extrapolated, not solved.
+        mNrm_arm = self.solution[0].mNrm_list
+        if mNrm_arm[0] > self.mLowerBnd or mNrm_arm[-1] < self.mUpperBnd:
+            warn(
+                "TractableConsumerType's stable arm stopped short of its bounds after "
+                f"{self.completed_cycles} cycles: its points "
+                f"run from m = {mNrm_arm[0]:.6g} to {mNrm_arm[-1]:.6g}, where they should "
+                f"pass {self.mLowerBnd:.6g} below the target and {self.mUpperBnd:.6g} "
+                "above it. Between its last points and those bounds the consumption "
+                "function is interpolated or extrapolated, not solved. This happens when "
+                f"the growth patience factor, here {self.PatFacGrowth:.6g}, is close to one."
+            )
+
         # Add bottom point to the stable arm points
         self.solution[0].mNrm_list.insert(0, 0.0)
         self.solution[0].cNrm_list.insert(0, 0.0)
