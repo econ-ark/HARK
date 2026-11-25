@@ -105,6 +105,10 @@ class PortfolioSolution(MetricObject):
     AdjustPrb: float
         Probability that the agent will be able to adjust his portfolio
         next period.
+    mNrmKink, cNrmKink, MPCaboveKink: float
+        The kink of the consumption function where an artificial borrowing
+        constraint binds, as ConsumerSolution records it; NaN, since this
+        solver does not record it, so that np.isnan() answers here too.
     """
 
     distance_criteria = ["vPfuncAdj"]
@@ -127,6 +131,9 @@ class PortfolioSolution(MetricObject):
         EndOfPrddvda_fxd=None,
         EndOfPrddvds_fxd=None,
         AdjPrb=None,
+        mNrmKink=np.nan,
+        cNrmKink=np.nan,
+        MPCaboveKink=np.nan,
     ):
         # Change any missing function inputs to NullFunc
         if cFuncAdj is None:
@@ -165,6 +172,9 @@ class PortfolioSolution(MetricObject):
         self.EndOfPrddvda_fxd = EndOfPrddvda_fxd
         self.EndOfPrddvds_fxd = EndOfPrddvds_fxd
         self.AdjPrb = AdjPrb
+        self.mNrmKink = mNrmKink
+        self.cNrmKink = cNrmKink
+        self.MPCaboveKink = MPCaboveKink
 
 
 ###############################################################################

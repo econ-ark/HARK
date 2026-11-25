@@ -44,28 +44,28 @@ class testIndShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[9].cFunc(1), 0.79430, places=HARK_PRECISION
+            LifecycleExample.solution[9].cFunc(1), 0.79459, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[8].cFunc(1), 0.79392, places=HARK_PRECISION
+            LifecycleExample.solution[8].cFunc(1), 0.79418, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[7].cFunc(1), 0.79253, places=HARK_PRECISION
+            LifecycleExample.solution[7].cFunc(1), 0.79277, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
             LifecycleExample.solution[0].cFunc(1).tolist(),
-            0.75062,
+            0.75090,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[1].cFunc(1).tolist(),
-            0.75863,
+            0.75893,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[2].cFunc(1).tolist(),
-            0.76812,
+            0.76848,
             places=HARK_PRECISION,
         )
 
@@ -296,7 +296,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.solve()
 
         self.assertAlmostEqual(
-            IndShockExample.solution[0].mNrmStE, 1.54882, places=HARK_PRECISION
+            IndShockExample.solution[0].mNrmStE, 1.54702, places=HARK_PRECISION
         )
         # self.assertAlmostEqual(
         #    IndShockExample.solution[0].cFunc.functions[0].x_list[0],
@@ -389,7 +389,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(),
-            2.12998,
+            2.13005,
             places=HARK_PRECISION,
         )
 
@@ -463,7 +463,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(),
-            1.59584,
+            1.59609,
             places=HARK_PRECISION,
         )
 
@@ -471,7 +471,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 0.55127, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 0.54995, places=HARK_PRECISION
         )
 
         self.assertRaises(ValueError, CyclicalExample.calc_stable_points)
@@ -1728,3 +1728,164 @@ class testMarkovShuffleEndToEnd(unittest.TestCase):
             f"the plain shuffle.",
         )
         self.assertLess(gaps["balanced"], 0.5 * gaps["shuffle_only"])
+
+
+class testAssetGridAtTheArtificialConstraint(unittest.TestCase):
+    """Where the artificial borrowing constraint binds, the end-of-period asset
+    grid starts at it, with the constraint itself as a gridpoint (#1871)."""
+
+    @staticmethod
+    def unconstrained_nodes(agent):
+        cFuncUnc = agent.solution[0].cFunc.functions[0]
+        return np.asarray(cFuncUnc.x_list), np.asarray(cFuncUnc.y_list)
+
+    def test_grid_starts_at_the_artificial_constraint(self):
+        agent = IndShockConsumerType(cycles=0)
+        agent.solve()
+        mNrm, cNrm = self.unconstrained_nodes(agent)
+        # The first node is the natural limit; the next is the endogenous
+        # gridpoint of end-of-period assets at the constraint.
+        self.assertAlmostEqual(mNrm[1] - cNrm[1], agent.BoroCnstArt, places=12)
+
+    def test_grid_unchanged_where_the_natural_limit_binds(self):
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        agent.solve()
+        mNrm, cNrm = self.unconstrained_nodes(agent)
+        self.assertAlmostEqual(
+            mNrm[1] - cNrm[1], mNrm[0] + agent.aXtraGrid[0], places=12
+        )
+
+    def test_consumption_is_the_constraint_line_below_the_kink(self):
+        for CubicBool in (False, True):
+            for BoroCnstArt in (0.0, 0.5):
+                with self.subTest(CubicBool=CubicBool, BoroCnstArt=BoroCnstArt):
+                    agent = IndShockConsumerType(
+                        cycles=0, CubicBool=CubicBool, BoroCnstArt=BoroCnstArt
+                    )
+                    agent.solve()
+                    solution = agent.solution[0]
+                    mNrm, cNrm = self.unconstrained_nodes(agent)
+                    mNrmGrid = np.linspace(solution.mNrmMin, mNrm[1], 201)
+                    np.testing.assert_allclose(
+                        solution.cFunc(mNrmGrid),
+                        mNrmGrid - solution.mNrmMin,
+                        rtol=0.0,
+                        atol=1e-12,
+                    )
+
+
+class testKinkAttributes(unittest.TestCase):
+    """Where the artificial borrowing constraint binds, the solution records
+    the kink, consumption there and the MPC just above it."""
+
+    def test_kink_where_the_artificial_constraint_binds(self):
+        for CubicBool in (False, True):
+            with self.subTest(CubicBool=CubicBool):
+                agent = IndShockConsumerType(cycles=0, CubicBool=CubicBool)
+                agent.solve()
+                solution = agent.solution[0]
+                mNrmKink, cNrmKink = solution.mNrmKink, solution.cNrmKink
+                # The consumer ends the period at the constraint there
+                self.assertAlmostEqual(cNrmKink, mNrmKink - solution.mNrmMin, places=12)
+                self.assertAlmostEqual(
+                    float(solution.cFunc(mNrmKink)), cNrmKink, places=12
+                )
+                # Slope one below, on the constraint; MPCaboveKink above
+                h = 1e-7
+                self.assertAlmostEqual(
+                    float(solution.cFunc.derivative(mNrmKink - h)), 1.0, places=12
+                )
+                self.assertAlmostEqual(
+                    float(solution.cFunc.derivative(mNrmKink + h)),
+                    solution.MPCaboveKink,
+                    places=5,
+                )
+                self.assertLess(solution.MPCaboveKink, 1.0)
+
+    def test_default_values(self):
+        agent = IndShockConsumerType(cycles=0)
+        agent.solve()
+        solution = agent.solution[0]
+        self.assertAlmostEqual(solution.mNrmKink, 0.7550460925, places=8)
+        self.assertAlmostEqual(solution.MPCaboveKink, 0.5139080425, places=8)
+
+    def test_no_kink_where_the_natural_constraint_binds(self):
+        agent = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        agent.solve()
+        solution = agent.solution[0]
+        self.assertTrue(np.isnan(solution.mNrmKink))
+        self.assertTrue(np.isnan(solution.cNrmKink))
+        self.assertTrue(np.isnan(solution.MPCaboveKink))
+
+    def test_every_period_of_a_finite_horizon(self):
+        agent = IndShockConsumerType(cycles=3)
+        agent.solve()
+        for solution in agent.solution[:-1]:
+            self.assertTrue(np.isfinite(solution.mNrmKink))
+            self.assertAlmostEqual(
+                float(solution.cFunc(solution.mNrmKink)), solution.cNrmKink, places=12
+            )
+        # The terminal solution is not solved on a grid, and records no kink
+        self.assertTrue(np.isnan(agent.solution[-1].mNrmKink))
+
+
+class testKinkChecksAndOneSentinel(unittest.TestCase):
+    """find_kink refuses nodes laid out otherwise than it assumes; a solution
+    marks a kink its solver does not record with NaN, as IndShock's does where
+    the natural constraint binds; the asset grid starts at a binding constraint
+    (the fast solver's copy of the grid is tested with the fast solver)."""
+
+    def test_find_kink_refuses_other_layouts(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import find_kink
+
+        nat, cnst = -0.5, 0.0
+        # The natural constraint with zero consumption, then the kink, where the
+        # consumer ends the period at the constraint, then the node above it
+        m = np.array([nat, 0.7, 1.0, 1.5])
+        c = np.array([0.0, 0.7, 0.85, 1.1])
+        np.testing.assert_allclose(find_kink(m, c, None, nat, cnst), (0.7, 0.7, 0.5))
+        np.testing.assert_allclose(
+            find_kink(m[:2], c[:2], np.array([1.0, 0.4]), nat, cnst), (0.7, 0.7, 0.4)
+        )
+        for label, mm, cc in (
+            ("too few nodes for the linear rule", m[:2], c[:2]),
+            ("first node above the natural constraint", m + [0.1, 0, 0, 0], c),
+            ("consumption not zero at the natural constraint", m, c + [0.1, 0, 0, 0]),
+            ("second node not at the constraint", m, c - [0, 0.1, 0, 0]),
+        ):
+            with self.subTest(label), self.assertRaises(ValueError):
+                find_kink(mm, cc, None, nat, cnst)
+        # Where the natural constraint binds there is no kink, whatever the nodes
+        self.assertTrue(np.all(np.isnan(find_kink(m[:1], c[:1], None, 0.0, 0.0))))
+
+    def test_one_sentinel_for_every_solver(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+        from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioConsumerType
+        from HARK.ConsumptionSaving.ConsPrefShockModel import PrefShockConsumerType
+
+        for agent_type, kwds in (
+            (KinkedRconsumerType, {"BoroCnstArt": 0.0}),
+            (PrefShockConsumerType, {}),
+            (PortfolioConsumerType, {}),
+            (MarkovConsumerType, {}),
+            (IndShockConsumerType, {"BoroCnstArt": None}),
+        ):
+            with self.subTest(agent_type.__name__):
+                agent = agent_type(cycles=1, **kwds)
+                agent.solve()
+                for name in ("mNrmKink", "cNrmKink", "MPCaboveKink"):
+                    self.assertTrue(np.all(np.isnan(getattr(agent.solution[0], name))))
+
+    def test_asset_grid_starts_at_a_binding_constraint(self):
+        from HARK.ConsumptionSaving.ConsIndShockModel import calc_aNrm_grid
+
+        aXtra = np.array([0.001, 0.5, 2.0, 20.0])
+        for nat, cnst in ((-0.4, 0.0), (-0.4, -0.4), (0.1, 0.1)):
+            with self.subTest(BoroCnstNat=nat, mNrmMin=cnst):
+                if nat < cnst:  # the artificial constraint binds: it is the first point
+                    expected = cnst + np.concatenate(([0.0], aXtra))
+                else:
+                    expected = aXtra + nat
+                np.testing.assert_array_equal(
+                    calc_aNrm_grid(aXtra, nat, cnst), expected
+                )

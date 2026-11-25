@@ -25,6 +25,8 @@ from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    calc_aNrm_grid,
+    find_kink,
     PerfForesightConsumerType,
     init_perfect_foresight,
     init_idiosyncratic_shocks,
@@ -483,6 +485,25 @@ def _np_tile(A, reps):  # pragma: nocover
     return A.repeat(reps[0]).reshape(A.size, -1).transpose()
 
 
+# The standard solver's end-of-period asset grid, compiled for this module's solver
+_calc_aNrm_grid = njit(cache=True)(calc_aNrm_grid)
+
+
+def _kink_of(solution, cubic):
+    """
+    The kink of a solution of this module's solver, by find_kink: as in the
+    standard solver, its nodes start at the natural borrowing constraint,
+    mNrm[0], and the kink, where the artificial constraint binds, is the next.
+    """
+    return find_kink(
+        solution.mNrm,
+        solution.cNrm,
+        solution.MPC if cubic else None,
+        solution.mNrm[0],
+        solution.mNrmMin,
+    )
+
+
 @njit(cache=True)
 def _np_insert(arr, obj, values, axis=-1):  # pragma: nocover
     return np.append(np.array(values), arr)
@@ -559,12 +580,8 @@ def _prepare_to_solveConsIndShockNumba(
     experience next period.
     """
 
-    # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
-    # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
-    # function as the lower envelope of the (by the artificial borrowing con-
-    # straint) uconstrained consumption function, and the artificially con-
-    # strained consumption function.
-    aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    # The end-of-period assets grid, as the standard solver's (calc_aNrm_grid)
+    aNrmNow = _calc_aNrm_grid(np.asarray(aXtraGrid), BoroCnstNat, mNrmMinNow)
     ShkCount = TranShkValsNext.size
     aNrm_temp = _np_tile(aNrmNow, (ShkCount, 1))
 
@@ -640,7 +657,8 @@ def _solveConsIndShockLinearNumba(
     cNrmNow = utilityP_inv(EndOfPrdvP, CRRA)
     mNrmNow = cNrmNow + aNrmNow
 
-    # Limiting consumption is zero as m approaches mNrmMin
+    # The unconstrained consumption function starts at the natural borrowing
+    # constraint, with zero consumption (see calc_aNrm_grid)
     cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
     mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
 
@@ -800,7 +818,8 @@ def _solveConsIndShockCubicNumba(
     cNrmNow = EndOfPrdvP ** (-1.0 / CRRA)
     mNrmNow = cNrmNow + aNrmNow
 
-    # Limiting consumption is zero as m approaches mNrmMin
+    # The unconstrained consumption function starts at the natural borrowing
+    # constraint, with zero consumption (see calc_aNrm_grid)
     cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
     mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
 
@@ -1405,11 +1424,14 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                         solution.cFuncLimitSlope,
                     )
 
-                # Combine the constrained and unconstrained functions into the true consumption function
+                # The true consumption function: the lower envelope of the unconstrained
+                # function and the constraint line (see calc_aNrm_grid)
                 cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
 
                 # Make the marginal value function and the marginal marginal value function
                 vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
+
+                mNrmKink, cNrmKink, MPCaboveKink = _kink_of(solution, self.CubicBool)
 
                 # Pack up the solution and return it
                 consumer_solution = ConsumerSolution(
@@ -1419,6 +1441,9 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                     hNrm=solution.hNrm,
                     MPCmin=solution.MPCmin,
                     MPCmax=solution.MPCmax,
+                    mNrmKink=mNrmKink,
+                    cNrmKink=cNrmKink,
+                    MPCaboveKink=MPCaboveKink,
                 )
 
                 if self.vFuncBool:
