@@ -1191,9 +1191,10 @@ def calc_buffer_stock_conditions(
 ):
     r"""
     Calculate the paper's conditions from the true laws of the shocks, and what
-    its theorems conclude from them. Nothing in HARK calls this function, and it
-    does not check that the parameters are admissible: see
-    :meth:`BufferStockConsumerType.check_restrictions`.
+    its theorems conclude from them. It needs no agent and changes nothing;
+    :meth:`BufferStockConsumerType.get_buffer_stock_conditions` calls it with an
+    agent's parameters. It does not check that the parameters are admissible:
+    see :meth:`BufferStockConsumerType.check_restrictions`.
 
     Parameters
     ----------

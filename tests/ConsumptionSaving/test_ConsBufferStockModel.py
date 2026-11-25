@@ -563,8 +563,8 @@ class testBufferStockSolution(unittest.TestCase):
             self.assertEqual(agent.bilt["mNrmTrg"], base.bilt["mNrmTrg"])
 
     def test_limits_are_exact_above_the_grid(self):
-        # Started at their limits, the limits do not move, and the consumption
-        # function above the grid converges as fast as on it
+        # Started at their limits, the limits do not move, so the consumption
+        # function above the grid converges with the function on it
         agent = make_agent(tolerance=1e-8)
         agent.solve()
         results = agent.bilt["BufferStockConditions"]
