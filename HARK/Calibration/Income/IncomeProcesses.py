@@ -272,15 +272,19 @@ def _discretize_mean_one_shock(sigma, n_approx, bot=None, top=None, tails="trunc
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
         return law, approx
-    if tails == "jumpless":
-        if top is not None:
-            raise ValueError(
-                "A jumpless shock is bounded below only: leave its upper bound "
-                "None or infinite, or choose other tails."
-            )
-        law = _SHOCK_TAILS[tails].from_sd_log(sigma, bot=bot)
-    else:
-        law = _SHOCK_TAILS[tails].from_sd_log(sigma, bot=bot, top=top)
+    # A shock's bounds lie either side of the underlying normal's mean
+    if bot is not None and bot >= 0.0:
+        raise ValueError(
+            "The lower bound of an income shock's log is below the mean of the "
+            f"underlying normal, a negative number of its standard deviations, not {bot}."
+        )
+    if top is not None and top <= 0.0:
+        raise ValueError(
+            "The upper bound of an income shock's log is above the mean of the "
+            f"underlying normal, a positive number of its standard deviations, not {top}."
+        )
+    # The law refuses bounds it cannot have (the jumpless law has no upper one)
+    law = _SHOCK_TAILS[tails].from_sd_log(sigma, bot=bot, top=top)
     approx = law.discretize(n_approx, method="equiprobable")
     approx.limit["infimum"] = law.infimum
     approx.limit["supremum"] = law.supremum

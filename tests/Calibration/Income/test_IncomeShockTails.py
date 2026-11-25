@@ -230,3 +230,16 @@ class testIncomeShockTails(unittest.TestCase):
             IndShockConsumerType(cycles=0, TranShk_sup=np.nan)
         with self.assertRaisesRegex(ValueError, "bot is nan"):
             LognormPermIncShk(0.1, 7, bot=np.nan)
+
+    def test_bounds_on_the_wrong_side_refused(self):
+        # A lower bound at or above the mean, or an upper one at or below it, is
+        # refused under either treatment of the tails
+        for tails in ("truncated", "jumpless"):
+            with self.assertRaisesRegex(ValueError, "lower bound"):
+                LognormPermIncShk(0.1, 7, bot=2.0, tails=tails)
+            with self.assertRaisesRegex(ValueError, "lower bound"):
+                LognormPermIncShk(0.1, 7, bot=0.0, tails=tails)
+        with self.assertRaisesRegex(ValueError, "upper bound"):
+            LognormPermIncShk(0.1, 7, bot=-3.0, top=-1.0)
+        with self.assertRaisesRegex(ValueError, "bounded below only"):
+            LognormPermIncShk(0.1, 7, bot=-3.0, top=3.0, tails="jumpless")
