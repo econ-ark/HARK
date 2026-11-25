@@ -20,24 +20,24 @@ class TestPortfolioConsumerType(PortfolioConsumerTypeTestCase):
     def test_RiskyShareFunc(self):
         self.assertAlmostEqual(
             self.pcct.solution[0].ShareFuncAdj(8).tolist(),
-            0.95074,
+            0.95023,
             places=HARK_PRECISION,
         )
 
         self.assertAlmostEqual(
             self.pcct.solution[0].ShareFuncAdj(16).tolist(),
-            0.68159,
+            0.68105,
             places=HARK_PRECISION,
         )
 
     def test_solution(self):
         self.assertAlmostEqual(
-            self.pcct.solution[0].cFuncAdj(10).tolist(), 1.69966, places=HARK_PRECISION
+            self.pcct.solution[0].cFuncAdj(10).tolist(), 1.69798, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
             self.pcct.solution[0].ShareFuncAdj(10).tolist(),
-            0.84985,
+            0.84929,
             places=HARK_PRECISION,
         )
 
@@ -160,14 +160,14 @@ class testPortfolioConsumerTypeSticky(unittest.TestCase):
     def test_cFunc(self):
         self.assertAlmostEqual(
             self.sticky.solution[0].cFuncAdj(10).tolist(),
-            1.69911,
+            1.69742,
             places=HARK_PRECISION,
         )
 
     def test_ShareFunc(self):
         self.assertAlmostEqual(
             self.sticky.solution[0].ShareFuncAdj(10).tolist(),
-            0.86173,
+            0.86072,
             places=HARK_PRECISION,
         )
 

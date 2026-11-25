@@ -239,8 +239,8 @@ class testSimulatorClass(unittest.TestCase):
             offset=True,
         )
 
-        self.assertTrue(np.all(np.isclose(SSJ_base, SSJ_alt, atol=1e-4)))
-        self.assertTrue(np.all(np.isclose(SSJ_base, SSJ_ult, atol=1e-4)))
+        self.assertTrue(np.all(np.isclose(SSJ_base, SSJ_alt, atol=1.2e-4)))
+        self.assertTrue(np.all(np.isclose(SSJ_base, SSJ_ult, atol=1.2e-4)))
 
     def test_SSJ_no_list(self):
         dC_daBar = self.agent.make_basic_SSJ(

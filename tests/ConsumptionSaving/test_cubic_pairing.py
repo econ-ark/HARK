@@ -145,7 +145,7 @@ class testCubicPairingRule(unittest.TestCase):
         agent = IndShockConsumerType(cycles=0)
         agent.solve()
         self.assertFalse(agent.CubicBool)
-        self.assertAlmostEqual(agent.solution[0].cFunc(1.0), 0.86559, places=4)
+        self.assertAlmostEqual(agent.solution[0].cFunc(1.0), 0.86546, places=4)
 
     @mock.patch(
         "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",

@@ -4,7 +4,6 @@ from unittest import mock
 
 import numpy as np
 
-from HARK.Calibration.Income.IncomeProcesses import LognormPermIncShk
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
@@ -282,17 +281,19 @@ class testMarkovValueFunc(unittest.TestCase):
             np.testing.assert_allclose(solution.vFunc[i](m), v, rtol=0, atol=1e-2)
 
     def test_vFunc(self):
-        # With 1600 asset gridpoints these values are -18.14258 and -17.90647. The
-        # grid starts at the binding artificial constraint, so its top is
-        # aXtraMax above that constraint; with the top raised to 300 they are
-        # -18.14323 and -17.90711, the same to 1e-7 as when the grid started at the
-        # natural borrowing constraint. On the default grid they were -18.14233 and
-        # -17.90622 when it started there, and -18.15152 and -17.91514 before
-        # expectations over Markov states were exact at the gridpoints.
+        # With HARK's bounded default income shocks and 1600 asset gridpoints, these
+        # values are -18.15734 and -17.92112. Under unbounded lognormal shocks they
+        # were -18.14245 and -17.90635, and -18.14258 and -17.90647 with 1600
+        # gridpoints. There the grid started at the binding artificial constraint,
+        # so its top was aXtraMax above that constraint; with the top raised to 300
+        # they were -18.14323 and -17.90711, the same to 1e-7 as when the grid
+        # started at the natural borrowing constraint. On the default grid they were
+        # -18.14233 and -17.90622 when it started there, and -18.15152 and -17.91514
+        # before expectations over Markov states were exact at the gridpoints.
         agent = MarkovConsumerType(cycles=0, vFuncBool=True)
         agent.solve()
-        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.14245, places=4)
-        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.90635, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.15721, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.92099, places=4)
 
 
 class testMarkovMatchesIndShock(unittest.TestCase):
@@ -335,13 +336,16 @@ class testMarkovMatchesIndShock(unittest.TestCase):
             **common,
         )
 
-        # Employed: permanent shock times the scaled transitory shock; unemployed:
-        # permanent shock times unemployment income
-        perm = LognormPermIncShk(sigma=std, n_approx=count)
-        tran = LogNormalMeanOne(std).discretize(count, method="equiprobable", tail_N=0)
-        scale = (1.0 - p * IncUnemp) / (1.0 - p)
+        # IndShock's own shocks. Employed: the permanent shock times the transitory
+        # shock's scaled lognormal part; unemployed: the permanent shock times
+        # unemployment income, which IndShock's transitory law holds first, with
+        # probability p
+        perm = ind.PermShkDstn[0]
+        tran = ind.TranShkDstn[0]
+        self.assertEqual(tran.atoms[0, 0], IncUnemp)
+        self.assertAlmostEqual(tran.pmv[0], p, places=15)
         employed = combine_indep_dstns(
-            perm, DiscreteDistribution(tran.pmv, tran.atoms * scale)
+            perm, DiscreteDistribution(tran.pmv[1:] / (1.0 - p), tran.atoms[:, 1:])
         )
         unemployed = combine_indep_dstns(
             perm, DiscreteDistribution(np.ones(1), np.array([IncUnemp]))
@@ -711,7 +715,7 @@ class testMarkovKink(unittest.TestCase):
         agent = MarkovConsumerType(cycles=0)
         agent.solve()
         np.testing.assert_allclose(
-            agent.solution[0].mNrmKink, [0.7253586953, 0.7351661883], atol=1e-9
+            agent.solution[0].mNrmKink, [0.7250850835, 0.7348910445], atol=1e-9
         )
 
     def test_no_kink_where_the_natural_constraint_binds(self):

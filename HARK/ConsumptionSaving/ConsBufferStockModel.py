@@ -175,7 +175,8 @@ def _law_expect(law, func):
     The expectation of func under a shock law: a sum over a discrete law's
     atoms, the value at the point of a law whose infimum is its supremum (as
     HARK records a lognormal with no variance), and otherwise by quadrature of
-    the law's quantile function.
+    the law's quantile function, split at the probabilities of its
+    breakpoints(), where the quantile function has a kink or a jump.
     """
     if isinstance(law, DiscreteDistribution):
         return float(np.dot(law.pmv, func(np.ravel(law.atoms))))

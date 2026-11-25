@@ -175,13 +175,11 @@ _SHOCK_TAILS = {
 }
 
 
-# The default bounds of an income shock's log where the model integrates against
-# the shocks' continuous laws (IncShkExpectation "continuous"), in standard
-# deviations of the underlying normal, by how its tails are treated: the
-# jumpless law, the default there, is cut off at -3, where its density is zero,
-# and has no upper bound; the truncated law is cut off at +-3. Where the model
-# sums over the atoms, a bound left None is no bound. An infinite bound is no
-# bound.
+# The default bounds of an income shock's log, in standard deviations of the
+# underlying normal, by how its tails are treated: the truncated law, the
+# default, is cut off at +-3; the jumpless law is cut off at -3, where its
+# density is zero, and has no upper bound.
+# A bound left None takes its default; an infinite one is no bound.
 SHOCK_BOUND_DEFAULT = {"truncated": 3.0, "jumpless": 3.0}
 
 
@@ -255,18 +253,13 @@ def _income_shock_bounds(
     TranShk_sup,
     PermShk_tails,
     TranShk_tails,
-    IncShkExpectation="atoms",
 ):
     """
     The bounds of the permanent and transitory shocks' logs for an income
     constructor, in each of the T_cycle periods: each bound by period
-    (_bounds_by_period), with the tails, as lists of the one-period
-    distributions' keywords; empty where neither shock is bounded in any period.
-    Where the model sums over the atoms (IncShkExpectation "atoms"), None, the
-    default, or an infinite bound is no bound on that side. Where it integrates
-    against the continuous laws ("continuous"), a bound left None takes the
-    default for its tails (_shock_bounds), since that expectation needs laws
-    bounded below.
+    (_bounds_by_period), taken from its default for its tails where left None
+    (_shock_bounds), with the tails, as lists of the one-period distributions'
+    keywords; empty where neither shock is bounded in any period.
     """
     _check_tails(PermShk_tails)
     _check_tails(TranShk_tails)
@@ -279,12 +272,11 @@ def _income_shock_bounds(
             ("TranShk_sup", TranShk_sup),
         )
     }
-    if IncShkExpectation == "continuous":
-        for shock, tails in (("PermShk", PermShk_tails), ("TranShk", TranShk_tails)):
-            for t in range(T_cycle):
-                bounds[shock + "_inf"][t], bounds[shock + "_sup"][t] = _shock_bounds(
-                    bounds[shock + "_inf"][t], bounds[shock + "_sup"][t], tails
-                )
+    for shock, tails in (("PermShk", PermShk_tails), ("TranShk", TranShk_tails)):
+        for t in range(T_cycle):
+            bounds[shock + "_inf"][t], bounds[shock + "_sup"][t] = _shock_bounds(
+                bounds[shock + "_inf"][t], bounds[shock + "_sup"][t], tails
+            )
     if all(bound is None for period in bounds.values() for bound in period):
         return {}
     bounds["PermShk_tails"] = [PermShk_tails] * T_cycle
@@ -910,12 +902,10 @@ def construct_lognormal_income_process_unemployment(
     tail off at its bound and brings the density to zero there, so that it has
     no jump, and has no upper bound, so a finite upper bound given with it is
     refused. In each case a bounded shock keeps its mean at one, and
-    PermShkStd[t] or TranShkStd[t] stays the standard deviation of its log.
-    None, the default, or an infinite bound is no bound on that side; with no
-    bounds the income process is as described below. With IncShkExpectation
-    "continuous" a bound left None takes the default for its tails, three
-    standard deviations (none above for jumpless ones), since that expectation
-    needs laws bounded below.
+    PermShkStd[t] or TranShkStd[t] stays the standard deviation of its log. A
+    bound left None takes the default for its tails, three standard deviations
+    (none above for jumpless ones), and an infinite bound is no bound; with no
+    bounds the income process is as described below.
     Each bound is one number for every period, or a list with one for each
     period, as PermShkStd and TranShkStd are given.
 
@@ -977,20 +967,20 @@ def construct_lognormal_income_process_unemployment(
         Indicator for whether the permanent-income-neutral measure should be used.
     PermShk_inf : float, [float] or None
         Lower bound of the log permanent shock, in standard deviations of the
-        underlying normal; None, the default, or -np.inf is no bound, except
-        that with IncShkExpectation "continuous" None takes the default for the
-        tails (SHOCK_BOUND_DEFAULT: -3). One number for every period, or a list
-        with one for each of the T_cycle periods.
+        underlying normal. None, the default, takes the default bound for the
+        treatment of the tails (SHOCK_BOUND_DEFAULT: -3, where the truncated law,
+        the default, is cut off, and where the jumpless law's density is zero);
+        -np.inf is no bound. One number for every period, or a list with one for
+        each of the T_cycle periods.
     PermShk_sup : float, [float] or None
         Upper bound of the log permanent shock, as PermShk_inf (np.inf is no
         bound).
     TranShk_inf : float, [float] or None
-        Lower bound of the log of the transitory shock's lognormal part, in
-        standard deviations of the underlying normal; None, the default, or
-        -np.inf is no bound; by period as PermShk_inf.
+        Lower bound of the log of the transitory shock's lognormal part, as
+        PermShk_inf.
     TranShk_sup : float, [float] or None
         Upper bound of the log of the transitory shock's lognormal part, as
-        TranShk_inf.
+        PermShk_sup.
     PermShk_tails : str or None
         How the permanent shock's tails are treated at its bounds: "truncated"
         or "jumpless". None, the default, is "truncated", or "jumpless" with
@@ -1039,7 +1029,6 @@ def construct_lognormal_income_process_unemployment(
             TranShk_sup,
             PermShk_tails,
             TranShk_tails,
-            IncShkExpectation,
         )
     )
     if PermShkMinPrb:
@@ -1227,8 +1216,9 @@ def construct_markov_lognormal_income_process_unemployment(
         Indicator for whether the permanent-income-neutral measure should be used.
     PermShk_inf, PermShk_sup, TranShk_inf, TranShk_sup : float or None
         The bounds of each shock's log, in standard deviations, in every state, as
-        in construct_lognormal_income_process_unemployment: None, the default, or
-        an infinite bound is no bound.
+        in construct_lognormal_income_process_unemployment: None takes the default
+        for the tails (three standard deviations, and none above for jumpless
+        tails), and an infinite bound is no bound.
     PermShk_tails, TranShk_tails : str or None
         How each shock's tails are treated at its bounds: "truncated" (the
         default, and what None means) or "jumpless".
@@ -1347,10 +1337,11 @@ def construct_HANK_lognormal_income_process_unemployment(
     to transitory income (continuous labor supply, wage rate, tax rate) and thus
     is useful in HANK models (hence the name!).
 
-    The lognormals can be bounded in the log as in
-    construct_lognormal_income_process_unemployment: PermShk_inf, PermShk_sup,
-    TranShk_inf and TranShk_sup in standard deviations of the underlying normal
-    (None, the default, or an infinite bound is no bound), and PermShk_tails and
+    The lognormals are bounded in the log as in
+    construct_lognormal_income_process_unemployment, with the same defaults:
+    PermShk_inf, PermShk_sup, TranShk_inf and TranShk_sup in standard deviations
+    of the underlying normal (None takes the default for the tails, three
+    standard deviations; an infinite bound is no bound), and PermShk_tails and
     TranShk_tails the treatment of the tails ("truncated", the default and what
     None means, or "jumpless").
 

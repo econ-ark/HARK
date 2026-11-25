@@ -1,8 +1,8 @@
 """
 Tests for bounded income shocks in IndShock's income constructor: the bounds
 PermShk_inf, PermShk_sup, TranShk_inf and TranShk_sup, in standard deviations of
-the underlying normal, with None (the default) or an infinite bound for no
-bound, and the treatment
+the underlying normal, with None (the default) for the default bounds of the
+treatment of the tails and an infinite bound for no bound, and the treatment
 of the tails at the bounds, PermShk_tails and TranShk_tails: "truncated" (the
 default) or "jumpless".
 """
@@ -25,6 +25,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
 )
 from HARK.distributions import (
+    LogNormalMeanOne,
     LogNormalTruncatedJumplessMeanOne,
     LogNormalTruncatedMeanOne,
     PointMassAtInfimum,
@@ -61,7 +62,12 @@ class testIncomeShockTails(unittest.TestCase):
         )
         np.testing.assert_array_equal(plain.atoms, none.atoms)
         np.testing.assert_array_equal(plain.pmv, none.pmv)
-        agent = IndShockConsumerType()
+        # In the agent's income constructor None takes the default bounds, and
+        # an infinite bound is no bound: with infinite bounds the agent carries
+        # none of the bounds' parameters
+        agent = IndShockConsumerType(
+            **{key: np.inf if key.endswith("sup") else -np.inf for key in BOUNDS}
+        )
         keys = BOUNDS.keys() | TAILS.keys()
         self.assertEqual(agent.IncShkDstn.conditional.keys() & keys, set())
 
@@ -299,6 +305,87 @@ class testIncomeShockTails(unittest.TestCase):
             LognormPermIncShk(0.1, 7, bot=-3.0, top=-1.0)
         with self.assertRaisesRegex(ValueError, "bounded below only"):
             LognormPermIncShk(0.1, 7, bot=-3.0, top=3.0, tails="jumpless")
+
+
+def income_laws(**kwds):
+    """The permanent and employed transitory laws the income constructor records."""
+    dstn = construct_lognormal_income_process_unemployment(
+        T_cycle=1,
+        PermShkStd=[0.1],
+        PermShkCount=7,
+        TranShkStd=[0.1],
+        TranShkCount=7,
+        T_retire=0,
+        UnempPrb=0.05,
+        IncUnemp=0.3,
+        UnempPrbRet=0.005,
+        IncUnempRet=0.0,
+        RNG=np.random.default_rng(0),
+        **kwds,
+    )[0]
+    perm, tran = dstn.limit["dist"]
+    return perm.limit["dist"], tran.limit["dist"].limit["dist"]
+
+
+class testDefaultBounds(unittest.TestCase):
+    """
+    HARK's default income shocks are bounded: a bound left None is the default
+    for the treatment of the tails, SHOCK_BOUND_DEFAULT. A truncated shock, the
+    default, is cut off at three standard deviations, and a jumpless one at
+    three below, with no upper bound. An infinite bound is no bound.
+    """
+
+    def test_jumpless_below_three_and_unbounded_above(self):
+        tails = {"PermShk_tails": "jumpless", "TranShk_tails": "jumpless"}
+        for law in income_laws(**tails):
+            self.assertIsInstance(law, LogNormalTruncatedJumplessMeanOne)
+            self.assertEqual((law.bot, law.top), (-3.0, np.inf))
+        perm, _ = income_laws(PermShk_inf=-2.0, **tails)
+        self.assertEqual(perm.bot, -2.0)
+        with self.assertRaises(ValueError):
+            income_laws(PermShk_sup=3.0, **tails)
+        agent = IndShockConsumerType(cycles=0, **tails)
+        dstn = agent.IncShkDstn[0]
+        self.assertAlmostEqual(dstn.limit["infimum"][0], JUMPLESS_BOUND, places=6)
+        self.assertEqual(dstn.limit["supremum"][0], np.inf)
+        self.assertEqual(dstn.limit["infimum"][1], 0.3)  # the unemployment benefit
+
+    def test_default_is_truncated_at_three(self):
+        for law in income_laws():
+            self.assertIsInstance(law, LogNormalTruncatedMeanOne)
+            self.assertEqual((law.bot, law.top), (-3.0, 3.0))
+        # the truncation points are the laws' infimum and supremum, which the
+        # discretization records
+        dstn = construct_lognormal_income_process_unemployment(
+            T_cycle=1,
+            PermShkStd=[0.1],
+            PermShkCount=7,
+            TranShkStd=[0.1],
+            TranShkCount=7,
+            T_retire=0,
+            UnempPrb=0.05,
+            IncUnemp=0.3,
+            UnempPrbRet=0.005,
+            IncUnempRet=0.0,
+            RNG=np.random.default_rng(0),
+        )[0]
+        perm, tran = income_laws()
+        self.assertEqual(dstn.limit["infimum"][0], perm.infimum[0])
+        self.assertEqual(dstn.limit["supremum"][0], perm.supremum[0])
+        self.assertEqual(dstn.limit["infimum"][1], 0.3)  # the unemployment benefit
+
+    def test_given_bounds_are_kept_and_infinite_ones_are_none(self):
+        perm, tran = income_laws(
+            PermShk_inf=-np.inf, PermShk_sup=np.inf, TranShk_inf=-2.5
+        )
+        self.assertIs(type(perm), LogNormalMeanOne)
+        self.assertEqual((tran.bot, tran.top), (-2.5, 3.0))
+
+    def test_the_default_agent(self):
+        agent = IndShockConsumerType(cycles=0)
+        law = agent.IncShkDstn[0].limit["dist"][0].limit["dist"]
+        self.assertIsInstance(law, LogNormalTruncatedMeanOne)
+        self.assertEqual((law.bot, law.top), (-3.0, 3.0))
 
 
 class testMarkovBounds(unittest.TestCase):

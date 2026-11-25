@@ -24,22 +24,22 @@ class testKinkedRConsumerType(unittest.TestCase):
         KinkyExample.solve()
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(1).tolist(), 0.96161, places=HARK_PRECISION
+            KinkyExample.solution[0].cFunc(1).tolist(), 0.96135, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(4).tolist(), 1.34274, places=HARK_PRECISION
+            KinkyExample.solution[0].cFunc(4).tolist(), 1.34204, places=HARK_PRECISION
         )
 
         KinkyExample.BoroCnstArt = -0.2
         KinkyExample.solve()
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(1).tolist(), 0.93444, places=HARK_PRECISION
+            KinkyExample.solution[0].cFunc(1).tolist(), 0.93424, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
-            KinkyExample.solution[0].cFunc(4).tolist(), 1.33927, places=HARK_PRECISION
+            KinkyExample.solution[0].cFunc(4).tolist(), 1.33858, places=HARK_PRECISION
         )
 
     def test_cubic_refused(self):
@@ -60,10 +60,13 @@ class testKinkedRConsumerType(unittest.TestCase):
         vFunc = CubicExample.solution[0].vFunc
 
         m = 3.0
-        self.assertAlmostEqual(cFunc(m), 1.25612, places=HARK_PRECISION)
+        # 1.25551 until the natural constraint came from the shock laws' infima
+        self.assertAlmostEqual(cFunc(m), 1.25420, places=HARK_PRECISION)
         # -15.3711 until the kink segment was fixed to lie on the 45-degree line (its
-        # dip below cash-on-hand reached the fixed point): now -15.37090.
-        self.assertAlmostEqual(vFunc(m), -15.37090, places=HARK_PRECISION)
+        # dip below cash-on-hand reached the fixed point), then -15.37090; -15.38487
+        # since HARK's default income shocks are the truncated lognormal;
+        # -15.38712 since the natural constraint comes from the laws' infima.
+        self.assertAlmostEqual(vFunc(m), -15.39614, places=HARK_PRECISION)
 
     @mock.patch(
         "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",

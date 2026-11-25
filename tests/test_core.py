@@ -1549,7 +1549,8 @@ class test_post_state_hook(unittest.TestCase):
     def test_default_behavior_unchanged_golden(self):
         # Behavior golden captured on main at a25d3ae0 (pre-hook), and captured
         # again when the asset grid began at a binding artificial constraint
-        # (#1871): the default no-op hook must leave simulations bit-identical.
+        # (#1871) and when HARK's default income shocks became the truncated
+        # lognormal: the default no-op hook must leave simulations bit-identical.
         agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
         agent.track_vars = ["cNrm", "pLvl"]
         agent.solve()
@@ -1558,15 +1559,15 @@ class test_post_state_hook(unittest.TestCase):
         np.testing.assert_allclose(
             [float(x) for x in agent.history["cNrm"][3, :4]],
             [
-                1.1071468478015731,
-                0.9085967043463976,
-                1.1694110609073387,
-                0.9579212228312941,
+                1.1072082519751298,
+                0.9082225232895066,
+                1.1694301308297343,
+                0.9580080006483311,
             ],
             rtol=1e-10,
         )
         self.assertAlmostEqual(
-            float(np.nansum(agent.history["cNrm"])), 1582.22910302478, places=9
+            float(np.nansum(agent.history["cNrm"])), 1582.23257664310, places=9
         )
 
     def test_override_fires_between_states_and_controls(self):
@@ -1592,17 +1593,19 @@ class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
     flags for the pre-draw and restores them."""
 
     def test_default_history_stream_unchanged_golden(self):
-        # Golden captured on main at a25d3ae0 (pre-kwarg).
+        # Golden captured on main at a25d3ae0 (pre-kwarg), and re-pinned when
+        # HARK's default income shocks became the truncated lognormal, which
+        # moved the atoms but not which are drawn.
         agent = IndShockConsumerType(AgentCount=50, T_sim=6, seed=99)
         agent.solve()
         agent.make_shock_history()
         np.testing.assert_allclose(
             [float(x) for x in agent.shock_history["PermShk"][2][:4]],
             [
-                1.0887560662509859,
-                0.9278094171517418,
-                0.9278094171517418,
-                1.1780702264015428,
+                1.0896402351479968,
+                0.9270611653449432,
+                0.9270611653449432,
+                1.1781238368708422,
             ],
             rtol=1e-10,
         )

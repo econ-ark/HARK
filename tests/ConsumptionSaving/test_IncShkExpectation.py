@@ -1189,10 +1189,10 @@ class testDefaultLaws(unittest.TestCase):
             law = getattr(law, "law", law)  # the employed law is rescaled
             self.assertIsInstance(law, LogNormalTruncatedJumplessMeanOne)
             self.assertEqual((law.bot, law.top), (-3.0, np.inf))
-        # over the atoms the default law is the lognormal, unbounded
+        # the atoms' default stays truncated
         atoms = IndShockConsumerType(cycles=0)
-        self.assertIs(
-            type(get_income_shock_laws(atoms.IncShkDstn[0])[0]), LogNormalMeanOne
+        self.assertIsInstance(
+            get_income_shock_laws(atoms.IncShkDstn[0])[0], LogNormalTruncatedMeanOne
         )
         # the default has no upper bound, so one given is refused
         with self.assertRaises(ValueError):

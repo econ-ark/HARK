@@ -42,12 +42,12 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
         AggC = np.dot(gridc.flatten(), vecDstn)  # Aggregate Consumption
         AggA = np.dot(grida.flatten(), vecDstn)  # Aggregate Assets
 
-        # values with newborns injected at their first income draw (2026-09) and
-        # the asset grid starting at a binding artificial constraint (2026-11);
-        # with newborns injected alone they were 0.83203 and 1.00782, and with
-        # the earlier m = 1, p = 1 placement 0.82983 and 1.00780
-        self.assertAlmostEqual(AggA[0], 0.83120, places=4)
-        self.assertAlmostEqual(AggC[0], 1.00781, places=4)
+        # values with the income shocks bounded as IndShock's are (2026-11); with
+        # the unbounded lognormals they were 0.83120 and 1.00781, before the asset
+        # grid started at a binding constraint 0.83203 and 1.00782, and with the
+        # earlier m = 1, p = 1 placement of newborns 0.82983 and 1.00780
+        self.assertAlmostEqual(AggA[0], 0.83715, places=4)
+        self.assertAlmostEqual(AggC[0], 1.00787, places=4)
 
 
 # %% Test Heterogenous Agent Jacobian Methods
@@ -59,13 +59,13 @@ class test_Jacobian_methods(unittest.TestCase):
         Agent.compute_pe_steady_state()
         CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
 
-        # values with newborns injected at their first income draw (2026-09) and
-        # the asset grid starting at a binding artificial constraint (2026-11);
-        # with newborns injected alone they were -0.10510, 0.10324, 0.09072, and
-        # with the earlier m = 1 placement -0.10503, 0.10316, 0.09059
-        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.10516, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.10336, places=HARK_PRECISION)
-        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.09083, places=HARK_PRECISION)
+        # values with the income shocks bounded as IndShock's are (2026-11); with
+        # the unbounded lognormals they were -0.10516, 0.10336, 0.09083, before the
+        # asset grid started at a binding constraint -0.10510, 0.10324, 0.09072,
+        # and with the earlier m = 1 placement of newborns -0.10503, 0.10316, 0.09059
+        self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.10583, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.10418, places=HARK_PRECISION)
+        self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.09162, places=HARK_PRECISION)
 
 
 class test_assign_dist_mGrid(unittest.TestCase):
@@ -204,3 +204,9 @@ class test_income_shock_bounds(unittest.TestCase):
         self.assertGreater(bounded.limit["infimum"][1], 0.0)
         free = NewKeynesianConsumerType(**unbounded).IncShkDstn[0]
         self.assertEqual(free.limit["infimum"][0], 0.0)
+
+    def test_the_default_laws_are_bounded(self):
+        # By default both shocks are bounded below, at three standard deviations
+        default = NewKeynesianConsumerType().IncShkDstn[0]
+        self.assertGreater(default.limit["infimum"][0], 0.0)
+        self.assertGreater(default.limit["infimum"][1], 0.0)

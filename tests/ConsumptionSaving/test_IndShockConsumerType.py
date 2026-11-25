@@ -51,28 +51,28 @@ class testIndShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[9].cFunc(1), 0.79459, places=HARK_PRECISION
+            LifecycleExample.solution[9].cFunc(1), 0.79373, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[8].cFunc(1), 0.79418, places=HARK_PRECISION
+            LifecycleExample.solution[8].cFunc(1), 0.79331, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[7].cFunc(1), 0.79277, places=HARK_PRECISION
+            LifecycleExample.solution[7].cFunc(1), 0.79188, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
             LifecycleExample.solution[0].cFunc(1).tolist(),
-            0.75090,
+            0.74943,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[1].cFunc(1).tolist(),
-            0.75893,
+            0.75757,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[2].cFunc(1).tolist(),
-            0.76848,
+            0.76725,
             places=HARK_PRECISION,
         )
 
@@ -195,12 +195,12 @@ class testBufferStock(unittest.TestCase):
         c_t5 = baseEx.cFunc[-6](m)
         c_t10 = baseEx.cFunc[-11](m)
 
-        self.assertAlmostEqual(c_m[500], 1.39978, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[500], 1.39903, places=HARK_PRECISION)
         self.assertAlmostEqual(c_t1[500], 2.92274, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t5[500], 1.73496, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[500], 1.49886, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[600], 1.60990, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[700], 1.71945, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t5[500], 1.73480, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[500], 1.49854, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[600], 1.60958, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[700], 1.71914, places=HARK_PRECISION)
 
     def test_GICRawFails(self):
         GICRaw_fail_dictionary = dict(self.base_params)
@@ -217,8 +217,8 @@ class testBufferStock(unittest.TestCase):
         m = np.linspace(0, 5, 1000)
         c_m = GICRawFailExample.cFunc[0](m)
 
-        self.assertAlmostEqual(c_m[500], 0.77732, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_m[700], 0.83934, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[500], 0.77690, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[700], 0.83895, places=HARK_PRECISION)
 
         self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
@@ -233,22 +233,22 @@ class testBufferStock(unittest.TestCase):
         )  # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
-        self.assertAlmostEqual(c_m1[0], 0.85182, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m1[0], 0.85174, places=HARK_PRECISION)
         self.assertAlmostEqual(c_m1[-1], 1.00365, places=HARK_PRECISION)
 
         x1 = np.linspace(0, 25, 1000)
         cfunc_m = baseEx_inf.cFunc[0](x1)
 
-        self.assertAlmostEqual(cfunc_m[500], 1.88710, places=HARK_PRECISION)
-        self.assertAlmostEqual(cfunc_m[700], 2.15459, places=HARK_PRECISION)
+        self.assertAlmostEqual(cfunc_m[500], 1.88585, places=HARK_PRECISION)
+        self.assertAlmostEqual(cfunc_m[700], 2.15318, places=HARK_PRECISION)
 
         m = np.linspace(0.001, 8, 1000)
 
         # Use the HARK method derivative to get the derivative of cFunc, and the values are just the MPC
         MPC = baseEx_inf.cFunc[0].derivative(m)
 
-        self.assertAlmostEqual(MPC[500], 0.08409, places=HARK_PRECISION)
-        self.assertAlmostEqual(MPC[700], 0.07131, places=HARK_PRECISION)
+        self.assertAlmostEqual(MPC[500], 0.08398, places=HARK_PRECISION)
+        self.assertAlmostEqual(MPC[700], 0.07123, places=HARK_PRECISION)
 
 
 IdiosyncDict = {
@@ -305,7 +305,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.solve()
 
         self.assertAlmostEqual(
-            IndShockExample.solution[0].mNrmStE, 1.54702, places=HARK_PRECISION
+            IndShockExample.solution[0].mNrmStE, 1.54917, places=HARK_PRECISION
         )
         # self.assertAlmostEqual(
         #    IndShockExample.solution[0].cFunc.functions[0].x_list[0],
@@ -398,7 +398,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(),
-            2.13005,
+            2.12978,
             places=HARK_PRECISION,
         )
 
@@ -472,7 +472,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(),
-            1.59609,
+            1.59530,
             places=HARK_PRECISION,
         )
 
@@ -480,7 +480,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 0.54995, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 0.55143, places=HARK_PRECISION
         )
 
         self.assertRaises(ValueError, CyclicalExample.calc_stable_points)
@@ -523,8 +523,8 @@ class testStablePoints(unittest.TestCase):
         mNrmTrg = baseAgent_Inf.solution[0].mNrmTrg
 
         # Check against pre-computed values
-        self.assertAlmostEqual(mNrmStE, 1.37921, places=HARK_PRECISION)
-        self.assertAlmostEqual(mNrmTrg, 1.39341, places=HARK_PRECISION)
+        self.assertAlmostEqual(mNrmStE, 1.38006, places=HARK_PRECISION)
+        self.assertAlmostEqual(mNrmTrg, 1.39439, places=HARK_PRECISION)
 
 
 JACDict = {
@@ -1469,7 +1469,9 @@ class testIncomeShuffleIndShock(unittest.TestCase):
 
 class testIncomeShuffleStreamInvariance(unittest.TestCase):
     """Default-path RNG-stream golden captured on main at a25d3ae0: with
-    income_shuffle at its default, the exact shock draws must not change."""
+    income_shuffle at its default, the exact shock draws must not change. The
+    values were re-pinned when HARK's default income shocks became the
+    truncated lognormal, which moved the atoms but not which are drawn."""
 
     def test_default_shock_stream_unchanged(self):
         agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
@@ -1479,22 +1481,22 @@ class testIncomeShuffleStreamInvariance(unittest.TestCase):
         np.testing.assert_allclose(
             [float(x) for x in agent.shocks["PermShk"][:5]],
             [
-                1.0887560662509859,
-                0.9278094171517418,
-                0.8589344616271869,
-                1.0427376294215152,
-                1.0427376294215152,
+                1.0896402351479968,
+                0.9270611653449432,
+                0.8587096377359674,
+                1.0431509580193747,
+                1.0431509580193747,
             ],
             rtol=1e-10,
         )
         np.testing.assert_allclose(
             [float(x) for x in agent.shocks["TranShk"][:5]],
             [
-                1.209379023455466,
-                1.0317263121066038,
-                1.209379023455466,
-                0.9524671973887084,
-                1.0317263121066038,
+                1.2094340586949242,
+                1.0317282584812575,
+                1.2094340586949242,
+                0.9516990597861064,
+                1.0317282584812575,
             ],
             rtol=1e-10,
         )
@@ -1840,8 +1842,8 @@ class testKinkAttributes(unittest.TestCase):
         agent = IndShockConsumerType(cycles=0)
         agent.solve()
         solution = agent.solution[0]
-        self.assertAlmostEqual(solution.mNrmKink, 0.7550460925, places=8)
-        self.assertAlmostEqual(solution.MPCaboveKink, 0.5139080425, places=8)
+        self.assertAlmostEqual(solution.mNrmKink, 0.7548819561, places=8)
+        self.assertAlmostEqual(solution.MPCaboveKink, 0.5138473606, places=8)
 
     def test_no_kink_where_the_natural_constraint_binds(self):
         # A discrete law's natural limit, as in testAssetGridAtTheArtificialConstraint
