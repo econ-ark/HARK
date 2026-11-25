@@ -742,7 +742,7 @@ def _coordinate(dstn):
     if hasattr(dstn, "normal_coordinate"):
         bot, top, value, coord = dstn.normal_coordinate()
         own_density = getattr(dstn, "coordinate_density", None)
-    elif hasattr(dstn, "ppf") and hasattr(dstn, "cdf"):
+    elif hasattr(dstn, "ppf") and hasattr(dstn, "cdf") and not hasattr(dstn, "pmf"):
         bot, top = -np.inf, np.inf
 
         def value(z):
@@ -754,9 +754,9 @@ def _coordinate(dstn):
     else:
         raise TypeError(
             "expected_continuous() cannot integrate over a "
-            f"{type(dstn).__name__}: it takes laws with a quantile function and "
-            "CDF, or a normal_coordinate() method, mixtures and discrete "
-            "distributions."
+            f"{type(dstn).__name__}: it takes continuous laws with a quantile "
+            "function and CDF, or a normal_coordinate() method, mixtures, and "
+            "discrete distributions that hold their atoms and probabilities."
         )
     lo, hi = max(float(bot), -Z_UNBOUNDED), min(float(top), Z_UNBOUNDED)
     steps = np.arange(np.floor(lo / Z_STEP) + 1.0, np.ceil(hi / Z_STEP)) * Z_STEP
@@ -814,16 +814,21 @@ def _quadrature(dstn, cuts, n):
     values and weights have shape B + (m,), with the nodes in the last axis;
     without cuts they are 1D. A discrete distribution gives its atoms and
     probabilities whatever the cuts, and a mixture its components' nodes, with
-    their weights multiplied by the components' weights.
+    their weights multiplied by the components' weights. A discrete distribution
+    is a DiscreteDistribution, or a law that holds its atoms and their
+    probabilities as one does (atoms and pmv), as Bernoulli does.
     """
-    if isinstance(dstn, DiscreteDistribution):
+    if isinstance(dstn, DiscreteDistribution) or (
+        hasattr(dstn, "atoms") and hasattr(dstn, "pmv")
+    ):
         atoms = np.asarray(dstn.atoms, dtype=float)
-        if atoms.shape[0] != 1:
+        pmv = np.asarray(dstn.pmv, dtype=float)
+        if atoms.ndim != 2 or atoms.shape[0] != 1 or pmv.shape != atoms.shape[1:]:
             raise ValueError(
                 "expected_continuous() takes univariate distributions: pass the "
                 "variables of a joint discrete distribution separately."
             )
-        return atoms[0], np.asarray(dstn.pmv, dtype=float)
+        return atoms[0], pmv
 
     if hasattr(dstn, "components") and hasattr(dstn, "weights"):
         parts = [_quadrature(part, cuts, n) for part in dstn.components]

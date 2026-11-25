@@ -9,9 +9,10 @@ import unittest
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.stats import gamma
+from scipy.stats import gamma, poisson
 
 from HARK.distributions import (
+    Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     LogNormalMeanOne,
@@ -200,6 +201,21 @@ class testExpectedContinuous(unittest.TestCase):
             expected(vp, labeled, args=(a,)),
             rtol=1e-14,
         )
+
+    def test_discrete_laws_that_are_not_discrete_distributions(self):
+        # A Bernoulli holds its atoms and probabilities without being a
+        # DiscreteDistribution, and is summed over them; a discrete law known
+        # only through its quantile function and CDF is refused, since its
+        # quantile function is a step function
+        law = Bernoulli(0.3)
+        self.assertEqual(float(expected_continuous(dstns=law)[0]), 0.3)
+        self.assertAlmostEqual(
+            float(expected_continuous(lambda x: np.exp(2.0 * x[0]), law)),
+            0.7 + 0.3 * np.exp(2.0),
+            places=14,
+        )
+        with self.assertRaises(TypeError):
+            expected_continuous(dstns=poisson(3.0))
 
     def test_mixture_component_by_component(self):
         law = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
