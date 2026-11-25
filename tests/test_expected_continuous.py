@@ -9,22 +9,30 @@ import unittest
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.stats import gamma, poisson
+from scipy.stats import beta, gamma, poisson
 
 from HARK.distributions import (
     Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     LogNormalMeanOne,
+    LogNormalTruncated,
+    LogNormalTruncatedJumplessMeanOne,
     LogNormalTruncatedMeanOne,
     Normal,
     Uniform,
     Weibull,
     combine_indep_dstns,
+    end_probability,
     expected,
     expected_continuous,
+    graded_quadrature,
+    law_bounds,
+    law_end,
+    scaled_law,
+    step_values,
 )
-from HARK.distributions.utils import _coordinate
+from HARK.distributions.utils import STEPS_WITHIN, _coordinate, _ScaledLaw
 
 
 class Mixture:
@@ -56,6 +64,38 @@ class QuantileOnly:
 
     def cdf(self, x):
         return self._law.cdf(x)
+
+
+class QuantileLaw:
+    """A law known only through its quantile function, CDF, survival function and density."""
+
+    def __init__(self, law):
+        self._law = law
+
+    def ppf(self, q):
+        return self._law.ppf(q)
+
+    def cdf(self, x):
+        return self._law.cdf(x)
+
+    def sf(self, x):
+        return self._law.sf(x)
+
+    def pdf(self, x):
+        return self._law.pdf(x)
+
+
+def log_distance_quad(f, lo, hi, pole):
+    """
+    The integral of f over [lo, hi] by adaptive quadrature in u = log(x - pole),
+    in which a near-pole at pole, just below lo, is smooth.
+    """
+
+    def g(u):
+        return f(pole + np.exp(u)) * np.exp(u)
+
+    u_lo, u_hi = np.log(lo - pole), np.log(hi - pole)
+    return quad(g, u_lo, u_hi, epsabs=0.0, epsrel=1e-12, limit=200)[0]
 
 
 def reference(f, law, points=None):
@@ -410,3 +450,139 @@ class testExpectedContinuous(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             expected_continuous(dstns=joint)
+
+
+class testLawTools(unittest.TestCase):
+    """
+    The tools behind expected_continuous() for laws in general: the ends of a
+    law's support and how it holds probability there, laws scaled and mixed, the
+    values at which a law's integral is cut, and the rule graded toward a
+    near-pole beyond an end of the support.
+    """
+
+    def test_scaled_law_for_any_law(self):
+        # a law of no family that rescales in closed form: its quantile function,
+        # CDF, density and bounds, all scaled
+        law = Uniform(0.6, 1.4)
+        scaled = scaled_law(law, 1.05)
+        self.assertIsInstance(scaled, _ScaledLaw)
+        self.assertAlmostEqual(scaled.mean(), 1.05, places=14)
+        np.testing.assert_allclose(law_bounds(scaled), (0.63, 1.47), rtol=1e-14)
+        q = np.linspace(0.01, 0.99, 7)
+        np.testing.assert_allclose(scaled.cdf(scaled.ppf(q)), q, rtol=1e-12)
+        x = np.linspace(0.64, 1.46, 9)
+        np.testing.assert_allclose(scaled.pdf(x), 1.0 / 0.84, rtol=1e-12)
+        # a truncated lognormal is scaled the same way, as the same family with its
+        # mu moved would be, and keeps the coordinate it supplies, and so the
+        # pieces its integral is cut into
+        tl = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
+        scaled = scaled_law(tl, 1.05)
+        self.assertIsInstance(scaled, _ScaledLaw)
+        family = LogNormalTruncated(tl.mu + np.log(1.05), tl.sigma, bot=-3.0, top=3.0)
+        np.testing.assert_allclose(scaled.ppf(q), family.ppf(q), rtol=1e-12)
+        x = family.ppf(q)
+        for f in ("cdf", "pdf"):
+            np.testing.assert_allclose(
+                getattr(scaled, f)(x), getattr(family, f)(x), rtol=1e-11
+            )
+        edges, value, _, _ = _coordinate(scaled)
+        self.assertEqual([float(e) for e in edges], [-3, -2, -1, 0, 1, 2, 3])
+        z = np.array(edges)  # the underlying normal's coordinate, scaled values
+        np.testing.assert_allclose(value(z), np.exp(family.mu + family.sigma * z))
+        self.assertFalse(
+            hasattr(_ScaledLaw(QuantileLaw(tl), 1.05), "normal_coordinate")
+        )
+        # a discrete law's atoms are scaled, and a mixture component by component
+        atoms = scaled_law(DiscreteDistribution([0.5, 0.5], [1.0, 2.0]), 1.05)
+        np.testing.assert_allclose(atoms.atoms[0], [1.05, 2.1])
+        mixture = scaled_law(Mixture([0.4, 0.6], [law, tl]), 1.05)
+        self.assertEqual(len(mixture.components), 2)
+        self.assertIsInstance(mixture.components[1], _ScaledLaw)
+        self.assertAlmostEqual(float(mixture.infimum[0]), 0.63, places=14)
+        self.assertIs(scaled_law(tl, 1.0), tl)
+
+    def test_law_ends(self):
+        # How a law holds probability at each end, read through its quantile
+        # function and density alone: with a positive density (1) where it is
+        # truncated or uniform, with one rising like a power from zero (2, 3) at
+        # the jumpless law's bound and the ends of a beta law and a gamma law's
+        # zero, not at all (None) where it reaches the end through a tail; a mass
+        # (0) at a point
+        truncated = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
+        jumpless = LogNormalTruncatedJumplessMeanOne.from_sd_log(0.1)
+        cases = {
+            "truncated": (truncated, 1, 1),
+            "truncated, wide": (LogNormalTruncated(0.0, 3.0, bot=-1.0, top=5.0), 1, 1),
+            "truncated above": (
+                LogNormalTruncated(0.0, 0.1, bot=None, top=3.0),
+                None,
+                1,
+            ),
+            "truncated below": (
+                LogNormalTruncated(0.0, 0.1, bot=-3.0, top=None),
+                1,
+                None,
+            ),
+            "jumpless": (jumpless, 2, None),
+            "lognormal": (LogNormalMeanOne(0.1), None, None),
+            "lognormal, wide": (LogNormalMeanOne(2.0), None, None),
+            "uniform": (Uniform(0.6, 1.4), 1, 1),
+            "beta": (QuantileLaw(beta(2.0, 3.0, loc=0.4, scale=1.5)), 2, 3),
+            "gamma": (QuantileLaw(gamma(3.0)), 3, None),
+            "point": (DiscreteDistribution([1.0], [0.3]), 0, 0),
+        }
+        for name, (law, lower, upper) in cases.items():
+            with self.subTest(law=name):
+                self.assertEqual(law_end(law, upper=False)[1], lower)
+                self.assertEqual(law_end(law, upper=True)[1], upper)
+
+    def test_end_probability_and_step_values(self):
+        # the probability a law holds at an end itself: an atom's, all of a
+        # point's, none for a density; a mixture's components' that reach it
+        three = DiscreteDistribution([0.2, 0.5, 0.3], [1.0, 2.0, 3.0])
+        self.assertEqual(end_probability(three, upper=False), 0.2)
+        self.assertEqual(end_probability(three, upper=True), 0.3)
+        self.assertEqual(
+            end_probability(DiscreteDistribution([1.0], [2.0]), False), 1.0
+        )
+        tl = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
+        self.assertEqual(end_probability(tl, upper=False), 0.0)
+        point = DiscreteDistribution([1.0], [0.3])
+        self.assertAlmostEqual(
+            end_probability(Mixture([0.4, 0.6], [point, tl]), False), 0.4
+        )
+        # the values at which a law's integral is cut: its coordinate's steps
+        # within STEPS_WITHIN of its center, with the ends it holds probability
+        # at; a discrete law's atoms
+        z = np.arange(-STEPS_WITHIN, STEPS_WITHIN + 1.0)
+        np.testing.assert_allclose(step_values(tl), np.exp(tl.mu + tl.sigma * z))
+        np.testing.assert_array_equal(step_values(three), [1.0, 2.0, 3.0])
+
+    def test_graded_rule_in_either_coordinate(self):
+        # A truncated lognormal is graded in the standard-normal coordinate it
+        # supplies; known only by its quantile function, CDF and density, the
+        # same law is graded in its values, and both give the integrals of an
+        # inverse distance to a pole beyond the lower end, with cuts or without
+        law = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
+        lo, hi = law.infimum[0], law.supremum[0]
+        pole = lo - np.array([1e-6, 1e-3, 1e-2])
+        exact = [
+            log_distance_quad(lambda x, p=p: law.pdf(x) / (x - p), lo, hi, p)
+            for p in pole
+        ]
+        cuts = np.broadcast_to(lo + np.array([1e-7, 1e-4, 0.01, 0.1]), (3, 4))
+        for name, form in (("its coordinate", law), ("its values", QuantileLaw(law))):
+            for nodes, rtol in ((4, 2e-8), (8, 2e-12)):
+                for cut in (None, cuts):
+                    with self.subTest(graded=name, nodes=nodes, cuts=cut is not None):
+                        values, weights, graded = graded_quadrature(
+                            form, nodes, pole, cut
+                        )
+                        self.assertTrue(np.all(graded))
+                        E = np.sum(weights / (values - pole[:, None]), axis=-1)
+                        np.testing.assert_allclose(E, exact, rtol=rtol)
+        # a pole far from the support is not graded, and the rule is then the
+        # plain one, the integral of the law's density to rounding
+        values, weights, graded = graded_quadrature(law, 4, np.array([lo - 10.0]))
+        self.assertFalse(np.any(graded))
+        self.assertAlmostEqual(float(np.sum(weights)), 1.0, places=8)
