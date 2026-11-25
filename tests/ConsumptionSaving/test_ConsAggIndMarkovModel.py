@@ -241,6 +241,53 @@ class testGeneralFormatShuffle(unittest.TestCase):
                 ),
             )
 
+    def test_untouched_cells_keep_their_draws_when_other_cells_appear(self):
+        """Common random numbers: a cell's draw must not depend on its neighbours.
+
+        This is the property ``MarkovProcess.draw`` spawns one sub-RNG per
+        source state to provide, so that a counterfactual altering one
+        transition row leaves the other rows' permutations alone.  It was
+        being undone here: each cell's seed came from ``self.RNG`` *inside*
+        the loop, so the number and order of occupied cells fixed every later
+        cell's seed.
+
+        The perturbation has to change **which** ``(macro_prev, macro_next)``
+        pairs are realized.  Varying ``AgentCount`` alone changes cell
+        populations but not the cell list, so a fix that merely hoists the
+        draw above the loop passes that version of this test while leaving
+        the defect in place.
+        """
+        cond, macro_prev, macro_next, micro_prev = self._two_pair_setup()
+
+        baseline = self._make_agent(cond, macro_prev, macro_next, micro_prev)
+        baseline.get_micro_markov_states()
+        before = baseline.MicroMrkvNow.copy()
+
+        # The same 400 agents, plus 100 in the (0, 0) pair, which was empty.
+        # That inserts occupied cells ahead of the ones under test.
+        extra = 100
+        macro_prev_b = np.concatenate([macro_prev, np.zeros(extra, dtype=int)])
+        macro_next_b = np.concatenate([macro_next, np.zeros(extra, dtype=int)])
+        micro_prev_b = np.concatenate([micro_prev, np.zeros(extra, dtype=int)])
+
+        perturbed = self._make_agent(cond, macro_prev_b, macro_next_b, micro_prev_b)
+        perturbed.get_micro_markov_states()
+        after = perturbed.MicroMrkvNow[: macro_prev.size]
+
+        n_diff = int(np.sum(before != after))
+        self.assertEqual(
+            n_diff,
+            0,
+            msg=(
+                f"{n_diff} of {before.size} agents in untouched "
+                f"(macro_prev, macro_next) cells changed micro state when an "
+                f"unrelated cell became occupied.  Their transition rows and "
+                f"agent sets are identical across the two runs, so the draws "
+                f"must be too; a nonzero count means cell seeds still depend "
+                f"on position in the iteration rather than on cell identity."
+            ),
+        )
+
     def test_general_format_all_agents_assigned(self):
         """Every agent leaves with a micro state in range.
 
