@@ -9,7 +9,7 @@ import unittest
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.stats import beta, gamma, poisson
+from scipy.stats import beta, gamma, norm, poisson
 
 from HARK.distributions import (
     Bernoulli,
@@ -20,6 +20,7 @@ from HARK.distributions import (
     LogNormalTruncatedJumplessMeanOne,
     LogNormalTruncatedMeanOne,
     Normal,
+    PointMassAtInfimum,
     Uniform,
     Weibull,
     combine_indep_dstns,
@@ -435,6 +436,35 @@ class testExpectedContinuous(unittest.TestCase):
         self.assertTrue(np.all(np.isin(np.round(steps, 12), np.arange(-8.0, 9.0))))
         self.assertEqual(LogNormalMeanOne(0.2).breakpoints().size, 0)
         self.assertEqual(LogNormalTruncatedMeanOne(0.2).breakpoints().size, 0)
+
+    def test_point_mass_at_the_infimum(self):
+        # A law with a point mass at its infimum is reached through its quantile
+        # function, which jumps from the infimum to where the law's continuous
+        # part starts. That value is the law's breakpoint, and so an edge of its
+        # pieces: with the jump inside a piece instead, four nodes a piece miss
+        # these moments by ten times as much or more
+        base = LogNormalTruncatedMeanOne.from_sd_log(0.1, -3.0, 3.0)
+
+        class JumpNotDeclared(PointMassAtInfimum):
+            def breakpoints(self):
+                return np.array([])
+
+        for prb in (0.005, 0.05):
+            law = PointMassAtInfimum(base, prb)
+            np.testing.assert_allclose(law.breakpoints(), law.scale * law.infimum)
+            edges = np.array(_coordinate(law)[0])
+            self.assertLess(np.min(np.abs(edges - norm.ppf(prb))), 1e-12)
+            for order in (1.0, -2.0):
+                exact = law.expect(lambda x: x**order)
+
+                def miss(law, nodes):
+                    got = expected_continuous(lambda x: x[0] ** order, law, nodes=nodes)
+                    return abs(float(got) / exact - 1.0)
+
+                with self.subTest(prb=prb, order=order):
+                    undeclared = JumpNotDeclared(base, prb)
+                    self.assertLess(10.0 * miss(law, 4), miss(undeclared, 4))
+                    self.assertLess(miss(law, 16), 5e-8)
 
     def test_errors(self):
         law = LogNormalMeanOne(0.1)

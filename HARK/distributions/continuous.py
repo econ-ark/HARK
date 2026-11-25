@@ -1300,6 +1300,14 @@ class PointMassAtInfimum(Distribution):
         rest = (1.0 - self.infimum_prb) * self.base.cdf(x / self.scale)
         return np.where(x < self.infimum[0], 0.0, self.infimum_prb + rest)
 
+    def breakpoints(self):
+        """
+        Where the law's continuous part starts, scale times the infimum: its
+        quantile function jumps there from the infimum, across a gap that holds
+        no probability, so expected_continuous cuts its pieces there.
+        """
+        return np.array([self.scale * self.infimum[0]])
+
     def expect(self, func=None):
         """
         The expectation of func under the law: the infimum's share, and the base
