@@ -1112,6 +1112,133 @@ class TestSolveFrom(unittest.TestCase):
             self.assertEqual(s2.distance(agent.solution[t]), 0.0)
 
 
+class PeriodMarker(MetricObject):
+    """A stand-in solution that records its period and the period it was solved from."""
+
+    distance_criteria = ["t"]
+
+    def __init__(self, t, t_next=None):
+        self.t = t
+        self.t_next = t_next
+
+
+class TestSolveTo(unittest.TestCase):
+    """The to_t and pad_back options of solve() (issue #1780)."""
+
+    @staticmethod
+    def _marker_agent(T_cycle=4, pseudo_terminal=True, cycles=1):
+        # A life-cycle agent whose solution for period t is PeriodMarker(t, t + 1)
+        agent = AgentType(
+            solution_terminal=PeriodMarker(T_cycle),
+            pseudo_terminal=pseudo_terminal,
+            cycles=cycles,
+        )
+        agent.T_cycle = T_cycle
+        agent.t_index = list(range(T_cycle))
+        agent.add_to_time_vary("t_index")
+        agent.solve_one_period = lambda solution_next, t_index: PeriodMarker(
+            t_index, solution_next.t
+        )
+        return agent
+
+    def test_to_t_solves_back_to_t(self):
+        agent = self._marker_agent()
+        agent.solve()
+        self.assertEqual([s.t for s in agent.solution], [0, 1, 2, 3])
+        agent.solve(to_t=2)
+        self.assertEqual([s.t for s in agent.solution], [2, 3])
+        self.assertEqual([s.t_next for s in agent.solution], [3, 4])
+        # to_t=0 is a complete solve
+        agent.solve(to_t=0)
+        self.assertEqual([s.t for s in agent.solution], [0, 1, 2, 3])
+
+    def test_to_t_keeps_the_terminal_solution(self):
+        agent = self._marker_agent(pseudo_terminal=False)
+        agent.solve(to_t=3)
+        self.assertEqual([s.t for s in agent.solution], [3, 4])
+
+    def test_pad_back_fills_the_periods_before_to_t(self):
+        pad = object()
+        for pseudo_terminal in (True, False):
+            agent = self._marker_agent(pseudo_terminal=pseudo_terminal)
+            agent.solve(to_t=3, pad_back=pad)
+            self.assertEqual(len(agent.solution), 4 if pseudo_terminal else 5)
+            for t in range(3):
+                self.assertIs(agent.solution[t], pad)
+            self.assertEqual(agent.solution[3].t, 3)
+
+    def test_pad_back_without_to_t_does_nothing(self):
+        agent = self._marker_agent()
+        agent.solve(pad_back=object())
+        self.assertEqual([s.t for s in agent.solution], [0, 1, 2, 3])
+
+    def test_to_t_with_from_t(self):
+        agent = self._marker_agent()
+        agent.solve(from_solution=PeriodMarker(3), from_t=3, to_t=1)
+        self.assertEqual([s.t for s in agent.solution], [1, 2])
+        self.assertEqual([s.t_next for s in agent.solution], [2, 3])
+        pad = object()
+        agent.solve(from_solution=PeriodMarker(3), from_t=3, to_t=1, pad_back=pad)
+        self.assertIs(agent.solution[0], pad)
+        self.assertEqual([s.t for s in agent.solution[1:]], [1, 2])
+
+    def test_to_t_outside_the_periods_to_solve_is_refused(self):
+        agent = self._marker_agent()
+        for to_t in (-1, 4, 5):
+            with self.assertRaisesRegex(ValueError, "0 <= to_t < 4"):
+                agent.solve(to_t=to_t)
+        # with from_t, the periods to solve end at from_t - 1
+        for to_t in (2, 3):
+            with self.assertRaisesRegex(ValueError, "0 <= to_t < 2, where 2 is from_t"):
+                agent.solve(from_solution=PeriodMarker(2), from_t=2, to_t=to_t)
+
+    def test_to_t_needs_cycles_equal_to_one(self):
+        for cycles in (0, 2):
+            agent = self._marker_agent(cycles=cycles)
+            with self.assertRaisesRegex(ValueError, "cycles=1"):
+                agent.solve(to_t=1)
+
+    def test_solve_to_t_then_from_t_matches_a_complete_solve(self):
+        # The "hot swap" workflow on a real model: solve back to period 1, then
+        # continue from there with from_t
+        params = init_idiosyncratic_shocks.copy()
+        params.update(
+            {
+                "T_cycle": 3,
+                "PermGroFac": [1.05, 1.10, 1.3],
+                "LivPrb": [0.95, 0.9, 0.85],
+                "TranShkStd": [0.1] * 3,
+                "PermShkStd": [0.1] * 3,
+                "Rfree": [1.02] * 3,
+            }
+        )
+        agent = IndShockConsumerType(**params)
+        agent.solve()
+        full = agent.solution  # periods 0, 1, 2 and the terminal period
+
+        agent.solve(to_t=1)
+        tail = agent.solution  # periods 1, 2 and the terminal period
+        self.assertEqual(len(tail), 3)
+        for t, solution_t in enumerate(tail):
+            self.assertEqual(solution_t.distance(full[t + 1]), 0.0)
+
+        agent.solve(from_solution=tail[0], from_t=1)
+        head = agent.solution  # period 0 and a copy of from_solution
+        combined = head[:-1] + tail
+        self.assertEqual(len(combined), len(full))
+        for t, solution_t in enumerate(combined):
+            self.assertEqual(solution_t.distance(full[t]), 0.0)
+
+        # With pad_back, solution[t] is the solution for period t
+        pad = object()
+        agent.solve(to_t=2, pad_back=pad)
+        self.assertEqual(len(agent.solution), len(full))
+        self.assertIs(agent.solution[0], pad)
+        self.assertIs(agent.solution[1], pad)
+        for t in (2, 3):
+            self.assertEqual(agent.solution[t].distance(full[t]), 0.0)
+
+
 # Define a constructor that will definitely throw an error
 def broken_constructor(IncShkDstn):
     X = np.linspace(0.0, 1.0, 21)
