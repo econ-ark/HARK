@@ -109,6 +109,12 @@ Thanks again! We're so glad to have you in our community.
      - `upstream`, which refers to the `HARK` repository
      - `origin`, which refers to your personal fork of `HARK`.
 
+   - Fetch HARK's tags, from which it takes its version. A fork made before the latest release lacks it, and without it HARK builds a version below that release:
+
+     ```bash
+     git fetch --tags upstream
+     ```
+
 2. Develop your contribution:
 
    - Pull the latest changes from upstream

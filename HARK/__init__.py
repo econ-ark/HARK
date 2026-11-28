@@ -24,9 +24,27 @@ __all__ = [
 
 from .core import *
 
-# Before changing the version, work through the "Before release" list in the
-# dev section of docs/CHANGELOG.md, if there is one.
-__version__ = "0.17.2"
+# The version is set from git when HARK is built or installed (setuptools_scm,
+# configured in pyproject.toml), which writes HARK/_version.py.
+try:
+    from HARK._version import version as __version__
+except ImportError:  # a tree that was never built or installed
+    from importlib.metadata import PackageNotFoundError, distribution
+    from pathlib import Path as _Path
+
+    # The installed econ-ark's metadata gives the version only if that
+    # installation is the tree being imported, not, say, an older install
+    # beside a source tree on PYTHONPATH
+    __version__ = "0+unknown"
+    try:
+        _dist = distribution("econ-ark")
+        if (
+            _Path(_dist.locate_file("HARK/__init__.py")).resolve()
+            == _Path(__file__).resolve()
+        ):
+            __version__ = _dist.version
+    except PackageNotFoundError:
+        pass
 import logging
 from HARK.helpers import install_examples
 

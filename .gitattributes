@@ -8,3 +8,7 @@
 # conflicts add a `||||||| <sha>` base marker on top of the usual three, and two
 # of those reached main inside this file before anyone noticed.
 docs/CHANGELOG.md merge=union
+
+# setuptools_scm reads the version from this file in an archive without .git
+# (a GitHub tarball, or `git archive`); git fills it in when it makes the archive.
+.git_archival.txt export-subst

@@ -1,12 +1,9 @@
 [build-system]
-requires = ["setuptools>=61.2", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=77", "setuptools_scm>=9.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "econ-ark"
-# Before changing the version, work through the "Before release" list in the
-# dev section of docs/CHANGELOG.md, if there is one.
-version = "0.17.2"
 authors = [{name = "Econ-ARK team", email = "econ-ark@jhuecon.org"}]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -27,9 +24,43 @@ classifiers = [
 description = "Heterogenous Agents Resources & toolKit"
 keywords = ["economics", "modelling", "modeling", "heterogeneity"]
 requires-python = ">=3.12"
-dynamic = ["dependencies", "optional-dependencies"]
+dynamic = ["version", "dependencies", "optional-dependencies"]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
+
+[tool.setuptools_scm]
+# The version comes from git. A release's version is its tag, such as 0.17.2,
+# and every commit after a tag gets a development version of its own, so pip
+# can tell an install from main apart from the release before it. The scheme is
+# setuptools_scm's default, guess-next-dev. After a release tag such as 0.17.2,
+# commits count toward its next patch (0.17.3.devN+g...), as on a maintenance
+# branch. Main starts each cycle with a tag such as 0.18.0.dev0, after which its
+# commits count toward that release (0.18.0.devN+g...), however HARK is
+# installed, from a commit's SHA included.
+# Before tagging a release, work through the "Before release" list in the dev
+# section of docs/CHANGELOG.md, if there is one.
+version_file = "HARK/_version.py"
+version_scheme = "guess-next-dev"
+# Only release tags count (0.17.2, 0.18.0rc1, ...), and the .dev0 tags that
+# start a cycle on main, not tags such as v0.17.0.post1-broadcasting-fix or pins
+# for other projects.
+tag_regex = '^(?P<version>\d+\.\d+(?:\.\d+)?(?:(?:a|b|rc)\d+)?(?:\.dev0)?)$'
+
+[tool.setuptools_scm.scm.git]
+# git describe takes the nearest tag these patterns admit. They admit every tag
+# tag_regex accepts and none of the repository's other tags
+# (tests/test_version.py checks samples of both). Globs cannot say all that the
+# regular expression says: a mis-spelled release tag that they admit and it
+# rejects, such as 0.18.0.rc1, stops the build with an error that names the tag.
+describe_command = [
+    "git", "describe", "--dirty", "--tags", "--long",
+    "--match", "[0-9]*.[0-9]*",
+    "--exclude", "*[!0-9]",
+    "--exclude", "*[!0-9.abcderv]*",
+    "--exclude", "*.dev[!0]*",
+    "--exclude", "*.dev0?*",
+    "--exclude", "*.*.*.[0-9]*",
+]
 
 [tool.setuptools.dynamic.dependencies]
 file = "requirements/base.txt"

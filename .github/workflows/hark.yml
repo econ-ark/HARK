@@ -59,6 +59,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # setuptools_scm takes HARK's version from the tags
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -79,6 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # setuptools_scm takes HARK's version from the tags
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"

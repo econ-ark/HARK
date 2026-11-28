@@ -28,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # setuptools_scm takes HARK's version from the tags
       # Single version on purpose. This job executes every example
       # notebook, which is the most expensive thing in CI, and it exists
       # to catch examples that have gone stale against the library, not

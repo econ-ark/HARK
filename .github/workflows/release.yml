@@ -10,7 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # setuptools_scm takes the version from the release's tag
       - uses: hynek/build-and-inspect-python-package@v2
+        id: baipp
+      - name: The built version is the release's tag
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          BUILT: ${{ steps.baipp.outputs.package_version }}
+        run: |
+          if [ "$BUILT" != "$TAG" ]; then
+            echo "The release's tag, $TAG, is not the version built, $BUILT." >&2
+            echo "Tag a release with its version alone, such as 0.18.0." >&2
+            exit 1
+          fi
 
   publish:
     needs: [dist]
