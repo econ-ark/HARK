@@ -268,12 +268,12 @@ class KnotProblem(StationaryProblem):
         self.cubic = bool(cubic)
         self.scalars = self._scalar_limits(seed_solution)
         self.S = self.scalars["hNrm"].size
-        # One pass on the real grid from the seed gives, for every state, the
-        # fixed bottom knot and the asset nodes the solver works with.  Their
-        # number is the solver's, not the grid's: a solver that adds a binding
-        # artificial constraint to the grid has one node more in that state.
+        # One pass on the real grid gives, for every state, the fixed bottom
+        # knot and the asset nodes the solver works with.  Their number is the
+        # solver's, not the grid's: a solver that adds a binding artificial
+        # constraint to the grid has one node more in that state.
         first = self.solve_one_period(
-            self._with_scalars(copy(seed_solution)), self.aXtraGrid, cubic=self.cubic
+            self._seed_continuation(), self.aXtraGrid, cubic=self.cubic
         )
         knots = [self._knots_of(f) for f in self.cFuncs(first)]
         self.bottom = [
@@ -429,6 +429,30 @@ class KnotProblem(StationaryProblem):
                     "check the finite human wealth and growth impatience conditions."
                 )
         return to_scalars(v)
+
+    def _seed_continuation(self):
+        """A continuation defined down to the limits' minimum market resources.
+
+        The first pass evaluates the continuation wherever the asset grid can
+        lead next period, down to each state's limit of ``mNrmMin``.  The seed
+        solution, the terminal one, consumes everything, ``c = m``, and is
+        defined only above its own minimum, zero; with a limit below zero, as
+        an artificial constraint below zero or a natural constraint gives it,
+        the seed is undefined where the solver evaluates it, and every node of
+        the pass is NaN.  This is the terminal rule moved to the limit:
+        consumption zero at each state's ``mNrmMin``, with slope one, built with
+        the model's own interpolants.  The pass reads only the bottom knot and
+        the asset nodes from it, which do not depend on the continuation's
+        values above the limit.
+        """
+        cFuncs = []
+        for state in range(self.S):
+            m_min = float(np.atleast_1d(self.scalars["mNrmMin"])[state])
+            m = np.array([m_min, m_min + 1.0])
+            c = np.array([0.0, 1.0])
+            mpc = np.ones(2) if self.cubic else None
+            cFuncs.append(self.make_cFunc(m, c, mpc, state))
+        return self._with_scalars(self.make_continuation(cFuncs))
 
     @staticmethod
     def _knots_of(cFunc):

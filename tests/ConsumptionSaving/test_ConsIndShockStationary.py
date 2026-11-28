@@ -163,6 +163,34 @@ class testStationaryCubicAndValue(unittest.TestCase):
         self.assertLess(5 * info["total_sweeps"], self.stock.completed_cycles)
 
 
+class testStationaryBelowZero(unittest.TestCase):
+    """Where the limit of minimum market resources is below zero: an artificial
+    constraint below zero, or the natural constraint, which with positive
+    income in unemployment allows borrowing. The terminal solution, the seed,
+    is defined only above zero."""
+
+    def test_reaches_the_fixed_point_of_backward_induction(self):
+        for overrides in (
+            {"BoroCnstArt": -0.5},
+            {"BoroCnstArt": None},
+            {"BoroCnstArt": -0.5, "CubicBool": True, "vFuncBool": True},
+        ):
+            with self.subTest(**overrides):
+                stock = solve_stock(**overrides)
+                anderson = solve_anderson(**overrides)
+                self.assertLess(stock.solution[0].mNrmMin, 0.0)
+                # the natural constraint is a limit the stock loop approaches
+                self.assertAlmostEqual(
+                    anderson.solution[0].mNrmMin, stock.solution[0].mNrmMin, places=12
+                )
+                m = np.linspace(stock.solution[0].mNrmMin + 0.05, 40.0, 400)
+                self.assertLess(gap_c(anderson, stock, m), 1e-8)
+                if overrides.get("vFuncBool"):
+                    ours = anderson.solution[0].vFunc.vFuncNvrs(m)
+                    theirs = stock.solution[0].vFunc.vFuncNvrs(m)
+                    self.assertLess(float(np.max(np.abs(ours / theirs - 1.0))), 1e-6)
+
+
 class testStationaryDispatch(unittest.TestCase):
     def test_default_path_is_unchanged(self):
         agent = IndShockConsumerType(**QUARTERLY)
