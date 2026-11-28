@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from tests.ConsumptionSaving.test_IndShockConsumerType import (
     CyclicalDict,
     IdiosyncDict,
     LifecycleDict,
+    atoms_as_the_law,
 )
 from tests import HARK_PRECISION
 
@@ -702,6 +704,87 @@ class testKinkAttributesFast(unittest.TestCase):
                         getattr(standard.solution[0], name),
                         places=8,
                     )
-        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None)
+        # Where the natural constraint binds there is no kink: a discrete law's
+        # natural limit (atoms_as_the_law). With laws bounded below the infima's
+        # limit is above the atoms' and makes one, the standard solver's
+        fast = atoms_as_the_law(IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None))
         fast.solve()
         self.assertTrue(np.isnan(fast.solution[0].mNrmKink))
+
+
+class testNaturalLimitFromTheInfimaFast(unittest.TestCase):
+    """
+    The fast solver imposes the natural borrowing constraint from the shock
+    laws' infima where they are bounded below away from zero, as the standard
+    solver does, so the two solve one model.
+    """
+
+    # HARK's lognormals bounded at three standard deviations of their logs, and
+    # unbounded, whatever HARK's default is
+    BOUNDED = dict(PermShk_inf=-3.0, PermShk_sup=3.0, TranShk_inf=-3.0, TranShk_sup=3.0)
+    UNBOUNDED = dict(
+        PermShk_inf=-np.inf, PermShk_sup=np.inf, TranShk_inf=-np.inf, TranShk_sup=np.inf
+    )
+
+    def test_same_limit_and_solution_as_the_standard_solver(self):
+        for kwds in ({}, {"CubicBool": True, "vFuncBool": True}):
+            kwds = dict(kwds, **self.BOUNDED)
+            for cycles in (0, 3):
+                fast = IndShockConsumerTypeFast(cycles=cycles, BoroCnstArt=None, **kwds)
+                fast.solve()
+                slow = IndShockConsumerType(cycles=cycles, BoroCnstArt=None, **kwds)
+                slow.solve()
+                for sol_fast, sol_slow in zip(fast.solution[:-1], slow.solution[:-1]):
+                    self.assertAlmostEqual(
+                        sol_fast.mNrmMin, sol_slow.mNrmMin, places=12
+                    )
+                    self.assertEqual(sol_fast.MPCmax, 1.0)
+                    m = np.linspace(sol_slow.mNrmMin, 20.0, 2001)
+                    np.testing.assert_allclose(
+                        sol_fast.cFunc(m), sol_slow.cFunc(m), rtol=0, atol=1e-7
+                    )
+        # The infinite-horizon limit with the lognormals truncated at three
+        # standard deviations, and bilt's MPCmax
+        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None, **self.BOUNDED)
+        fast.solve()
+        self.assertAlmostEqual(fast.solution[0].mNrmMin, -0.770919, places=6)
+        self.assertTrue(fast.solver_imposes_infimum_limit())
+        self.assertEqual(fast.bilt["MPCmax"], 1.0)
+
+    def test_the_life_cycle_period_by_period(self):
+        # In working life the infima's limit is above the atoms' and is imposed,
+        # with a maximal MPC of one. Next to retirement the laws' infima are the
+        # atoms', the two limits are one number, nothing is imposed, and the
+        # maximal MPC is the natural constraint's, below one: in every period the
+        # fast solver's limit and maximal MPC are the standard solver's
+        params = deepcopy(init_lifecycle)
+        params["BoroCnstArt"] = None
+        params.update(self.BOUNDED)
+        fast = IndShockConsumerTypeFast(**params)
+        fast.solve()
+        slow = IndShockConsumerType(**params)
+        slow.solve()
+        below_one = 0
+        for sol_fast, sol_slow in zip(fast.solution[:-1], slow.solution[:-1]):
+            self.assertAlmostEqual(sol_fast.mNrmMin, sol_slow.mNrmMin, places=12)
+            self.assertAlmostEqual(sol_fast.MPCmax, sol_slow.MPCmax, places=12)
+            below_one += sol_slow.MPCmax < 1.0
+        self.assertGreater(below_one, 0)
+        self.assertLess(below_one, len(slow.solution) - 1)
+
+    def test_laws_unbounded_below_keep_the_atoms_limit(self):
+        # Where an infimum is zero both solvers keep the atoms' limit, the same
+        # one, with the same maximal MPC below one
+        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None, **self.UNBOUNDED)
+        fast.solve()
+        slow = IndShockConsumerType(cycles=0, BoroCnstArt=None, **self.UNBOUNDED)
+        slow.solve()
+        self.assertLess(slow.solution[0].mNrmMin, 0.0)
+        self.assertAlmostEqual(
+            fast.solution[0].mNrmMin, slow.solution[0].mNrmMin, places=12
+        )
+        self.assertLess(slow.solution[0].MPCmax, 1.0)
+        self.assertAlmostEqual(
+            fast.solution[0].MPCmax, slow.solution[0].MPCmax, places=12
+        )
+        self.assertLess(fast.bilt["MPCmax"], 1.0)

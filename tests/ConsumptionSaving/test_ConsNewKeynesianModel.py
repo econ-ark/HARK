@@ -178,3 +178,29 @@ class test_NeutralMeasureWithGrowth(unittest.TestCase):
         N.LivPrb = [0.995]
         with self.assertRaises(ValueError):
             N.calc_transition_matrix()
+
+
+class test_income_shock_bounds(unittest.TestCase):
+    """NewKeynesianConsumerType's income shocks take IndShock's bounds."""
+
+    def test_the_bounds_are_indshocks(self):
+        # The permanent law's infimum is IndShock's at the same dispersion and
+        # bounds: by default, with the shocks truncated at three standard
+        # deviations, and with four infinite bounds, which are no bounds
+        truncated = dict(PermShk_inf=-3.0, PermShk_sup=3.0)
+        truncated.update(TranShk_inf=-3.0, TranShk_sup=3.0)
+        unbounded = dict(PermShk_inf=-np.inf, PermShk_sup=np.inf)
+        unbounded.update(TranShk_inf=-np.inf, TranShk_sup=np.inf)
+        for kwds in ({}, truncated, unbounded):
+            agent = IndShockConsumerType(PermShkStd=[0.06], TranShkStd=[0.2], **kwds)
+            nk = NewKeynesianConsumerType(PermShkStd=[0.06], TranShkStd=[0.2], **kwds)
+            self.assertAlmostEqual(
+                agent.IncShkDstn[0].limit["infimum"][0],
+                nk.IncShkDstn[0].limit["infimum"][0],
+                places=12,
+            )
+        bounded = NewKeynesianConsumerType(**truncated).IncShkDstn[0]
+        self.assertGreater(bounded.limit["infimum"][0], 0.0)
+        self.assertGreater(bounded.limit["infimum"][1], 0.0)
+        free = NewKeynesianConsumerType(**unbounded).IncShkDstn[0]
+        self.assertEqual(free.limit["infimum"][0], 0.0)
