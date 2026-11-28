@@ -74,8 +74,12 @@ jobs:
   # With numba installed, CI never executes the HARK._numba fallback, so a
   # divergence in the pure-Python path would reach a browser user unseen.
   # Removing numba plus the two packages requiring it gives the wasm dep set.
+  # It is the second step: it starts once every cell of the build above has
+  # passed, and is skipped where one fails, since a change that fails with
+  # numba installed needs no run without it to say so.
   no-numba:
     name: Test with numba absent (browser install)
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
