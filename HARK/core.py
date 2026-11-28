@@ -1108,6 +1108,10 @@ class AgentType(Model):
         one period problem in an infinite horizon (cycles=0) model in order
         for the solution to be considered as having "converged".  Inoperative
         when cycles>0.
+    max_cycles : int
+        Maximum number of cycles to solve in an infinite horizon (cycles=0)
+        model, default is 5000.  If the solution has not converged by then,
+        the solve stops with a warning.  Inoperative when cycles>0.
     stopping_rule : str
         How an infinite horizon solve decides that it has converged. 'step'
         (the default) stops when the distance between successive iterates
@@ -1173,6 +1177,7 @@ class AgentType(Model):
         seed=0,
         construct=True,
         use_defaults=True,
+        max_cycles=5000,
         stopping_rule="step",
         report_convergence=False,
         **kwds,
@@ -1210,6 +1215,7 @@ class AgentType(Model):
         self.solution_terminal = solution_terminal  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
         self.tolerance = tolerance  # NOQA
+        self.max_cycles = max_cycles  # NOQA
         self.stopping_rule = stopping_rule
         self.report_convergence = report_convergence
         self.verbose = verbose
@@ -2463,7 +2469,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
     # Initialize the process, then loop over cycles
     go = True  # NOQA
     completed_cycles = 0  # NOQA
-    max_cycles = 5000  # NOQA  - escape clause
+    max_cycles = agent.max_cycles  # NOQA  - escape clause
     warned_nan = False  # warn once per solve about a nan distance
     stopping_rule = getattr(agent, "stopping_rule", "step")
     if stopping_rule not in ("step", "contraction"):
@@ -2537,12 +2543,24 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                     # apply and the step rule decides
                     step_rule_decides = implied_distance is None
                     bound = solution_distance if step_rule_decides else implied_distance
-                    go = bound > agent.tolerance and completed_cycles < max_cycles
+                    converged = bound <= agent.tolerance
                 else:
                     step_rule_decides = True
-                    go = (
-                        not finite or solution_distance > agent.tolerance
-                    ) and completed_cycles < max_cycles
+                    bound = solution_distance
+                    converged = finite and solution_distance <= agent.tolerance
+                go = not converged and completed_cycles + 1 < max_cycles
+                if not converged and not go:
+                    measure = (
+                        "distance between iterates"
+                        if step_rule_decides
+                        else "implied distance to the fixed point"
+                    )
+                    warn(
+                        f"solve_agent stopped at its max_cycles of {max_cycles} "
+                        f"with a {measure} of {bound}, above the tolerance of "
+                        f"{agent.tolerance}: the solution has not converged. "
+                        "Set a larger max_cycles to keep iterating."
+                    )
             else:  # Assume solution does not converge after only one cycle
                 solution_distance = 100.0
                 go = True
