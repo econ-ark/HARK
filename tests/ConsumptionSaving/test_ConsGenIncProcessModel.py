@@ -127,13 +127,10 @@ class testPersistentShockConsumerType(unittest.TestCase):
         self.assertTrue(np.all(np.isfinite(aNrm)))
         self.assertTrue(np.allclose(aNrm, implied, rtol=1e-12, atol=0.0))
 
-    def test_cubic(self):
+    def test_cubic_refused(self):
+        # Cubic Hermite interpolation is refused with a sum over discrete shock atoms
         CubicType = PersistentShockConsumerType(CubicBool=True)
-        CubicType.solve()
-        CubicType.unpack("cFunc")
-        self.assertAlmostEqual(
-            CubicType.cFunc[0](5.0, 2.0), 3.48222, places=HARK_PRECISION
-        )
+        self.assertRaises(ValueError, CubicType.solve)
 
     def test_IH_constructors(self):
         self.agent.cycles = 0

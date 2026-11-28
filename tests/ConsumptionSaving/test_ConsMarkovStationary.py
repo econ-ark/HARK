@@ -3,6 +3,7 @@
 solves run to a tight tolerance."""
 
 import unittest
+from unittest import mock
 
 import numpy as np
 
@@ -72,6 +73,16 @@ class testMarkovStationary(unittest.TestCase):
         self.assertFalse(info["fallback"])
         self.assertLess(5 * info["total_sweeps"], self.stock.completed_cycles)
 
+    # The stationary solver's cubic branch, which the pairing rule makes
+    # unreachable over atoms, so it solves with the check disabled
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsMarkovModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
     def test_cubic_and_value_match(self):
         stock = solve_stock(CubicBool=True, vFuncBool=True)
         anderson = solve_anderson(CubicBool=True, vFuncBool=True)

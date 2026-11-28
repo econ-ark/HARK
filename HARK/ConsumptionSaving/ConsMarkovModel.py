@@ -16,9 +16,11 @@ from HARK.Calibration.Income.IncomeProcesses import (
     get_TranShkDstn_from_IncShkDstn_markov,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     ConsumerSolution,
     IndShockConsumerType,
     calc_aNrm_grid,
+    check_employed_floor_in_solver,
     find_kink,
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
@@ -353,6 +355,7 @@ def solve_one_period_ConsMarkov(
         Markov state.  E.g. solution.cFunc[0] is the consumption function
         when in the i=0 Markov state this period.
     """
+    check_cubic_pairing(CubicBool)
     # Relabel the inputs that vary across Markov states
     IncShkDstn_list = IncShkDstn
     Rfree_list = np.array(Rfree)
@@ -375,6 +378,15 @@ def solve_one_period_ConsMarkov(
             (solution_next.mNrmMin[j] - TranShkMinNext)
             * (PermGroFac_list[j] * PermShkMinNext)
             / Rfree_list[j]
+        )
+        # Where the natural limit can bind, unemployment must be the lowest
+        # income in every next state
+        check_employed_floor_in_solver(
+            solution_next.mNrmMin[j],
+            IncShkDstn_list[j],
+            Rfree_list[j],
+            PermGroFac_list[j],
+            BoroCnstArt,
         )
 
     # Initialize the natural borrowing constraint and minimum value of mNrm for

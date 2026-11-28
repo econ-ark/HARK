@@ -40,6 +40,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     make_basic_pLvlPctiles,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     calc_boro_const_nat,
     calc_m_nrm_min,
     make_lognormal_kNrm_init_dstn,
@@ -316,11 +317,7 @@ def solve_one_period_WealthUtility(
         Solution to this period's problem, including the consumption function cFunc.
 
     """
-    # Raise an error if cubic interpolation was requested
-    if CubicBool:
-        raise NotImplementedError(
-            "Cubic interpolation hasn't been programmed for the wealth in utility model yet."
-        )
+    check_cubic_pairing(CubicBool)
 
     # Define the current period utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
@@ -728,6 +725,7 @@ def solve_one_period_CapitalistSpirit(
     solution_now : ConsumerSolution
         Solution to this period's consumption-saving problem.
     """
+    check_cubic_pairing(CubicBool)
     if WealthCurve >= 1.0:
         raise ValueError("WealthCurve must be less than 1!")
     if WealthCurve <= 0.0:

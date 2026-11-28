@@ -16,13 +16,13 @@ class testWealthUtilityConsumerType(unittest.TestCase):
         cFunc = self.agent.solution[0].cFunc
         mNrm = 5.0
         cNrm = cFunc(mNrm)
-        self.assertAlmostEqual(cNrm, 0.94275, places=HARK_PRECISION)
+        self.assertAlmostEqual(cNrm, 0.94241, places=HARK_PRECISION)
 
     def test_vFunc(self):
         vFunc = self.agent.solution[0].vFunc
         mNrm = 5.0
         v = vFunc(mNrm)
-        self.assertAlmostEqual(v, -11.2017, places=HARK_PRECISION)
+        self.assertAlmostEqual(v, -11.20656, places=HARK_PRECISION)
 
     def test_sim(self):
         self.agent.T_sim = 100
@@ -43,13 +43,13 @@ class testWealthUtilityOddParams(unittest.TestCase):
         cFunc = self.agent1.solution[0].cFunc
         mNrm = 5.0
         cNrm = cFunc(mNrm)
-        self.assertAlmostEqual(cNrm, 0.98474, places=HARK_PRECISION)
+        self.assertAlmostEqual(cNrm, 0.98426, places=HARK_PRECISION)
 
     def test_trivial(self):
         cFunc = self.agent2.solution[0].cFunc
         mNrm = 5.0
         cNrm = cFunc(mNrm)
-        self.assertAlmostEqual(cNrm, 1.37170, places=HARK_PRECISION)
+        self.assertAlmostEqual(cNrm, 1.37085, places=HARK_PRECISION)
 
 
 class testCapitalistSpiritConsumerType(unittest.TestCase):
@@ -85,7 +85,7 @@ class testCapitalistSpiritConsumerType(unittest.TestCase):
 class testInvalidParams(unittest.TestCase):
     def test_invalid(self):
         MyType = WealthUtilityConsumerType(cycles=0, CubicBool=True)
-        self.assertRaises(NotImplementedError, MyType.solve)
+        self.assertRaises(ValueError, MyType.solve)
 
         MyType = CapitalistSpiritConsumerType(WealthCurve=1.3)
         self.assertRaises(ValueError, MyType.solve)

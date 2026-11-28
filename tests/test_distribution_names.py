@@ -180,10 +180,18 @@ class EarlierNamesTests(unittest.TestCase):
                 )
 
     def test_an_income_distribution_pickled_before_the_rename(self):
-        # The default IndShockConsumerType's IncShkDstn[0] keeps its two continuous
-        # parents, LogNormalMeanOne, in its record of the law's bounds; before the
-        # rename a pickle stored them as MeanOneLogNormal
-        fresh = IndShockConsumerType().IncShkDstn[0]
+        # IndShockConsumerType's IncShkDstn[0] with unbounded lognormal shocks, the
+        # default before the bounded laws, keeps its two continuous parents,
+        # LogNormalMeanOne, in its record of the law's bounds; before the rename a
+        # pickle stored them as MeanOneLogNormal. None now takes the default
+        # bounds, so the build asks for no bounds with infinite ones
+        unbounded = {
+            "PermShk_inf": -np.inf,
+            "PermShk_sup": np.inf,
+            "TranShk_inf": -np.inf,
+            "TranShk_sup": np.inf,
+        }
+        fresh = IndShockConsumerType(**unbounded).IncShkDstn[0]
         parents = (
             lambda dstn: dstn.limit["dist"][0].limit["dist"],
             lambda dstn: dstn.limit["dist"][1].limit["dist"].limit["dist"],

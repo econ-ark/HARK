@@ -15,7 +15,7 @@ class testHabitConsumerType(unittest.TestCase):
         cFunc = self.agent.solution[0]["cFunc"]
         mNrm = 10.0
         hNrm = 1.0
-        self.assertAlmostEqual(cFunc(mNrm, hNrm), 1.72773, places=HARK_PRECISION)
+        self.assertAlmostEqual(cFunc(mNrm, hNrm), 1.72763, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
@@ -40,11 +40,11 @@ class testHabitPortfolioConsumerType(unittest.TestCase):
 
     def test_cFunc(self):
         cFunc = self.agent.solution[0]["cFunc"]
-        self.assertAlmostEqual(cFunc(10.0, 1.0), 1.70776, places=HARK_PRECISION)
+        self.assertAlmostEqual(cFunc(10.0, 1.0), 1.70759, places=HARK_PRECISION)
 
     def test_ShareFunc(self):
         ShareFunc = self.agent.solution[0]["ShareFunc"]
-        self.assertAlmostEqual(ShareFunc(10.0, 1.0), 0.71368, places=HARK_PRECISION)
+        self.assertAlmostEqual(ShareFunc(10.0, 1.0), 0.71349, places=HARK_PRECISION)
 
     def test_terminal_period(self):
         sol_last = self.agent.solution[-1]

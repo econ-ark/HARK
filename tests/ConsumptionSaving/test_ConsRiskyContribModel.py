@@ -80,7 +80,7 @@ class test_(unittest.TestCase):
         )
         self.assertAlmostEqual(
             fin_cont_agent.solution[0].stage_sols["Cns"].cFunc(3.0, 4.0, 0.1),
-            2.45609,
+            2.45587,
             places=HARK_PRECISION,
         )
 
@@ -125,7 +125,7 @@ class test_(unittest.TestCase):
         )
         self.assertAlmostEqual(
             fin_cont_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1),
-            2.45610,
+            2.45588,
             places=HARK_PRECISION,
         )
 
@@ -142,14 +142,14 @@ class test_(unittest.TestCase):
 
         self.assertAlmostEqual(
             fin_disc_agent.solution[0].stage_sols["Reb"].dfracFunc_Adj(3.0, 4.0),
-            -0.8767603,
+            -0.87677394,
         )
         self.assertAlmostEqual(
             fin_disc_agent.solution[0].stage_sols["Sha"].ShareFunc_Adj(5.0, 0.1), 0.1
         )
         self.assertAlmostEqual(
             fin_disc_agent.solution[0].stage_sols["Cns"].cFunc(3.0, 4.0, 0.1),
-            2.45609,
+            2.45587,
             places=HARK_PRECISION,
         )
 
@@ -167,6 +167,6 @@ class test_(unittest.TestCase):
         )
         self.assertAlmostEqual(
             fin_disc_agent.solution[0].stage_sols["Cns"].cFunc(3, 4, 0.1),
-            2.45610,
+            2.45588,
             places=HARK_PRECISION,
         )

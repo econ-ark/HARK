@@ -23,9 +23,13 @@ from quantecon.optimize import newton_secant
 
 from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     ConsumerSolution,
     IndShockConsumerType,
     calc_aNrm_grid,
+    calc_boro_const_nat,
+    calc_boro_const_nat_from_infima,
+    check_employed_floor_in_solver,
     find_kink,
     PerfForesightConsumerType,
     init_perfect_foresight,
@@ -693,6 +697,47 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         self.PermShkValsNext = self.IncShkDstn.atoms[0]
         self.TranShkValsNext = self.IncShkDstn.atoms[1]
 
+        # Where the natural limit can bind, unemployment must be the lowest income
+        check_employed_floor_in_solver(
+            self.solution_next.mNrmMin,
+            self.IncShkDstn,
+            self.Rfree,
+            self.PermGroFac,
+            self.BoroCnstArt,
+        )
+        # The natural limit belongs to the model: where the laws are bounded below
+        # away from zero, it comes from their infima
+        # (calc_boro_const_nat_from_infima) and is imposed as BoroCnstArt is where
+        # it is above the atoms' own limit, as in solve_one_period_ConsIndShock,
+        # so the two solvers solve one model. Both limits are computed here by the
+        # one function, so that where the laws' infima are the atoms' (a
+        # degenerate or discrete law) they are equal exactly and nothing is
+        # imposed: the compiled code below computes the atoms' limit in another
+        # order of operations, which can differ from it in the last digit.
+        BoroCnstArt = self.BoroCnstArt
+        BoroCnstInf = calc_boro_const_nat_from_infima(
+            self.solution_next.mNrmMin,
+            self.IncShkDstn,
+            self.Rfree,
+            self.PermGroFac,
+        )
+        if BoroCnstInf is not None:
+            BoroCnstInf = float(BoroCnstInf)
+            BoroCnstAtoms = float(
+                calc_boro_const_nat(
+                    self.solution_next.mNrmMin,
+                    self.IncShkDstn,
+                    self.Rfree,
+                    self.PermGroFac,
+                )
+            )
+            if BoroCnstInf > BoroCnstAtoms:
+                BoroCnstArt = (
+                    BoroCnstInf
+                    if BoroCnstArt is None
+                    else max(float(BoroCnstArt), BoroCnstInf)
+                )
+
         (
             self.DiscFacEff,
             self.BoroCnstNat,
@@ -714,7 +759,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
             self.CRRA,
             self.Rfree,
             self.PermGroFac,
-            self.BoroCnstArt,
+            BoroCnstArt,
             self.aXtraGrid,
             self.solution_next.hNrm,
             self.solution_next.mNrmMin,
@@ -1063,6 +1108,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
             The solution to the one period problem.
         """
 
+        check_cubic_pairing(self.CubicBool)
         if self.CubicBool:
             (
                 self.cNrm,
@@ -1316,6 +1362,9 @@ def select_fast_solver(CubicBool, vFuncBool):
     else:  # Use the "advanced" solver if either is requested
         solver = ConsIndShockSolverFast
     solve_one_period = make_one_period_oo_solver(solver)
+    # The fast solvers impose the natural limit from the laws' infima, as
+    # solve_one_period_ConsIndShock does, so bilt follows them too
+    solve_one_period.imposes_infimum_limit = True
     return solve_one_period
 
 

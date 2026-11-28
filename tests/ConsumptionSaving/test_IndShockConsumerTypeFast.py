@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from tests.ConsumptionSaving.test_IndShockConsumerType import (
     CyclicalDict,
     IdiosyncDict,
     LifecycleDict,
+    atoms_as_the_law,
 )
 from tests import HARK_PRECISION
 
@@ -41,28 +43,28 @@ class testIndShockConsumerTypeFast(unittest.TestCase):
         self.assertAlmostEqual(LifecycleExample.solution[-1].cFunc(2).tolist(), 2)
 
         self.assertAlmostEqual(
-            LifecycleExample.solution[9].cFunc(1), 0.79459, places=HARK_PRECISION
+            LifecycleExample.solution[9].cFunc(1), 0.79373, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[8].cFunc(1), 0.79418, places=HARK_PRECISION
+            LifecycleExample.solution[8].cFunc(1), 0.79331, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            LifecycleExample.solution[7].cFunc(1), 0.79277, places=HARK_PRECISION
+            LifecycleExample.solution[7].cFunc(1), 0.79188, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
             LifecycleExample.solution[0].cFunc(1).tolist(),
-            0.75090,
+            0.74943,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[1].cFunc(1).tolist(),
-            0.75893,
+            0.75757,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[2].cFunc(1).tolist(),
-            0.76848,
+            0.76725,
             places=HARK_PRECISION,
         )
 
@@ -148,7 +150,7 @@ class testBufferStock(unittest.TestCase):
             "PermShkStd": [0.1],
             "TranShkStd": [0.1],
             "LivPrb": [1.0],
-            "CubicBool": True,
+            "CubicBool": False,  # cubic is refused with discrete shocks; values re-pinned
             "T_cycle": 1,
             "BoroCnstArt": None,
         }
@@ -167,12 +169,12 @@ class testBufferStock(unittest.TestCase):
         c_t5 = baseEx.cFunc[-6](m)
         c_t10 = baseEx.cFunc[-11](m)
 
-        self.assertAlmostEqual(c_m[500], 1.40081, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[500], 1.39903, places=HARK_PRECISION)
         self.assertAlmostEqual(c_t1[500], 2.92274, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t5[500], 1.73506, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[500], 1.49914, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[600], 1.61015, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_t10[700], 1.71965, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t5[500], 1.73480, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[500], 1.49854, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[600], 1.60958, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_t10[700], 1.71914, places=HARK_PRECISION)
 
     def test_GICRawFails(self):
         GICRaw_fail_dictionary = dict(self.base_params)
@@ -189,8 +191,8 @@ class testBufferStock(unittest.TestCase):
         m = np.linspace(0, 5, 1000)
         c_m = GICRawFailExample.cFunc[0](m)
 
-        self.assertAlmostEqual(c_m[500], 0.77726, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_m[700], 0.83926, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[500], 0.77690, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m[700], 0.83895, places=HARK_PRECISION)
 
         self.assertFalse(GICRawFailExample.conditions["GICRaw"])
 
@@ -205,22 +207,22 @@ class testBufferStock(unittest.TestCase):
         )  # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
-        self.assertAlmostEqual(c_m1[0], 0.85279, places=HARK_PRECISION)
-        self.assertAlmostEqual(c_m1[-1], 1.00363, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m1[0], 0.85174, places=HARK_PRECISION)
+        self.assertAlmostEqual(c_m1[-1], 1.00365, places=HARK_PRECISION)
 
         x1 = np.linspace(0, 25, 1000)
         cfunc_m = baseEx_inf.cFunc[0](x1)
 
-        self.assertAlmostEqual(cfunc_m[500], 1.89021, places=HARK_PRECISION)
-        self.assertAlmostEqual(cfunc_m[700], 2.15915, places=HARK_PRECISION)
+        self.assertAlmostEqual(cfunc_m[500], 1.88585, places=HARK_PRECISION)
+        self.assertAlmostEqual(cfunc_m[700], 2.15318, places=HARK_PRECISION)
 
         m = np.linspace(0.001, 8, 1000)
 
         # Use the HARK method derivative to get the derivative of cFunc, and the values are just the MPC
         MPC = baseEx_inf.cFunc[0].derivative(m)
 
-        self.assertAlmostEqual(MPC[500], 0.08415, places=HARK_PRECISION)
-        self.assertAlmostEqual(MPC[700], 0.07173, places=HARK_PRECISION)
+        self.assertAlmostEqual(MPC[500], 0.08398, places=HARK_PRECISION)
+        self.assertAlmostEqual(MPC[700], 0.07123, places=HARK_PRECISION)
 
 
 class testIndShockConsumerTypeFastExample(unittest.TestCase):
@@ -230,11 +232,11 @@ class testIndShockConsumerTypeFastExample(unittest.TestCase):
         IndShockExample.solve()
 
         self.assertAlmostEqual(
-            IndShockExample.solution[0].mNrmStE, 1.54702, places=HARK_PRECISION
+            IndShockExample.solution[0].mNrmStE, 1.54917, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
             IndShockExample.solution[0].cFunc.functions[0].x_list[0],
-            -0.25018,
+            -0.25013,
             places=HARK_PRECISION,
         )
 
@@ -263,7 +265,7 @@ class testIndShockConsumerTypeFastLifecycle(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(),
-            2.13005,
+            2.12978,
             places=HARK_PRECISION,
         )
 
@@ -276,7 +278,7 @@ class testIndShockConsumerTypeFastCyclical(unittest.TestCase):
 
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(),
-            1.59609,
+            1.59530,
             places=HARK_PRECISION,
         )
 
@@ -347,20 +349,15 @@ class testValueFunction(unittest.TestCase):
             v = fast.solution[t].vFunc(2.0)
             self.assertTrue(np.isfinite(v), f"vFunc at t={t} returned {v}")
 
-    def test_vFunc_with_cubic(self):
-        """Test vFunc with cubic interpolation enabled."""
+    def test_cubic_refused(self):
+        """Cubic Hermite interpolation is refused with a sum over discrete shock atoms."""
         params = self.params.copy()
         params["CubicBool"] = True
         params["BoroCnstArt"] = None
 
         fast = IndShockConsumerTypeFast(**params)
         fast.cycles = 0
-        fast.solve()
-
-        test_points = [1.0, 2.0, 5.0]
-        for m in test_points:
-            v = fast.solution[0].vFunc(m)
-            self.assertTrue(np.isfinite(v), f"vFunc({m}) = {v} is not finite")
+        self.assertRaises(ValueError, fast.solve)
 
 
 class testConsistencyWithStandard(unittest.TestCase):
@@ -690,7 +687,8 @@ class testKinkAttributesFast(unittest.TestCase):
                 )
 
     def test_same_kink_as_the_standard_solver(self):
-        for CubicBool in (False, True):
+        # Linear only: cubic interpolation is refused over atoms
+        for CubicBool in (False,):
             with self.subTest(CubicBool=CubicBool):
                 fast = IndShockConsumerTypeFast(cycles=0, CubicBool=CubicBool)
                 fast.solve()
@@ -702,6 +700,123 @@ class testKinkAttributesFast(unittest.TestCase):
                         getattr(standard.solution[0], name),
                         places=8,
                     )
-        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None)
+        # Where the natural constraint binds there is no kink: a discrete law's
+        # natural limit (atoms_as_the_law). With laws bounded below the infima's
+        # limit is above the atoms' and makes one, the standard solver's
+        fast = atoms_as_the_law(IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None))
         fast.solve()
         self.assertTrue(np.isnan(fast.solution[0].mNrmKink))
+        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None)
+        fast.solve()
+        standard = IndShockConsumerType(cycles=0, BoroCnstArt=None)
+        standard.solve()
+        self.assertAlmostEqual(
+            fast.solution[0].mNrmKink, standard.solution[0].mNrmKink, places=8
+        )
+
+
+class testEmployedFloorFast(unittest.TestCase):
+    """
+    The fast solver makes the employed-floor check as the standard solver does:
+    where the natural borrowing limit can bind, the lowest employed transitory
+    income must be strictly above unemployment income, or the solve halts.
+    """
+
+    def test_a_benefit_above_the_employed_floor_halts(self):
+        # in the basic solver and in the one that also builds the value function
+        for kwds in ({}, {"vFuncBool": True}):
+            agent = IndShockConsumerTypeFast(
+                cycles=1, BoroCnstArt=None, IncUnemp=0.8, **kwds
+            )
+            with self.assertRaises(ValueError) as caught:
+                agent.solve()
+            self.assertIn("strictly above unemployment income", str(caught.exception))
+
+    def test_the_defaults_and_an_exempt_model_pass(self):
+        # The default laws' employed floor is far above the benefit; an artificial
+        # constraint at or above the natural limit exempts
+        for kwds in ({"BoroCnstArt": None}, {"BoroCnstArt": 0.0, "IncUnemp": 0.8}):
+            agent = IndShockConsumerTypeFast(cycles=1, **kwds)
+            agent.solve()
+            self.assertTrue(np.isfinite(agent.solution[0].mNrmMin))
+
+
+class testNaturalLimitFromTheInfimaFast(unittest.TestCase):
+    """
+    The fast solver imposes the natural borrowing constraint from the shock
+    laws' infima where they are bounded below away from zero, as the standard
+    solver does, so the two solve one model.
+    """
+
+    # HARK's lognormals bounded at three standard deviations of their logs, and
+    # unbounded, whatever HARK's default is
+    BOUNDED = dict(PermShk_inf=-3.0, PermShk_sup=3.0, TranShk_inf=-3.0, TranShk_sup=3.0)
+    UNBOUNDED = dict(
+        PermShk_inf=-np.inf, PermShk_sup=np.inf, TranShk_inf=-np.inf, TranShk_sup=np.inf
+    )
+
+    def test_same_limit_and_solution_as_the_standard_solver(self):
+        # cubic is refused with discrete shocks, so with linear interpolation
+        for kwds in ({}, {"vFuncBool": True}):
+            kwds = dict(kwds, **self.BOUNDED)
+            for cycles in (0, 3):
+                fast = IndShockConsumerTypeFast(cycles=cycles, BoroCnstArt=None, **kwds)
+                fast.solve()
+                slow = IndShockConsumerType(cycles=cycles, BoroCnstArt=None, **kwds)
+                slow.solve()
+                for sol_fast, sol_slow in zip(fast.solution[:-1], slow.solution[:-1]):
+                    self.assertAlmostEqual(
+                        sol_fast.mNrmMin, sol_slow.mNrmMin, places=12
+                    )
+                    self.assertEqual(sol_fast.MPCmax, 1.0)
+                    m = np.linspace(sol_slow.mNrmMin, 20.0, 2001)
+                    np.testing.assert_allclose(
+                        sol_fast.cFunc(m), sol_slow.cFunc(m), rtol=0, atol=1e-7
+                    )
+        # The infinite-horizon limit with the lognormals truncated at three
+        # standard deviations, and bilt's MPCmax
+        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None, **self.BOUNDED)
+        fast.solve()
+        self.assertAlmostEqual(fast.solution[0].mNrmMin, -0.770919, places=6)
+        self.assertTrue(fast.solver_imposes_infimum_limit())
+        self.assertEqual(fast.bilt["MPCmax"], 1.0)
+
+    def test_the_life_cycle_period_by_period(self):
+        # In working life the infima's limit is above the atoms' and is imposed,
+        # with a maximal MPC of one. Next to retirement the laws' infima are the
+        # atoms', the two limits are one number, nothing is imposed, and the
+        # maximal MPC is the natural constraint's, below one: in every period the
+        # fast solver's limit and maximal MPC are the standard solver's
+        params = deepcopy(init_lifecycle)
+        params["BoroCnstArt"] = None
+        params.update(self.BOUNDED)
+        fast = IndShockConsumerTypeFast(**params)
+        fast.solve()
+        slow = IndShockConsumerType(**params)
+        slow.solve()
+        below_one = 0
+        for sol_fast, sol_slow in zip(fast.solution[:-1], slow.solution[:-1]):
+            self.assertAlmostEqual(sol_fast.mNrmMin, sol_slow.mNrmMin, places=12)
+            self.assertAlmostEqual(sol_fast.MPCmax, sol_slow.MPCmax, places=12)
+            below_one += sol_slow.MPCmax < 1.0
+        self.assertGreater(below_one, 0)
+        self.assertLess(below_one, len(slow.solution) - 1)
+
+    def test_laws_unbounded_below_keep_the_atoms_limit(self):
+        # Where an infimum is zero both solvers keep the atoms' limit, the same
+        # one, with the same maximal MPC below one
+        # the permanent shock unbounded: both unbounded halt at the employed-floor check
+        unbounded_perm = dict(PermShk_inf=-np.inf, PermShk_sup=np.inf)
+        fast = IndShockConsumerTypeFast(cycles=0, BoroCnstArt=None, **unbounded_perm)
+        fast.solve()
+        slow = IndShockConsumerType(cycles=0, BoroCnstArt=None, **unbounded_perm)
+        slow.solve()
+        self.assertLess(slow.solution[0].mNrmMin, 0.0)
+        self.assertAlmostEqual(
+            fast.solution[0].mNrmMin, slow.solution[0].mNrmMin, places=12
+        )
+        self.assertLess(slow.solution[0].MPCmax, 1.0)
+        self.assertAlmostEqual(
+            fast.solution[0].MPCmax, slow.solution[0].MPCmax, places=12
+        )
+        self.assertLess(fast.bilt["MPCmax"], 1.0)

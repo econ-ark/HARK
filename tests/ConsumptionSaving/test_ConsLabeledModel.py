@@ -74,8 +74,8 @@ class test_IndShockConsumerType(unittest.TestCase):
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         m = self.agent.solution[0].policy["mNrm"].to_numpy()
 
-        self.assertAlmostEqual(c[4], 0.47038, places=HARK_PRECISION)
-        self.assertAlmostEqual(m[4], -0.72898, places=HARK_PRECISION)
+        self.assertAlmostEqual(c[4], 0.47016, places=HARK_PRECISION)
+        self.assertAlmostEqual(m[4], -0.72786, places=HARK_PRECISION)
 
     def test_consumption_increasing_in_wealth(self):
         """Consumption should be monotonically increasing in market resources."""
@@ -114,8 +114,8 @@ class test_RiskyAssetLabeledType(unittest.TestCase):
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         m = self.agent.solution[0].policy["mNrm"].to_numpy()
         # Consumption at moderate wealth should be positive and reasonable
-        self.assertAlmostEqual(c[5], 0.75438, places=HARK_PRECISION)
-        self.assertAlmostEqual(m[5], 0.78213, places=HARK_PRECISION)
+        self.assertAlmostEqual(c[5], 0.75423, places=HARK_PRECISION)
+        self.assertAlmostEqual(m[5], 0.78197, places=HARK_PRECISION)
 
 
 class test_PortfolioLabeledType(unittest.TestCase):
@@ -144,8 +144,8 @@ class test_PortfolioLabeledType(unittest.TestCase):
         self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         m = self.agent.solution[0].policy["mNrm"].to_numpy()
-        self.assertAlmostEqual(c[5], 0.65750, places=HARK_PRECISION)
-        self.assertAlmostEqual(m[5], 0.73061, places=HARK_PRECISION)
+        self.assertAlmostEqual(c[5], 0.65738, places=HARK_PRECISION)
+        self.assertAlmostEqual(m[5], 0.73049, places=HARK_PRECISION)
 
     def test_continuation_exists(self):
         """Portfolio model should have continuation function."""

@@ -14,7 +14,7 @@ class testRepAgentConsumerType(unittest.TestCase):
 
     def test_solution(self):
         self.assertAlmostEqual(
-            self.agent.solution[0].cFunc(10).tolist(), 1.71306, places=HARK_PRECISION
+            self.agent.solution[0].cFunc(10).tolist(), 1.71256, places=HARK_PRECISION
         )
 
     def test_simulation(self):
@@ -33,7 +33,7 @@ class testRepAgentMarkovConsumerType(unittest.TestCase):
 
     def test_solution(self):
         self.assertAlmostEqual(
-            self.agent.solution[0].cFunc[0](10).tolist(), 1.38295, places=HARK_PRECISION
+            self.agent.solution[0].cFunc[0](10).tolist(), 1.38254, places=HARK_PRECISION
         )
 
     def test_simulation(self):

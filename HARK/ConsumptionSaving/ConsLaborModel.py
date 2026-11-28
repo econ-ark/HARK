@@ -20,6 +20,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     get_TranShkGrid_from_TranShkDstn,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     IndShockConsumerType,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
@@ -266,8 +267,7 @@ def solve_ConsLaborIntMarg(
         raise ValueError("CRRA must be strictly greater than alpha/(1+alpha).")
     if BoroCnstArt is not None:
         raise ValueError("Model cannot handle artificial borrowing constraint yet.")
-    if CubicBool is True:
-        raise ValueError("Model cannot handle cubic interpolation yet.")
+    check_cubic_pairing(CubicBool)
     if vFuncBool is True:
         raise ValueError("Model cannot compute the value function yet.")
 

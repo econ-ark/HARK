@@ -20,6 +20,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     make_basic_pLvlPctiles,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     ConsumerSolution,
     IndShockConsumerType,
     make_lognormal_kNrm_init_dstn,
@@ -166,6 +167,7 @@ def solve_one_period_ConsGenIncProcess(
     solution_now : ConsumerSolution
         Solution to this period's consumption-saving problem.
     """
+    check_cubic_pairing(CubicBool)
     # Define the utility function for this period
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor

@@ -8,6 +8,7 @@ import numpy as np
 
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     ConsumerSolution,
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
@@ -1207,6 +1208,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
 
     :meta private:
     """
+    check_cubic_pairing(CubicBool)
     # Do a quick validity check; don't want to allow borrowing with risky returns
     if BoroCnstArt != 0.0:
         raise ValueError("RiskyAssetConsumerType must have BoroCnstArt=0.0!")
