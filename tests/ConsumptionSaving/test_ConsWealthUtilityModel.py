@@ -85,7 +85,7 @@ class testCapitalistSpiritConsumerType(unittest.TestCase):
 class testInvalidParams(unittest.TestCase):
     def test_invalid(self):
         MyType = WealthUtilityConsumerType(cycles=0, CubicBool=True)
-        self.assertRaises(NotImplementedError, MyType.solve)
+        self.assertRaises(ValueError, MyType.solve)
 
         MyType = CapitalistSpiritConsumerType(WealthCurve=1.3)
         self.assertRaises(ValueError, MyType.solve)

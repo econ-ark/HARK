@@ -1423,6 +1423,83 @@ class CubicHermiteInterp(_CubicInterpMixin, HARKinterpolator1D):
         # scipy's PPoly: coefficient k multiplies (x - x_i) ** (3 - k)
         self._chs.c[:, i] = [0.0, 0.0, slope, self.y_list[i]]
         self.coeffs[i + 1] = [self.y_list[i], slope, 0.0, 0.0]
+        if i in getattr(self, "power_segments", {}):
+            del self.power_segments[i]  # the line replaces a power segment too
+
+    def set_power_segment(self, i):
+        """
+        Replace the cubic on the segment ``[x_list[i], x_list[i+1]]`` by a
+        function whose slope leaves the left knot's like a power of the distance
+        from that knot. With ``h`` the segment's width, ``t = (x - x_i) / h``
+        and ``s_i``, ``s_{i+1}`` the slopes at its knots,
+
+            f'(x) = s_i - (s_i - s_{i+1}) t^q,
+            f(x) = y_i + h (s_i t - (s_i - s_{i+1}) t^(q+1) / (q + 1)),
+
+        where the power ``q = (S - s_{i+1}) / (s_i - S)``, with ``S`` the
+        segment's secant slope, makes the function reach the right knot. Like
+        the cubic it matches the level and the slope at both knots; unlike it,
+        its slope moves from one knot's to the other's without ever turning
+        back, so it is concave wherever its data are (``s_i > S > s_{i+1}``),
+        however far the slope's fall is from a straight line. It needs the
+        secant strictly between the two slopes. Every other segment is
+        unchanged.
+
+        A cubic's slope is a parabola, which cannot follow a slope that leaves
+        its value at a knot like a power of the distance far from one: its
+        second derivative there is zero for a power above one and infinite for
+        a power below one. A consumption function does that above a natural
+        borrowing constraint that binds with no step in the MPC, where the MPC
+        falls from one like a power of the distance to the kink that the income
+        shocks' laws and risk aversion set.
+
+        The segment is recorded in ``power_segments``, which maps its index to
+        the power ``q``, and survives pickling and deepcopy. ``coeffs`` and the
+        scipy spline keep the segment's cubic: :meth:`der_interp`,
+        :meth:`antider_interp`, :meth:`integrate`, :meth:`roots` and
+        :meth:`solve`, which pass through to scipy, still see the cubic there.
+
+        Parameters
+        ----------
+        i : int
+            Index of the segment, 0 <= i < n - 1.
+        """
+        i = int(i)
+        if not 0 <= i < self.n - 1:
+            raise IndexError(f"segment {i} is outside 0..{self.n - 2}")
+        secant = (self.y_list[i + 1] - self.y_list[i]) / (
+            self.x_list[i + 1] - self.x_list[i]
+        )
+        left, right = self.dydx_list[i], self.dydx_list[i + 1]
+        if not (left > secant > right or left < secant < right):
+            raise ValueError(
+                f"segment {i}'s secant slope {secant} is not strictly between "
+                f"the slopes at its knots, {left} and {right}"
+            )
+        segments = dict(getattr(self, "power_segments", {}))
+        segments[i] = float((secant - right) / (left - secant))
+        self.power_segments = segments
+
+    def _fill_power_segments(self, x, y=None, dydx=None):
+        """
+        Write the level and the slope inside each segment that
+        :meth:`set_power_segment` replaced into ``y`` and ``dydx``, each
+        optional. The knots themselves keep the spline's values.
+        """
+        for i, power in getattr(self, "power_segments", {}).items():
+            x_left, x_right = self.x_list[i], self.x_list[i + 1]
+            inside = (x > x_left) & (x < x_right)
+            if not inside.any():
+                continue
+            width = x_right - x_left
+            t = (x[inside] - x_left) / width
+            left, right = self.dydx_list[i], self.dydx_list[i + 1]
+            if y is not None:
+                y[inside] = self.y_list[i] + width * (
+                    left * t - (left - right) * t ** (power + 1.0) / (power + 1.0)
+                )
+            if dydx is not None:
+                dydx[inside] = left - (left - right) * t**power
 
     def out_of_bounds(self, x):
         out_bot = x < self.x_list[0]
@@ -1444,6 +1521,7 @@ class CubicHermiteInterp(_CubicInterpMixin, HARKinterpolator1D):
         subclass that changes the extrapolation overrides these two.
         """
         y = self._chs(x)
+        self._fill_power_segments(x, y=y)
         self._fill_outbounds(x, out_bot, out_top, y=y)
         return y
 
@@ -1458,6 +1536,7 @@ class CubicHermiteInterp(_CubicInterpMixin, HARKinterpolator1D):
     def _der_helper(self, x, out_bot, out_top):
         """The derivative counterpart of :meth:`_eval_helper`."""
         dydx = self._chs(x, nu=1)
+        self._fill_power_segments(x, dydx=dydx)
         self._fill_outbounds(x, out_bot, out_top, dydx=dydx)
         return dydx
 

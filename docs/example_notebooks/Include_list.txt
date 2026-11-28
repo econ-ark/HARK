@@ -12,6 +12,7 @@ examples/ConsHealthModel/BasicHealthConsumerType.ipynb
 examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
 examples/ConsIndShockModel/IndShockConsumerType.ipynb
 examples/ConsIndShockModel/KinkedRconsumerType.ipynb
+examples/ConsIndShockModel/ConcavityViolations.ipynb
 examples/ConsAggShockModel/AggShockConsumerType.ipynb
 examples/ConsAggShockModel/AggShockMarkovConsumerType.ipynb
 examples/ConsAggShockModel/KrusellSmithType.ipynb

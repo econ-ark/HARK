@@ -1,5 +1,6 @@
 import unittest
 from copy import deepcopy
+from unittest import mock
 
 import numpy as np
 
@@ -371,11 +372,30 @@ class testMarkovMatchesIndShock(unittest.TestCase):
                 sol_mrkv.vFunc[i](m), sol_ind.vFunc(m), rtol=1e-12, atol=0
             )
 
+    # The cubic halves of the tests below exercise the solvers' cubic branches,
+    # which the pairing rule makes unreachable over atoms, so they solve with the
+    # check disabled
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsMarkovModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
     def test_artificial_constraint(self):
         # HARK's defaults: unemployment insurance, borrowing limited to zero
         for CubicBool in (False, True):
             self.check(IncUnemp=0.3, BoroCnstArt=0.0, CubicBool=CubicBool)
 
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsMarkovModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
     def test_natural_constraint_zero_income(self):
         # Buffer stock theory: a zero-income event and no artificial constraint
         for CubicBool in (False, True):
@@ -654,6 +674,16 @@ class testMarkovKink(unittest.TestCase):
     """Where the artificial constraint binds in a state, the solution records
     that state's kink, consumption there and the MPC just above it."""
 
+    # The cubic half exercises the solver's cubic branch, which the pairing rule
+    # makes unreachable over atoms, so the test solves with the check disabled
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsMarkovModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
+    @mock.patch(
+        "HARK.ConsumptionSaving.ConsIndShockModel.check_cubic_pairing",
+        lambda *args, **kwargs: None,
+    )
     def test_kink_in_each_state(self):
         for CubicBool in (False, True):
             with self.subTest(CubicBool=CubicBool):

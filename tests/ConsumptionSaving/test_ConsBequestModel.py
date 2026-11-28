@@ -29,12 +29,10 @@ class testWarmGlowConsumerType(unittest.TestCase):
         self.agent.initialize_sim()
         self.agent.simulate()
 
-    def test_cubic(self):
+    def test_cubic_refused(self):
+        # Cubic Hermite interpolation is refused with a sum over discrete shock atoms
         CubicType = BequestWarmGlowConsumerType(CubicBool=True)
-        CubicType.solve()
-        cFunc = CubicType.solution[0].cFunc
-        mNrm = 10.0
-        self.assertAlmostEqual(cFunc(mNrm).tolist(), 1.688675, places=HARK_PRECISION)
+        self.assertRaises(ValueError, CubicType.solve)
 
     def test_borrowing(self):
         ThisType = BequestWarmGlowConsumerType(BeqFac=1.0, BoroCnstArt=None)

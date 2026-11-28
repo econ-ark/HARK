@@ -16,6 +16,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     get_TranShkDstn_from_IncShkDstn_markov,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     ConsumerSolution,
     IndShockConsumerType,
     calc_aNrm_grid,
@@ -353,6 +354,7 @@ def solve_one_period_ConsMarkov(
         Markov state.  E.g. solution.cFunc[0] is the consumption function
         when in the i=0 Markov state this period.
     """
+    check_cubic_pairing(CubicBool)
     # Relabel the inputs that vary across Markov states
     IncShkDstn_list = IncShkDstn
     Rfree_list = np.array(Rfree)

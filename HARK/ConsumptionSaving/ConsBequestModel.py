@@ -19,6 +19,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     get_TranShkDstn_from_IncShkDstn,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    check_cubic_pairing,
     ConsumerSolution,
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
@@ -272,6 +273,7 @@ def solve_one_period_ConsWarmBequest(
     solution_now : ConsumerSolution
         Solution to this period's consumption-saving problem with income risk.
     """
+    check_cubic_pairing(CubicBool)
     # Define the current period utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
